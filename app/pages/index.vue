@@ -83,7 +83,7 @@
 
 				<template #title>
 					<div class="flex items-center gap-2">
-						<SvgoLogo :font-controlled="false" class="size-6 shrink-0 text-primary-900 dark:text-primary-200 " />
+						<SvgoLogo :font-controlled="false" class="size-6 shrink-0 text-primary dark:text-primary-200 "  />
 						<span class="font-bold">{{ school?.name ?? "..." }}</span>
 					</div>
 				</template>

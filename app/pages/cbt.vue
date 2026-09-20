@@ -1,7 +1,8 @@
 <script lang="ts" setup>
 	definePageMeta({
 		layout: false,
-		hideFromNav: true
+		hideFromNav: true,
+		colorMode: "light"
 	});
 
 	interface OptionView { key: string, text: string }
@@ -44,6 +45,27 @@
 	// Which set of questions is on screen right now: PG until that session is submitted,
 	// then Esai. An exam with no essay questions at all just stays on the PG set throughout.
 	const currentQuestions = computed(() => (pgSubmittedAt.value ? essayQuestions.value : pgQuestions.value));
+
+	// "satu": one question at a time with Sebelumnya/Selanjutnya + a jump-to navigator.
+	// "scroll": every question stacked in one scrollable column (previous behavior).
+	const viewMode = ref<"satu" | "scroll">("satu");
+	const currentIndex = ref(0);
+	const currentQuestion = computed(() => currentQuestions.value[currentIndex.value]);
+	const isAnswered = (q: QuestionView) => {
+		const a = answers[q.id];
+		return typeof a === "string" && a.trim().length > 0;
+	};
+	const goPrev = () => { if (currentIndex.value > 0) currentIndex.value--; };
+	const goNext = () => { if (currentIndex.value < currentQuestions.value.length - 1) currentIndex.value++; };
+	// New session set (PG -> Esai transition) starts back at question 1.
+	watch(currentQuestions, () => { currentIndex.value = 0; });
+
+	const confirmOpen = ref(false);
+	const confirmFinish = () => {
+		confirmOpen.value = false;
+		if (!pgSubmittedAt.value && hasEssay.value) doSubmitPg();
+		else doSubmit();
+	};
 
 	let timer: ReturnType<typeof setInterval>;
 
@@ -277,9 +299,9 @@
 		</UCard>
 
 		<!-- Exam -->
-		<div v-else-if="stage === 'exam'" class="w-full max-w-2xl space-y-4">
+		<div v-else-if="stage === 'exam'" class="w-full max-w-4xl space-y-4">
 			<UCard class="sticky top-4 z-10">
-				<div class="flex items-center justify-between">
+				<div class="flex items-center justify-between flex-wrap gap-3">
 					<div>
 						<h1 class="font-bold">
 							{{ examTitle }}
@@ -288,55 +310,159 @@
 							Sesi {{ pgSubmittedAt ? "Esai" : "Pilihan Ganda" }}
 						</p>
 					</div>
-					<UBadge :color="remaining <= 60 ? 'error' : 'primary'" size="lg" variant="subtle">
-						{{ formatTime(remaining) }}
-					</UBadge>
+					<div class="flex items-center gap-2">
+						<UButton
+							size="sm"
+							:variant="viewMode === 'satu' ? 'solid' : 'outline'"
+							@click="viewMode = 'satu'">
+							1 Soal
+						</UButton>
+						<UButton
+							size="sm"
+							:variant="viewMode === 'scroll' ? 'solid' : 'outline'"
+							@click="viewMode = 'scroll'">
+							Semua Soal
+						</UButton>
+						<UBadge :color="remaining <= 60 ? 'error' : 'primary'" size="lg" variant="subtle">
+							{{ formatTime(remaining) }}
+						</UBadge>
+					</div>
 				</div>
 			</UCard>
 
-			<UCard v-for="(q, i) in currentQuestions" :key="q.id">
-				<template #header>
-					<span class="font-medium">{{ i + 1 }}. {{ q.questionText }}</span>
-				</template>
+			<!-- Mode: satu soal + navigator -->
+			<div v-if="viewMode === 'satu' && currentQuestion" class="flex flex-col md:flex-row gap-4 items-start">
+				<UCard class="flex-1 w-full">
+					<template #header>
+						<span class="font-medium">{{ currentIndex + 1 }}. {{ currentQuestion.questionText }}</span>
+					</template>
 
-				<img
-					v-if="q.image"
-					:src="`/${q.image}`"
-					class="max-w-full rounded-md mb-3"
-					alt="">
+					<img
+						v-if="currentQuestion.image"
+						:src="`/${currentQuestion.image}`"
+						class="max-w-full rounded-md mb-3"
+						alt="">
 
-				<div v-if="q.questionType === 'essay'">
-					<UTextarea
-						:model-value="answers[q.id] ?? ''"
-						:rows="4"
-						placeholder="Tulis jawabanmu di sini..."
-						@update:model-value="(v: string) => setAnswer(q.id, v)"
-					/>
-				</div>
-				<div v-else class="space-y-2">
-					<label
-						v-for="opt in q.options"
-						:key="opt.key"
-						class="flex items-center gap-3 p-2 rounded-md hover:bg-elevated cursor-pointer"
-					>
-						<input
-							type="radio"
-							:name="`q-${q.id}`"
-							:value="opt.key"
-							:checked="answers[q.id] === opt.key"
-							@change="setAnswer(q.id, opt.key)"
+					<div v-if="currentQuestion.questionType === 'essay'">
+						<UTextarea
+							:model-value="answers[currentQuestion.id] ?? ''"
+							:rows="6"
+							placeholder="Tulis jawabanmu di sini..."
+							@update:model-value="(v: string) => setAnswer(currentQuestion!.id, v)"
+						/>
+					</div>
+					<div v-else class="space-y-2">
+						<label
+							v-for="opt in currentQuestion.options"
+							:key="opt.key"
+							class="flex items-center gap-3 p-3 rounded-md border cursor-pointer transition-colors"
+							:class="answers[currentQuestion.id] === opt.key
+								? 'border-primary bg-primary/10 text-primary font-medium'
+								: 'border-default hover:bg-elevated'"
 						>
-						<span>{{ opt.key }}. {{ opt.text }}</span>
-					</label>
-				</div>
-			</UCard>
+							<input
+								type="radio"
+								:name="`q-${currentQuestion.id}`"
+								:value="opt.key"
+								:checked="answers[currentQuestion.id] === opt.key"
+								@change="setAnswer(currentQuestion!.id, opt.key)"
+							>
+							<span>{{ opt.key }}. {{ opt.text }}</span>
+						</label>
+					</div>
+
+					<div class="flex items-center justify-between mt-6">
+						<UButton
+							variant="soft"
+							color="neutral"
+							icon="lucide:chevron-left"
+							:disabled="currentIndex === 0"
+							@click="goPrev">
+							Sebelumnya
+						</UButton>
+						<UButton
+							v-if="currentIndex < currentQuestions.length - 1"
+							trailing-icon="lucide:chevron-right"
+							@click="goNext">
+							Selanjutnya
+						</UButton>
+					</div>
+				</UCard>
+
+				<UCard class="w-full md:w-56 shrink-0">
+					<template #header>
+						<span class="text-sm font-medium">Navigasi Soal</span>
+					</template>
+					<div class="grid grid-cols-6 md:grid-cols-4 gap-2 max-h-64 md:max-h-[55vh] overflow-y-auto pr-1">
+						<button
+							v-for="(q, i) in currentQuestions"
+							:key="q.id"
+							type="button"
+							class="size-9 rounded-md border text-sm font-medium flex items-center justify-center transition-colors"
+							:class="[
+								i === currentIndex ? 'ring-2 ring-primary' : '',
+								isAnswered(q) ? 'bg-primary text-white border-primary' : 'border-default hover:bg-elevated'
+							]"
+							@click="currentIndex = i">
+							{{ i + 1 }}
+						</button>
+					</div>
+					<div class="flex items-center flex-wrap gap-x-3 gap-y-1 mt-3 text-xs text-muted">
+						<span class="inline-flex items-center gap-1"><span class="size-3 rounded-sm bg-primary inline-block" /> Terjawab</span>
+						<span class="inline-flex items-center gap-1"><span class="size-3 rounded-sm border border-default inline-block" /> Belum</span>
+					</div>
+				</UCard>
+			</div>
+
+			<!-- Mode: semua soal, discroll ke bawah -->
+			<template v-else-if="viewMode === 'scroll'">
+				<UCard v-for="(q, i) in currentQuestions" :key="q.id">
+					<template #header>
+						<span class="font-medium">{{ i + 1 }}. {{ q.questionText }}</span>
+					</template>
+
+					<img
+						v-if="q.image"
+						:src="`/${q.image}`"
+						class="max-w-full rounded-md mb-3"
+						alt="">
+
+					<div v-if="q.questionType === 'essay'">
+						<UTextarea
+							:model-value="answers[q.id] ?? ''"
+							:rows="4"
+							placeholder="Tulis jawabanmu di sini..."
+							@update:model-value="(v: string) => setAnswer(q.id, v)"
+						/>
+					</div>
+					<div v-else class="space-y-2">
+						<label
+							v-for="opt in q.options"
+							:key="opt.key"
+							class="flex items-center gap-3 p-3 rounded-md border cursor-pointer transition-colors"
+							:class="answers[q.id] === opt.key
+								? 'border-primary bg-primary/10 text-primary font-medium'
+								: 'border-default hover:bg-elevated'"
+						>
+							<input
+								type="radio"
+								:name="`q-${q.id}`"
+								:value="opt.key"
+								:checked="answers[q.id] === opt.key"
+								@change="setAnswer(q.id, opt.key)"
+							>
+							<span>{{ opt.key }}. {{ opt.text }}</span>
+						</label>
+					</div>
+				</UCard>
+			</template>
 
 			<UButton
 				v-if="!pgSubmittedAt && hasEssay"
 				block
 				size="lg"
 				:loading="submitting"
-				@click="doSubmitPg">
+				@click="confirmOpen = true">
 				Selesai Sesi Pilihan Ganda
 			</UButton>
 			<UButton
@@ -344,9 +470,31 @@
 				block
 				size="lg"
 				:loading="submitting"
-				@click="doSubmit">
+				@click="confirmOpen = true">
 				Selesai & Kumpulkan
 			</UButton>
+
+			<UModal v-model:open="confirmOpen" title="Yakin sudah selesai?">
+				<template #body>
+					<p class="text-sm">
+						Periksa kembali semua jawabanmu sebelum mengumpulkan. Jawaban yang sudah
+						dikumpulkan tidak bisa diubah lagi.
+					</p>
+					<p class="text-sm text-muted mt-2">
+						{{ currentQuestions.filter(isAnswered).length }} dari {{ currentQuestions.length }} soal sudah dijawab.
+					</p>
+				</template>
+				<template #footer>
+					<div class="flex justify-end gap-2 w-full">
+						<UButton variant="soft" color="neutral" @click="confirmOpen = false">
+							Tidak, periksa lagi
+						</UButton>
+						<UButton color="primary" :loading="submitting" @click="confirmFinish">
+							Ya, sudah selesai
+						</UButton>
+					</div>
+				</template>
+			</UModal>
 		</div>
 
 		<!-- Done -->
