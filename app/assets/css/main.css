@@ -1,0 +1,40 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+@import "@fontsource-variable/tiktok-sans";
+
+@theme {
+	--font-sans: "TikTok Sans Variable", sans-serif;
+
+		--color-primary: var(--ui-color-primary-500);
+	--color-secondary: var(--ui-color-secondary-500);
+	--color-success: var(--ui-color-success-500);
+	--color-info: var(--ui-color-info-500);
+	--color-warning: var(--ui-color-warning-500);
+	--color-error: var(--ui-color-error-500)
+}
+
+@layer base {
+	body {
+		line-height: 1.6;
+	}
+}
+
+:root {
+	--ui-radius: 0.125rem;
+}
+
+/* :root, .light {
+	--ui-bg: var(--ui-color-neutral-50);
+	--ui-bg-muted: var(--ui-color-neutral-300);
+	--ui-text-inverted: var(--ui-color-neutral-50);
+	--ui-text-muted: var(--ui-color-neutral-800);
+}
+
+.dark {
+	--ui-text-highlighted: var(--ui-color-neutral-50);
+	--ui-bg-inverted: var(--ui-color-neutral-50);
+	--ui-border-inverted: var(--ui-color-neutral-50);
+	--ui-bg: var(--ui-color-neutral-900);
+	--ui-bg-muted: var(--ui-color-neutral-800);
+	--ui-text-inverted: var(--ui-color-neutral-900);
+} */

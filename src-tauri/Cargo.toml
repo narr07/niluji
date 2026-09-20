@@ -1,0 +1,48 @@
+[package]
+name = "nuxtor"
+version = "1.6.0"
+description = "Starter template for Nuxt 4 and Tauri 2"
+authors = [ "NicolaSpadari" ]
+license = "MIT"
+repository = "https://github.com/NicolaSpadari/nuxtor"
+edition = "2021"
+
+[lib]
+name = "nuxtor_lib"
+crate-type = [
+  "staticlib",
+  "cdylib",
+  "rlib"
+]
+
+[build-dependencies.tauri-build]
+version = "2.5.3"
+features = [ ]
+
+[dependencies]
+tauri-plugin-shell = "2.3.4"
+tauri-plugin-notification = "2.3.3"
+tauri-plugin-os = "2.3.2"
+tauri-plugin-fs = "2.4.5"
+tauri-plugin-store = "2.4.2"
+tauri-plugin-dialog = "2"
+serde_json = "1"
+axum = "0.8"
+tokio = { version = "1", features = ["rt-multi-thread", "net", "macros"] }
+tower-http = { version = "0.6", features = ["fs"] }
+rusqlite = { version = "0.32", features = ["bundled"] }
+csv = "1"
+calamine = "0.26"
+base64 = "0.22"
+
+[features]
+default = ["desktop"]
+desktop = ["tauri/tray-icon"]
+
+[dependencies.tauri]
+version = "2.9.5"
+features = ["unstable"]
+
+[dependencies.serde]
+version = "1"
+features = [ "derive" ]
