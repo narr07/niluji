@@ -1,31 +1,31 @@
 {
-	  "name": "niluji",
-  "type": "module",
-  "version": "1.0.0",
-  "private": false,
-  "packageManager": "bun@1.3.6",
-  "description": "NILUJI - Platform CBT dan e-Rapor terintegrasi untuk sekolah",
-  "author": "narr07",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/narr07/niluji.git"
-  },
-  "homepage": "https://github.com/narr07/niluji",
-  "bugs": {
-    "url": "https://github.com/narr07/niluji/issues"
-  },
-  "keywords": [
-    "niluji",
-    "cbt",
-    "e-rapor",
-    "ujian",
-    "penilaian",
-    "sekolah",
-    "education",
-    "nuxt",
-    "tauri"
-  ],
+	"name": "niluji",
+	"type": "module",
+	"version": "1.0.0",
+	"private": false,
+	"packageManager": "bun@1.3.6",
+	"description": "NILUJI - Platform CBT dan e-Rapor terintegrasi untuk sekolah",
+	"author": "narr07",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/narr07/niluji.git"
+	},
+	"homepage": "https://github.com/narr07/niluji",
+	"bugs": {
+		"url": "https://github.com/narr07/niluji/issues"
+	},
+	"keywords": [
+		"niluji",
+		"cbt",
+		"e-rapor",
+		"ujian",
+		"penilaian",
+		"sekolah",
+		"education",
+		"nuxt",
+		"tauri"
+	],
 	"scripts": {
 		"dev": "nuxt dev",
 		"generate": "nuxt generate",
@@ -47,7 +47,8 @@
 		"@nuxt/ui": "^4.4.0",
 		"@tauri-apps/api": "^2.9.1",
 		"@tauri-apps/plugin-dialog": "2.6.0",
-		"@tauri-apps/plugin-fs": "^2.4.5",
+		"@tauri-apps/plugin-fs": "2.4.5",
+		"@tauri-apps/plugin-http": "2.5.0",
 		"@tauri-apps/plugin-notification": "^2.3.3",
 		"@tauri-apps/plugin-os": "^2.3.2",
 		"@tauri-apps/plugin-shell": "^2.3.4",
@@ -59,6 +60,7 @@
 		"sortablejs": "^1.15.7",
 		"vue": "^3.5.27",
 		"vue-router": "^4.6.4",
+		"xlsx": "^0.18.5",
 		"zod": "^4.3.6"
 	},
 	"devDependencies": {

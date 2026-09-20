@@ -1,6 +1,8 @@
 # Bank Soal Online
 
-Folder ini disiapkan untuk bank soal yang diambil oleh aplikasi NILUJI melalui jsDelivr.
+Folder ini disiapkan untuk bank soal yang diambil oleh aplikasi NILUJI langsung dari GitHub
+(`raw.githubusercontent.com`). jsDelivr sempat dicoba tapi CDN-nya menolak (403 Forbidden)
+semua file `.xlsx`/dokumen Office — gambar tetap boleh, hanya dokumennya yang diblokir.
 
 Gunakan kode mata pelajaran dari tabel `subjects` sebagai nama folder, dalam bentuk URL-safe
 huruf kecil. Contoh kode `IPAS` menjadi `ipas`, dan `B.Indo` menjadi `b-indo`.

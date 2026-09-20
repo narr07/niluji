@@ -1,94 +1,71 @@
 <p align="center">
-  <img width="150" src="./public/logo.png" alt="NUXTOR Logo">
+  <img width="150" src="./public/logo.png" alt="NILUJI Logo">
 </p>
 
-<h1 align="center">NUXTOR</h1>
+<h1 align="center">NILUJI</h1>
 
 <p align="center">
-  A spiritual successor of <a href="https://github.com/NicolaSpadari/vitauri">ViTauri</a>,
-  built with <a href="https://nuxt.com">Nuxt 4</a> and
-  <a href="https://v2.tauri.app">Tauri 2</a>.
+  Platform CBT (Computer-Based Test) offline untuk sekolah dasar, dibangun dengan
+  <a href="https://nuxt.com">Nuxt 4</a> dan <a href="https://v2.tauri.app">Tauri 2</a>.
   <br />
-  Build blazing fast desktop & mobile applications.
+  Satu aplikasi desktop untuk guru/admin, satu halaman ujian yang bisa dibuka siswa
+  dari browser mana pun di jaringan lokal (WiFi/hotspot) yang sama — sepenuhnya
+  tanpa internet.
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/github/package-json/v/NicolaSpadari/nuxtor" />
-  <img src="https://img.shields.io/github/license/NicolaSpadari/nuxtor" />
+  <img src="https://img.shields.io/github/package-json/v/narr07/niluji" />
+  <img src="https://img.shields.io/github/license/narr07/niluji" />
 </p>
-
-<p align="center">
-  <a href="README.md">English</a> | <a href="README.zh-CN.md">简体中文</a>
-</p>
-
-<p align="center">
-  <img src="./public/screenshot.png" alt="NUXTOR Screenshot">
-</p>
-
-<p align="center"><strong>Powered by Nuxt 4</strong></p>
-
-📸 **Live Previews**:  
-[iOS · Android · Commands · File System · Notifications · OS Info · Storage · Webview](https://github.com/NicolaSpadari/nuxtor/blob/main/preview.md)
 
 ---
+
+## Arsitektur Singkat
+
+- Aplikasi Tauri (guru/admin) menjalankan server HTTP (axum) tertanam di dalamnya.
+- Server itu melayani dashboard admin sekaligus halaman ujian siswa lewat IP lokal
+  (mis. `http://192.168.x.x`), jadi siswa cukup buka browser di HP/laptop mereka —
+  tidak perlu install apa pun.
+- Data (soal, siswa, hasil ujian) disimpan di SQLite lokal, tidak ada dependensi
+  cloud untuk menjalankan ujian.
+
+## Fitur Utama
+
+- Bank Soal: kelola soal per kelas, mata pelajaran, dan "jenis" (paket soal, mis.
+  UTS/UAS/Latihan) — pilihan ganda dan esai.
+- **Tarik Soal Online**: opsional, mengambil template soal `.xlsx` dari repo GitHub
+  publik (lewat `raw.githubusercontent.com`) untuk diperiksa & diimpor ke bank soal
+  lokal — tetap berjalan sepenuhnya offline setelah diimpor.
+- Kelola Ujian: jadwalkan ujian per kelas/mata pelajaran, atur jendela akses dan
+  durasi pengerjaan per siswa secara terpisah.
+- Sesi ujian PG dan Esai terpisah: siswa menyelesaikan Pilihan Ganda dulu, lalu
+  esai; nilai esai digrading manual oleh guru dan tidak masuk kalkulasi otomatis.
+- Hasil Ujian: progres real-time per siswa, grading esai inline, serta dashboard
+  analitik (tingkat kesulitan soal & peringkat siswa) dengan grafik.
+- Login siswa via QR code, cocok untuk perangkat siswa yang berbeda-beda.
 
 ## Tech Stack
 
-- Nuxt v4
-- Tauri v2
-- Nuxt UI v4
-- Tailwind CSS v4
-- TypeScript
-- ESLint
-- Auto imports (including Tauri APIs)
-
----
-
-## What It Does
-
-- Run shell commands from the app
-- Send OS-level notifications
-- Access system information
-- Persistent key–value storage
-- System tray icon
-- Full Nuxt feature support (routing, layouts, middleware, modules, etc.)
-
----
-
-## Who Is This For?
-
-✅ Developers who want **Nuxt DX** in a desktop / mobile app  
-✅ Teams already using **Vue / Nuxt / Tailwind**  
-✅ Projects targeting **Windows / macOS / Linux / iOS / Android**  
-
-❌ Not suitable if you require hosted SSR (SSR is intentionally disabled)
+- Nuxt v4 + Nuxt UI v4 + Tailwind CSS v4
+- Tauri v2 (Rust) + SQLite (`rusqlite`) + axum (server HTTP tertanam)
+- TypeScript, ESLint
+- Auto imports (termasuk Tauri API)
 
 ---
 
 ## Setup
 
-> 🚀 **Bun is the default package manager.**  
-> To use npm / pnpm / yarn, update `package.json` and `tauri.conf.json`.
-
-- Frontend: `http://localhost:3000`
-- Tauri backend: `http://localhost:3001`
-- Ports are configurable in `nuxt.config.ts` and `tauri.conf.json`
+> 🚀 Bun adalah package manager utama proyek ini.
 
 ```sh
-# Scaffold a new project
-npx degit NicolaSpadari/nuxtor my-nuxtor-app
-
-cd my-nuxtor-app
-
-# Install dependencies
 bun install
 
-# Start development mode
+# Mode pengembangan (Nuxt + Tauri sekaligus)
 bun run tauri:dev
 ```
 
-> ⚠️ **Nuxt SSR is disabled** so Tauri can act as the backend.  
-> Routing, middleware, composables, and all other Nuxt features remain fully functional.
+> ⚠️ Nuxt SSR dimatikan (`ssr: false`) karena Tauri berperan sebagai backend.
+> Routing, layout, middleware, dan composable Nuxt lain tetap berfungsi normal.
 
 ---
 
@@ -98,7 +75,7 @@ bun run tauri:dev
 bun run tauri:build
 ```
 
-Output: `src-tauri/target`
+Output ada di `src-tauri/target/release/bundle/`.
 
 ### Debug Build
 
@@ -106,58 +83,27 @@ Output: `src-tauri/target`
 bun run tauri:build:debug
 ```
 
-Enables console access inside the bundled app.
+Mengaktifkan akses console di dalam aplikasi yang sudah di-bundle.
 
 ---
 
-## iOS Development
+## Catatan Data
 
-Requires **macOS + Xcode**.
+Database SQLite dan file upload TIDAK ikut ter-bundle ke dalam installer/exe.
+Lokasinya ada di `%APPDATA%\<identifier>\` (Windows) — perlu disalin manual kalau
+memindahkan instalasi ke perangkat lain.
 
-```sh
-# First-time setup
-brew install cocoapods
-tauri ios init
+## Catatan Pengembangan
 
-# Development
-bun tauri:ios:dev
-
-# Production build
-bun tauri:build:ios
-```
-
-In Xcode:
-- Enable **Automatically manage signing**
-- Select your personal **Development Team**
-
----
-
-## Android Development
-
-Requires **Android Studio + SDK + NDK**.
-
-```sh
-# First-time setup
-tauri android init
-
-# Development
-bun tauri:android:dev
-
-# Production build
-bun tauri:build:android
-```
-
----
-
-## Notes
-
-- Tauri v2 introduces breaking changes (package names, permissions).
-- Permissions must be declared in `src-tauri/capabilities/main.json`.
-- Tauri APIs are auto-imported via `app/modules/tauri.ts`.
-- Adding new Tauri plugins requires updating this module.
+- Permission Tauri harus dideklarasikan di `src-tauri/capabilities/main.json`.
+- Tauri API di-auto-import lewat `app/modules/tauri.ts`; menambah plugin Tauri baru
+  perlu update modul ini.
+- Progres pengembangan fitur dicatat di `PROGRESS.md`.
 
 ---
 
 ## License
 
-MIT © 2024–Present [Nicola Spadari](https://github.com/NicolaSpadari)
+MIT © 2026–Present [narr07](https://github.com/narr07)
+
+<sub>Berbasis starter template <a href="https://github.com/NicolaSpadari/nuxtor">Nuxtor</a> oleh Nicola Spadari.</sub>

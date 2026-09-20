@@ -41,6 +41,12 @@
 		"fs:allow-document-write",
 		"store:default",
 		"dialog:allow-open",
+		{
+			"identifier": "http:default",
+			"allow": [
+				{ "url": "https://raw.githubusercontent.com/*" }
+			]
+		},
 		"core:webview:allow-create-webview",
 		"core:webview:allow-create-webview-window"
 	]

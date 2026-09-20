@@ -19,9 +19,9 @@
 		},
 		"externalBin": [],
 		"copyright": "",
-		"category": "DeveloperTool",
-		"shortDescription": "",
-		"longDescription": "",
+		"category": "Education",
+		"shortDescription": "CBT offline untuk sekolah",
+		"longDescription": "NILUJI - Platform CBT dan e-Rapor offline untuk sekolah dasar.",
 		"macOS": {},
 		"linux": {
 			"deb": {}
@@ -33,14 +33,14 @@
 		"beforeDevCommand": "bun run dev",
 		"devUrl": "http://localhost:3000"
 	},
-	"productName": "Nuxtor",
-	"version": "1.6.0",
+	"productName": "Niluji",
+	"version": "1.0.0",
 	"identifier": "com.nicolaspadari.nuxtor",
 	"plugins": {},
 	"app": {
 		"windows": [
 			{
-				"title": "Nuxtor",
+				"title": "Niluji",
 				"width": 1366,
 				"height": 768,
 				"minWidth": 375,

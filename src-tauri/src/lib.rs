@@ -179,6 +179,11 @@ fn load_image_data_url(path: String, uploads_dir: tauri::State<UploadsDir>) -> R
 }
 
 #[tauri::command]
+fn save_question_image_bytes(file_name: String, bytes: Vec<u8>, uploads_dir: tauri::State<UploadsDir>) -> Result<uploads::SavedImage, String> {
+	uploads::save_image_bytes(&uploads_dir.0, &file_name, &bytes)
+}
+
+#[tauri::command]
 fn get_school(db: tauri::State<db::Db>) -> Result<settings::SchoolInfo, String> {
 	settings::get_school(&db)
 }
@@ -306,6 +311,7 @@ pub fn run() {
 		.plugin(tauri_plugin_fs::init())
 		.plugin(tauri_plugin_store::Builder::new().build())
 		.plugin(tauri_plugin_dialog::init())
+		.plugin(tauri_plugin_http::init())
 		.invoke_handler(tauri::generate_handler![
 			get_server_info,
 			import_questions,
@@ -334,6 +340,7 @@ pub fn run() {
 			delete_question,
 			save_question_image,
 			load_image_data_url,
+			save_question_image_bytes,
 			get_school,
 			update_school,
 			list_classes_full,
