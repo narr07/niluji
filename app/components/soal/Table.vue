@@ -93,7 +93,7 @@
 <template>
 	<div class="space-y-3">
 		<UFormField label="Filter Tipe Soal" class="max-w-xs">
-			<USelectMenu v-model="typeFilter" :items="typeFilterItems" />
+			<USelectMenu v-model="typeFilter" :items="typeFilterItems" class="w-fit min-w-32" />
 		</UFormField>
 
 		<UTable
