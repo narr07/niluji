@@ -1,6 +1,5 @@
 <script lang="ts" setup>
 	import { invoke } from "@tauri-apps/api/core";
-	import { open } from "@tauri-apps/plugin-dialog";
 
 	definePageMeta({
 		name: "Siswa",
@@ -60,9 +59,6 @@
 	const students = ref<StudentRecord[]>([]);
 	const online = ref<OnlineStudent[]>([]);
 	const classes = ref<string[]>([]);
-	const importing = ref(false);
-	const importMessage = ref("");
-	const importError = ref(false);
 
 	// Every fixed class (4/5/6) always shows up, even with zero students, so admin can
 	// drill into an empty class and add students to it.
@@ -101,32 +97,13 @@
 		online.value = await invoke<OnlineStudent[]>("list_online_students");
 	};
 
-	const pickAndImport = async () => {
+	const importOpen = ref(false);
+	const openImport = () => {
 		if (!isTauri()) {
 			toast.add({ title: "Mode Pratinjau", description: "Fitur import berjalan di dalam aplikasi desktop Tauri.", color: "info" });
 			return;
 		}
-		const path = await open({
-			multiple: false,
-			filters: [{ name: "Siswa", extensions: ["csv", "xlsx", "xls"] }]
-		});
-		if (!path) return;
-
-		importing.value = true;
-		importMessage.value = "";
-		importError.value = false;
-		try {
-			const summary = await invoke<{ studentsImported: number }>("import_students", { path });
-			importMessage.value = `Berhasil import ${summary.studentsImported} siswa.`;
-			toast.add({ title: "Import selesai", description: importMessage.value, icon: "lucide:check", color: "success" });
-			await loadData();
-		} catch (error) {
-			importError.value = true;
-			importMessage.value = error instanceof Error ? error.message : String(error);
-			toast.add({ title: "Import gagal", description: importMessage.value, icon: "lucide:x", color: "error" });
-		} finally {
-			importing.value = false;
-		}
+		importOpen.value = true;
 	};
 
 	let timer: ReturnType<typeof setInterval>;
@@ -170,8 +147,7 @@
 						icon="lucide:upload"
 						variant="soft"
 						color="primary"
-						:loading="importing"
-						@click="pickAndImport">
+						@click="openImport">
 						Import
 					</UButton>
 				</template>
@@ -180,15 +156,11 @@
 
 		<template #body>
 			<div class="space-y-6">
-				<UAlert
-					v-if="importMessage"
-					:color="importError ? 'error' : 'success'"
-					:title="importMessage"
-					variant="subtle" />
-
 				<SiswaKelasGrid :class-groups="classGroups" />
 				<SiswaOnlineTable :online="online" />
 			</div>
 		</template>
 	</UDashboardPanel>
+
+	<SiswaImportModal v-model:open="importOpen" @imported="loadData" />
 </template>

@@ -146,8 +146,16 @@ fn get_exam_analytics(
 }
 
 #[tauri::command]
-fn import_students(path: String, db: tauri::State<db::Db>) -> Result<students::StudentImportSummary, String> {
-	students::import_students(&db, &path)
+fn parse_students_file(path: String) -> Result<Vec<students::StudentImportRow>, String> {
+	students::parse_students_file(&path)
+}
+
+#[tauri::command]
+fn import_students_rows(
+	rows: Vec<students::StudentImportRow>,
+	db: tauri::State<db::Db>
+) -> Result<students::StudentImportSummary, String> {
+	students::import_students_rows(&db, rows)
 }
 
 #[tauri::command]
@@ -411,7 +419,8 @@ pub fn run() {
 			get_exam_session_detail,
 			grade_essay_answer,
 			get_exam_analytics,
-			import_students,
+			parse_students_file,
+			import_students_rows,
 			list_students,
 			create_student,
 			update_student,

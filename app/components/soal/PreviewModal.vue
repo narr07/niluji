@@ -80,17 +80,21 @@
 
 				<UCard>
 					<template #header>
-						<span class="font-medium" v-html="renderSoalMarkdown(detail.questionText)" />
+						<span class="font-medium" v-html="renderSoalMarkdown(detail.questionText, imagePreview || undefined)" />
 					</template>
 
 					<img
-						v-if="imagePreview"
+						v-if="imagePreview && !hasSoalImagePlaceholder(detail.questionText)"
 						:src="imagePreview"
 						class="max-w-full rounded-md mb-3"
 						alt="">
 
 					<div v-if="detail.questionType === 'essay'">
-						<UTextarea :model-value="''" :rows="5" placeholder="Siswa akan menjawab dengan mengetik di sini..." disabled />
+						<UTextarea
+							:model-value="''"
+							:rows="5"
+							placeholder="Siswa akan menjawab dengan mengetik di sini..."
+							disabled />
 					</div>
 					<div v-else class="space-y-2">
 						<div
@@ -99,7 +103,11 @@
 							class="flex items-center justify-between gap-3 p-3 rounded-md border"
 							:class="opt.key === detail.correctOption ? 'border-success bg-success/10' : 'border-default'">
 							<span>{{ opt.key }}. {{ opt.text }}</span>
-							<UBadge v-if="opt.key === detail.correctOption" color="success" variant="subtle" size="xs">
+							<UBadge
+								v-if="opt.key === detail.correctOption"
+								color="success"
+								variant="subtle"
+								size="xs">
 								Kunci Jawaban
 							</UBadge>
 						</div>

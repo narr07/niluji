@@ -165,21 +165,49 @@ pub fn delete_student(db: &Db, id: i64) -> Result<(), String> {
 	Ok(())
 }
 
-pub fn import_students(db: &Db, path: &str) -> Result<StudentImportSummary, String> {
+// Baris hasil parsing file CSV/Excel siswa, buat ditampilkan sebagai preview yang bisa
+// diedit di UI dulu (sama seperti alur Import dari Word) SEBELUM benar-benar ditulis ke
+// database — jadi kalau ada NISN/nama yang kebaca salah/kosong, guru bisa benerin langsung
+// tanpa perlu edit ulang file sumbernya lalu import ulang dari awal.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct StudentImportRow {
+	pub nisn: String,
+	pub name: String,
+	pub class: Option<String>
+}
+
+pub fn parse_students_file(path: &str) -> Result<Vec<StudentImportRow>, String> {
 	let (headers, rows) = read_rows(path)?;
 
+	let mut result = Vec::new();
+	for row in &rows {
+		let nisn = find_column(&headers, row, NISN_COLS).unwrap_or_default();
+		let name = find_column(&headers, row, NAME_COLS).unwrap_or_default();
+		let class = find_column(&headers, row, CLASS_COLS);
+		// Baris yang dua-duanya kosong biasanya cuma baris kosong di akhir file — dilewati
+		// diam-diam. Baris yang salah satunya saja kosong tetap disertakan supaya kelihatan
+		// di preview dan bisa dibenerin manual, bukan hilang tanpa jejak.
+		if nisn.is_empty() && name.is_empty() {
+			continue;
+		}
+		result.push(StudentImportRow { nisn, name, class });
+	}
+	Ok(result)
+}
+
+pub fn import_students_rows(db: &Db, rows: Vec<StudentImportRow>) -> Result<StudentImportSummary, String> {
 	let mut conn = db.lock().unwrap();
 	let tx = conn.transaction().map_err(|e| e.to_string())?;
 
 	let mut students_imported = 0usize;
 	for row in &rows {
-		let Some(nisn) = find_column(&headers, row, NISN_COLS) else {
+		let nisn = row.nisn.trim();
+		let name = row.name.trim();
+		if nisn.is_empty() || name.is_empty() {
 			continue;
-		};
-		let Some(name) = find_column(&headers, row, NAME_COLS) else {
-			continue;
-		};
-		let class = find_column(&headers, row, CLASS_COLS);
+		}
+		let class = row.class.as_deref().map(str::trim).filter(|c| !c.is_empty());
 
 		tx.execute(
 			"INSERT INTO students (nisn, name, class) VALUES (?1, ?2, ?3)
@@ -211,7 +239,9 @@ mod tests {
 		writeln!(f, "2222222222,Dedi Kurnia,4").unwrap();
 		drop(f);
 
-		let summary = import_students(&db, csv_path.to_str().unwrap()).unwrap();
+		let rows = parse_students_file(csv_path.to_str().unwrap()).unwrap();
+		assert_eq!(rows.len(), 2);
+		let summary = import_students_rows(&db, rows).unwrap();
 		assert_eq!(summary.students_imported, 2);
 
 		let name: String =

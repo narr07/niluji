@@ -360,11 +360,13 @@
 				<UCard class="flex-1 w-full">
 					<template #header>
 						<span class="font-medium">{{ currentIndex + 1 }}. </span>
-						<span class="font-medium" v-html="renderSoalMarkdown(currentQuestion.questionText)" />
+						<span
+							class="font-medium"
+							v-html="renderSoalMarkdown(currentQuestion.questionText, currentQuestion.image ? `/${currentQuestion.image}` : undefined)" />
 					</template>
 
 					<img
-						v-if="currentQuestion.image"
+						v-if="currentQuestion.image && !hasSoalImagePlaceholder(currentQuestion.questionText)"
 						:src="`/${currentQuestion.image}`"
 						class="max-w-full rounded-md mb-3"
 						alt="">
@@ -445,11 +447,11 @@
 				<UCard v-for="(q, i) in currentQuestions" :key="q.id">
 					<template #header>
 						<span class="font-medium">{{ i + 1 }}. </span>
-						<span class="font-medium" v-html="renderSoalMarkdown(q.questionText)" />
+						<span class="font-medium" v-html="renderSoalMarkdown(q.questionText, q.image ? `/${q.image}` : undefined)" />
 					</template>
 
 					<img
-						v-if="q.image"
+						v-if="q.image && !hasSoalImagePlaceholder(q.questionText)"
 						:src="`/${q.image}`"
 						class="max-w-full rounded-md mb-3"
 						alt="">

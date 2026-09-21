@@ -40,6 +40,31 @@
 	const exporting = ref(false);
 	const errorMessage = ref("");
 
+	// Supaya guru tidak perlu navigasi ulang ke folder db-soal setiap kali export — dialog
+	// folder-picker langsung default ke folder terakhir yang dipilih (per perangkat).
+	const LAST_FOLDER_KEY = "niluji-export-soal-folder";
+	const lastFolder = ref<string | undefined>();
+	onMounted(() => {
+		try {
+			lastFolder.value = localStorage.getItem(LAST_FOLDER_KEY) ?? undefined;
+		} catch {
+			// Abaikan kalau localStorage tidak bisa diakses — dialog cuma tidak punya default.
+		}
+	});
+
+	// "Tarik Soal Online" narik data dari folder `db-soal/` di repo GitHub narr07/niluji (lihat
+	// CDN_BASE di useBankSoalOnline.ts) — jadi kalau folder tujuan export bukan folder `db-soal`
+	// persis di dalam clone repo itu, hasil export tidak akan pernah ketemu sekolah lain
+	// walaupun sudah di-push, karena strukturnya tidak nyambung sama yang dicari Tarik Soal Online.
+	const folderNameWarning = computed(() => {
+		if (!lastFolder.value) return null;
+		const name = lastFolder.value.split(/[/\\]/).filter(Boolean).pop();
+		if (name && name.toLowerCase() !== "db-soal") {
+			return `Folder tujuan saat ini bernama "${name}", bukan "db-soal". Supaya hasil export ini bisa ditarik sekolah lain lewat Tarik Soal Online setelah di-push, folder tujuannya harus persis folder "db-soal" di dalam clone repo GitHub Niluji kamu.`;
+		}
+		return null;
+	});
+
 	const subjectItems = computed(() => subjects.value.map((s) => ({ label: s.code ? `${s.code} — ${s.name}` : s.name, value: s.id })));
 	const jenisItems = computed(() => jenisOptions.value.map((j) => j.name));
 	const canExport = computed(() => Boolean(kelas.value && subjectId.value && jenis.value && pin.value.trim()));
@@ -79,8 +104,20 @@
 		if (!canExport.value || !subjectId.value) return;
 		errorMessage.value = "";
 
-		const outputDir = await openDialog({ directory: true, multiple: false, title: "Pilih folder tujuan export" });
+		const outputDir = await openDialog({
+			directory: true,
+			multiple: false,
+			title: "Pilih folder tujuan export",
+			defaultPath: lastFolder.value
+		});
 		if (!outputDir) return;
+
+		lastFolder.value = outputDir;
+		try {
+			localStorage.setItem(LAST_FOLDER_KEY, outputDir);
+		} catch {
+			// Sama seperti di atas — pilihan folder cuma tidak tersimpan untuk export berikutnya.
+		}
 
 		exporting.value = true;
 		try {
@@ -112,7 +149,16 @@
 			<div class="space-y-4">
 				<p class="text-sm text-muted">
 					Pilih kelas, mata pelajaran, dan jenis ujian yang mau diekspor ke file Markdown + folder gambar.
+					Pilih folder <strong>db-soal</strong> di dalam clone repo GitHub Niluji kamu sebagai tujuan —
+					supaya setelah di-push, hasilnya bisa ditarik sekolah lain lewat Tarik Soal Online.
 				</p>
+
+				<UAlert
+					v-if="folderNameWarning"
+					color="warning"
+					variant="subtle"
+					title="Cek lagi folder tujuannya"
+					:description="folderNameWarning" />
 
 				<UFormField label="Kelas">
 					<USelectMenu
