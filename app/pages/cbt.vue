@@ -216,28 +216,43 @@
 </script>
 
 <template>
-	<div class="min-h-screen p-6" :class="stage === 'exam' ? 'flex items-start justify-center' : 'flex items-center justify-center'">
+	<div
+		class="min-h-screen p-6 bg-gradient-to-br from-primary-50 to-primary-100"
+		:class="stage === 'exam' ? 'flex items-start justify-center' : 'flex items-center justify-center'">
 		<!-- Login -->
-		<UCard v-if="stage === 'login'" class="w-full max-w-sm">
+		<UCard v-if="stage === 'login'" class="w-full max-w-sm shadow-xl ring-2 ring-primary/20">
 			<template #header>
-				<h1 class="text-xl font-bold">
+				<h1 class="text-2xl font-bold text-center text-black">
 					Login Ujian
 				</h1>
 			</template>
 
 			<form class="space-y-4" @submit.prevent="doLogin">
-				<UFormField label="NISN">
-					<UInput v-model="nisn" size="lg" />
+				<UFormField label="NISN" :ui="{ label: 'text-base font-semibold text-black' }">
+					<UInput
+						v-model="nisn"
+						size="xl"
+						color="primary"
+						highlight
+						class="text-lg text-black" />
 				</UFormField>
 
-				<UFormField label="Nama">
-					<UInput v-model="name" size="lg" />
+				<UFormField label="Nama" :ui="{ label: 'text-base font-semibold text-black' }">
+					<UInput
+						v-model="name"
+						size="xl"
+						variant="outline"
+						color="primary"
+						class="text-lg text-black" />
 				</UFormField>
 
 				<UButton
 					type="submit"
 					block
-					size="lg"
+					size="xl"
+					color="primary"
+					variant="solid"
+					class="text-lg font-bold"
 					:loading="loading">
 					Masuk
 				</UButton>
@@ -252,22 +267,32 @@
 		</UCard>
 
 		<!-- Token entry -->
-		<UCard v-else-if="stage === 'token'" class="w-full max-w-sm">
+		<UCard v-else-if="stage === 'token'" class="w-full max-w-sm shadow-xl ring-2 ring-primary/20">
 			<template #header>
-				<h1 class="text-xl font-bold">
+				<h1 class="text-2xl font-bold text-center text-black">
 					Selamat datang, {{ name }}!
 				</h1>
 			</template>
 
 			<form class="space-y-4" @submit.prevent="doJoin">
-				<UFormField label="Token Ujian">
-					<UInput v-model="token" size="lg" placeholder="Contoh: UTS2026" />
+				<UFormField label="Token Ujian" :ui="{ label: 'text-base font-semibold text-black' }">
+					<UInput
+						v-model="token"
+						size="xl"
+						variant="outline"
+						color="primary"
+						placeholder="Contoh: UTS2026"
+						class="text-lg text-black"
+						:ui="{ base: 'placeholder:text-gray-500' }" />
 				</UFormField>
 
 				<UButton
 					type="submit"
 					block
-					size="lg"
+					size="xl"
+					color="primary"
+					variant="solid"
+					class="text-lg font-bold"
 					:loading="loading">
 					Mulai Ujian
 				</UButton>
@@ -334,7 +359,8 @@
 			<div v-if="viewMode === 'satu' && currentQuestion" class="flex flex-col md:flex-row gap-4 items-start">
 				<UCard class="flex-1 w-full">
 					<template #header>
-						<span class="font-medium">{{ currentIndex + 1 }}. {{ currentQuestion.questionText }}</span>
+						<span class="font-medium">{{ currentIndex + 1 }}. </span>
+						<span class="font-medium" v-html="renderSoalMarkdown(currentQuestion.questionText)" />
 					</template>
 
 					<img
@@ -418,7 +444,8 @@
 			<template v-else-if="viewMode === 'scroll'">
 				<UCard v-for="(q, i) in currentQuestions" :key="q.id">
 					<template #header>
-						<span class="font-medium">{{ i + 1 }}. {{ q.questionText }}</span>
+						<span class="font-medium">{{ i + 1 }}. </span>
+						<span class="font-medium" v-html="renderSoalMarkdown(q.questionText)" />
 					</template>
 
 					<img

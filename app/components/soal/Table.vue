@@ -20,6 +20,7 @@
 	const emit = defineEmits<{
 		edit: [id: number]
 		delete: [question: QuestionSummary]
+		preview: [id: number]
 	}>();
 
 	const typeFilterItems = [
@@ -49,8 +50,20 @@
 		{
 			accessorKey: "questionText",
 			header: "Soal",
-			cell: ({ row }: { row: { original: QuestionSummary } }) =>
-				h("span", { class: "block max-w-sm truncate", title: row.original.questionText }, row.original.questionText)
+			cell: ({ row }: { row: { original: QuestionSummary } }) => {
+				const plain = stripSoalMarkdown(row.original.questionText);
+				return h("span", { class: "block max-w-sm truncate", title: plain }, plain);
+			}
+		},
+		{
+			id: "image",
+			header: "Gambar",
+			cell: ({ row }: { row: { original: QuestionSummary } }) => {
+				const UIcon = resolveComponent("UIcon");
+				return row.original.image
+					? h(UIcon, { name: "lucide:image", class: "size-5 text-primary", title: "Soal ini punya gambar" })
+					: h("span", { class: "text-muted" }, "-");
+			}
 		},
 		{ accessorKey: "optionCount", header: "Jumlah Opsi" },
 		{ accessorKey: "score", header: "Skor" },
@@ -60,6 +73,11 @@
 			cell: ({ row }: { row: { original: QuestionSummary } }) => {
 				const UButton = resolveComponent("UButton");
 				return h("div", { class: "flex gap-2" }, [
+					h(
+						UButton,
+						{ size: "xs", variant: "soft", color: "neutral", icon: "lucide:eye", onClick: () => emit("preview", row.original.id) },
+						() => "Preview"
+					),
 					h(UButton, { size: "xs", variant: "soft", icon: "lucide:pencil", onClick: () => emit("edit", row.original.id) }, () => "Edit"),
 					h(
 						UButton,
@@ -85,6 +103,7 @@
 			:column-pinning="{ right: ['actions'] }"
 			sticky
 			class="max-h-[32rem]"
+			:ui="{ th: 'bg-default', td: 'bg-default' }"
 		>
 			<template #empty>
 				<div class="text-center py-10 text-muted">

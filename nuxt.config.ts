@@ -50,6 +50,9 @@ export default defineNuxtConfig({
 	vite: {
 		clearScreen: false,
 		envPrefix: ["VITE_", "TAURI_"],
+		optimizeDeps: {
+			include: ["@nuxt/ui > prosemirror-state"]
+		},
 		server: {
 			strictPort: true,
 			hmr: host

@@ -37,6 +37,7 @@
 	const exams = ref<Exam[]>([]);
 	const questions = ref<QuestionSummary[]>([]);
 	const editingExam = ref<Exam | null>(null);
+	const formOpen = ref(false);
 
 	const loadData = async () => {
 		[subjects.value, exams.value, questions.value] = await Promise.all([
@@ -46,7 +47,18 @@
 		]);
 	};
 
+	const openCreate = () => {
+		editingExam.value = null;
+		formOpen.value = true;
+	};
+
+	const openEdit = (exam: Exam) => {
+		editingExam.value = exam;
+		formOpen.value = true;
+	};
+
 	const onSaved = async () => {
+		formOpen.value = false;
 		editingExam.value = null;
 		await loadData();
 	};
@@ -68,24 +80,31 @@
 				<template #leading>
 					<UDashboardSidebarCollapse />
 				</template>
+				<template #right>
+					<UButton icon="lucide:plus" @click="openCreate">
+						Buat Ujian Baru
+					</UButton>
+				</template>
 			</UDashboardNavbar>
 		</template>
 
 		<template #body>
-			<div class="space-y-6">
-				<UjianForm
-					:subjects="subjects"
-					:questions="questions"
-					:editing-exam="editingExam"
-					@cancel="editingExam = null"
-					@saved="onSaved" />
-
-				<UjianTable
-					:exams="exams"
-					:subjects="subjects"
-					@edit="editingExam = $event"
-					@delete="deleteExam" />
-			</div>
+			<UjianTable
+				:exams="exams"
+				:subjects="subjects"
+				@edit="openEdit"
+				@delete="deleteExam" />
 		</template>
 	</UDashboardPanel>
+
+	<UModal v-model:open="formOpen" :title="editingExam ? 'Edit Ujian' : 'Buat Ujian Baru'" :ui="{ content: 'max-w-3xl' }">
+		<template #body>
+			<UjianForm
+				:subjects="subjects"
+				:questions="questions"
+				:editing-exam="editingExam"
+				@cancel="formOpen = false"
+				@saved="onSaved" />
+		</template>
+	</UModal>
 </template>

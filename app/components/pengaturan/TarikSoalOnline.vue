@@ -3,9 +3,11 @@
 	import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 	import {
 		checkBankSoalConnection,
-		fetchBankSoal,
+		fetchBankSoalMarkdown,
+		listJenisFiles,
 		subjectFolderCode,
 		type BankSoalOnlineRow,
+		type JenisFileOption,
 		type OnlineSubject
 	} from "~/composables/useBankSoalOnline";
 
@@ -18,6 +20,9 @@
 	const subjects = ref<OnlineSubject[]>([]);
 	const selectedClass = ref("");
 	const selectedSubject = ref("");
+	const jenisFiles = ref<JenisFileOption[]>([]);
+	const selectedJenisFile = ref("");
+	const loadingJenisFiles = ref(false);
 	const rows = ref<BankSoalOnlineRow[]>([]);
 	const sourceFile = ref("");
 	const essayFile = ref("");
@@ -31,9 +36,22 @@
 	const connectionMessage = ref("Memeriksa koneksi internet...");
 	const connectionCheckedAt = ref<Date>();
 	const jenisSoal = ref("");
+	const scopeOptions = [
+		{ label: "Kelas & mata pelajaran ini saja", value: "narrow" as const },
+		{ label: "Semua pelajaran di kelas ini saja", value: "class" as const },
+		{ label: "Semua kelas, mata pelajaran ini saja", value: "subject" as const },
+		{ label: "Semua kelas & semua mata pelajaran", value: "global" as const }
+	];
+	const scope = ref<"narrow" | "class" | "subject" | "global">("narrow");
 	const importing = ref(false);
 	const importError = ref("");
 	const importedIds = ref(new Set<string>());
+
+	// nama_file_gambar di Excel kadang cuma nama dasarnya (mis. "gambar11", tanpa ".jpg")
+	// sementara file aslinya di repo tetap punya ekstensi — jadi ekstensi ditebak dengan
+	// coba beberapa kandidat kalau kolomnya sendiri tidak menyebutkan ekstensi.
+	const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp"];
+	const hasKnownExtension = (name: string) => /\.(jpg|jpeg|png|gif|webp)$/i.test(name);
 
 	const numericClass = computed(() => selectedClass.value.replace(/^kelas_/, ""));
 	const selectedSubjectId = computed(() => subjects.value.find((s) => subjectFolderCode(s) === selectedSubject.value)?.id);
@@ -42,7 +60,10 @@
 		label: subject.code ? `${subject.code} — ${subject.name}` : subject.name,
 		value: subjectFolderCode(subject)
 	})));
-	const canFetch = computed(() => Boolean(selectedClass.value && selectedSubject.value && connectionStatus.value === "online"));
+	const jenisFileItems = computed(() => jenisFiles.value.map((j) => ({ label: j.label, value: j.fileName })));
+	const canFetch = computed(() =>
+		Boolean(selectedClass.value && selectedSubject.value && selectedJenisFile.value && connectionStatus.value === "online")
+	);
 	const validCount = computed(() => rows.value.filter((row) => row.valid).length);
 	const selectedCount = computed(() => selectedRows.value.size);
 
@@ -75,14 +96,31 @@
 	const selectClass = (value: string) => {
 		selectedClass.value = value;
 		selectedSubject.value = "";
+		selectedJenisFile.value = "";
+		jenisFiles.value = [];
 		rows.value = [];
 		errorMessage.value = "";
+	};
+
+	const loadJenisFiles = async () => {
+		selectedJenisFile.value = "";
+		jenisFiles.value = [];
+		if (!selectedClass.value || !selectedSubject.value) return;
+		loadingJenisFiles.value = true;
+		try {
+			jenisFiles.value = await listJenisFiles(selectedClass.value, selectedSubject.value);
+		} catch (error) {
+			errorMessage.value = error instanceof Error ? error.message : String(error);
+		} finally {
+			loadingJenisFiles.value = false;
+		}
 	};
 
 	const selectSubject = (value: string) => {
 		selectedSubject.value = value;
 		rows.value = [];
 		errorMessage.value = "";
+		void loadJenisFiles();
 	};
 
 	const fetchRows = async () => {
@@ -96,11 +134,12 @@
 		try {
 			const isConnected = await refreshConnection();
 			if (!isConnected) return;
-			const result = await fetchBankSoal(selectedClass.value, selectedSubject.value);
+			const result = await fetchBankSoalMarkdown(selectedClass.value, selectedSubject.value, selectedJenisFile.value);
 			rows.value = result.rows;
 			sourceFile.value = result.fileName;
-			essayFile.value = result.essayFileName ?? "";
+			essayFile.value = "";
 			sourceFolder.value = result.folderPath;
+			jenisSoal.value = result.jenis;
 			selectedRows.value = new Set(result.rows.filter((row) => row.valid).map((row) => row.id));
 		} catch (error) {
 			errorMessage.value = error instanceof Error ? error.message : String(error);
@@ -136,6 +175,21 @@
 		if (!selected.length) return;
 
 		importing.value = true;
+
+		// Daftarkan jenisnya dulu ke registry (biar muncul sebagai kartu di Bank Soal, bukan
+		// cuma nempel sebagai teks di tiap soal) — kalau jenis+scope yang sama sudah ada,
+		// itu tidak masalah, lanjut saja pakai yang sudah ada.
+		try {
+			await invoke("create_question_type", {
+				name: jenisSoal.value.trim(),
+				description: null,
+				class: (scope.value === "narrow" || scope.value === "class") ? numericClass.value : null,
+				subjectId: (scope.value === "narrow" || scope.value === "subject") ? selectedSubjectId.value : null
+			});
+		} catch {
+			// Sudah ada — tidak masalah.
+		}
+
 		const imageCache = new Map<string, string>();
 		const newlyImported: string[] = [];
 		const failed: string[] = [];
@@ -147,10 +201,24 @@
 					if (row.pathRelatifGambar && row.urlGambar) {
 						imagePath = imageCache.get(row.pathRelatifGambar);
 						if (!imagePath) {
-							const response = await tauriFetch(row.urlGambar);
-							if (!response.ok) throw new Error(`Gagal mengunduh gambar ${row.nama_file_gambar}`);
-							const bytes = Array.from(new Uint8Array(await response.arrayBuffer()));
-							const saved = await invoke<{ path: string }>("save_question_image_bytes", { fileName: row.nama_file_gambar, bytes });
+							const candidates = hasKnownExtension(row.nama_file_gambar)
+								? [{ url: row.urlGambar, ext: row.nama_file_gambar.split(".").pop()! }]
+								: IMAGE_EXTENSIONS.map((ext) => ({ url: `${row.urlGambar}.${ext}`, ext }));
+
+							let found: { bytes: number[], ext: string } | undefined;
+							for (const candidate of candidates) {
+								const response = await tauriFetch(candidate.url);
+								if (response.ok) {
+									found = { bytes: Array.from(new Uint8Array(await response.arrayBuffer())), ext: candidate.ext };
+									break;
+								}
+							}
+							if (!found) throw new Error(`Gagal mengunduh gambar ${row.nama_file_gambar} (sudah dicoba ${candidates.length} kemungkinan ekstensi)`);
+
+							const saved = await invoke<{ path: string }>("save_question_image_bytes", {
+								fileName: hasKnownExtension(row.nama_file_gambar) ? row.nama_file_gambar : `${row.nama_file_gambar}.${found.ext}`,
+								bytes: found.bytes
+							});
 							imagePath = saved.path;
 							imageCache.set(row.pathRelatifGambar, imagePath);
 						}
@@ -237,7 +305,7 @@
 			</UButton>
 		</div>
 
-		<div class="grid gap-4 md:grid-cols-3 items-end">
+		<div class="grid gap-4 md:grid-cols-4 items-end">
 			<UFormField label="Kelas">
 				<USelectMenu
 					:model-value="selectedClass"
@@ -255,6 +323,16 @@
 					:disabled="!selectedClass || loadingSubjects"
 					placeholder="Pilih mata pelajaran"
 					@update:model-value="selectSubject" />
+			</UFormField>
+
+			<UFormField label="Jenis Ujian" :description="selectedSubject && !loadingJenisFiles && !jenisFileItems.length ? 'Belum ada file jenis ujian di folder ini.' : undefined">
+				<USelectMenu
+					v-model="selectedJenisFile"
+					:items="jenisFileItems"
+					value-key="value"
+					:loading="loadingJenisFiles"
+					:disabled="!selectedSubject"
+					placeholder="Pilih jenis ujian" />
 			</UFormField>
 
 			<UButton
@@ -276,23 +354,22 @@
 		<div v-if="rows.length" class="space-y-4">
 			<div class="flex flex-wrap items-end justify-between gap-3">
 				<div class="text-sm text-muted">
-					Sumber: <code>{{ sourceFolder }}/{{ sourceFile }}</code><template v-if="essayFile">, <code>{{ sourceFolder }}/{{ essayFile }}</code></template>
+					Sumber: <code>{{ sourceFolder }}/{{ sourceFile }}</code> · Jenis: <UBadge color="neutral" variant="subtle">{{ jenisSoal }}</UBadge>
 					<span class="mx-2">·</span>
 					{{ rows.length }} baris, {{ validCount }} valid, {{ rows.length - validCount }} invalid
 				</div>
-				<div class="flex flex-wrap items-end gap-3">
-					<UFormField label="Jenis Soal" description="Label paket soal, mis. UTS Semester 1">
-						<UInput v-model="jenisSoal" placeholder="UTS Semester 1" class="w-56" />
-					</UFormField>
-					<UButton
-						icon="lucide:database"
-						:loading="importing"
-						:disabled="!selectedCount"
-						@click="importSelected">
-						Impor ke Bank Soal ({{ selectedCount }})
-					</UButton>
-				</div>
+				<UButton
+					icon="lucide:database"
+					:loading="importing"
+					:disabled="!selectedCount"
+					@click="importSelected">
+					Impor ke Bank Soal ({{ selectedCount }})
+				</UButton>
 			</div>
+
+			<UFormField label="Berlaku untuk">
+				<URadioGroup v-model="scope" orientation="horizontal" :items="scopeOptions" />
+			</UFormField>
 
 			<UAlert
 				v-if="importError"

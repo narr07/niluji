@@ -11,9 +11,17 @@
 		code: string | null
 	}
 
+	interface QuestionTypeRecord {
+		id: number
+		name: string
+		class: string | null
+		subjectId: number | null
+	}
+
 	interface SessionProgress {
 		class: string | null
 		subject: string
+		jenis: string | null
 	}
 
 	const route = useRoute();
@@ -25,11 +33,15 @@
 	]);
 
 	const subjects = ref<Subject[]>([]);
+	const questionTypes = ref<QuestionTypeRecord[]>([]);
 	const sessions = ref<SessionProgress[]>([]);
 
 	onMounted(async () => {
-		[subjects.value, sessions.value] = await Promise.all([
+		[subjects.value, questionTypes.value, sessions.value] = await Promise.all([
 			invoke<Subject[]>("list_subjects"),
+			// Tanpa class/subjectId, backend mengembalikan SEMUA jenis ujian terdaftar (tidak
+			// difilter) — pencocokan per pelajaran+kelas dilakukan di HasilPelajaranGrid.
+			invoke<QuestionTypeRecord[]>("list_question_types", { class: null, subjectId: null }),
 			invoke<SessionProgress[]>("list_exam_sessions")
 		]);
 	});
@@ -48,7 +60,7 @@
 
 		<template #body>
 			<UBreadcrumb :items="breadcrumbItems" class="mb-4" />
-			<HasilPelajaranGrid :kelas="kelas" :subjects="subjects" :sessions="sessions" />
+			<HasilPelajaranGrid :kelas="kelas" :subjects="subjects" :question-types="questionTypes" :sessions="sessions" />
 		</template>
 	</UDashboardPanel>
 </template>

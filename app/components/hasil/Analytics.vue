@@ -4,6 +4,7 @@
 	const props = defineProps<{
 		kelas: string
 		subjectId: number | undefined
+		jenis: string
 	}>();
 
 	interface QuestionStat {
@@ -30,7 +31,8 @@
 		try {
 			const result = await invoke<{ questionStats: QuestionStat[], studentStats: StudentStat[] }>("get_exam_analytics", {
 				class: props.kelas,
-				subjectId: props.subjectId
+				subjectId: props.subjectId,
+				jenis: props.jenis
 			});
 			questionStats.value = result.questionStats;
 			studentStats.value = result.studentStats;
@@ -39,7 +41,7 @@
 		}
 	};
 
-	watch(() => props.subjectId, load, { immediate: true });
+	watch(() => [props.subjectId, props.jenis], load, { immediate: true });
 
 	const categories = {
 		benar: { name: "Benar", color: "#22c55e" },

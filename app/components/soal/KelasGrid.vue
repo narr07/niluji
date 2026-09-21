@@ -1,7 +1,22 @@
 <script lang="ts" setup>
-	defineProps<{
+	const props = defineProps<{
 		classes: string[]
 	}>();
+
+	// Tailwind needs full class names to appear literally in source to generate them, so this is
+	// a lookup table instead of a dynamically built "grid-cols-${n}" string — biar kartu selalu
+	// melebar penuh sesuai jumlah kelas yang ada, bukan kepotong sempit gara-gara jumlah kolom
+	// tetap yang lebih banyak dari jumlah kelasnya.
+	const colsClass: Record<number, string> = {
+		1: "sm:grid-cols-1 lg:grid-cols-1",
+		2: "sm:grid-cols-2 lg:grid-cols-2",
+		3: "sm:grid-cols-3 lg:grid-cols-3",
+		4: "sm:grid-cols-2 lg:grid-cols-4",
+		5: "sm:grid-cols-3 lg:grid-cols-5",
+		6: "sm:grid-cols-3 lg:grid-cols-6"
+	};
+
+	const gridColsClass = computed(() => colsClass[Math.min(props.classes.length, 6) || 1] ?? colsClass[4]);
 </script>
 
 <template>
@@ -9,29 +24,30 @@
 		<UPageHeader
 			title="Pilih Kelas"
 			description="Pilih kelas untuk mulai mengerjakan atau mengelola soal."
-			headline="Ujian"
+			headline="Bank Soal"
 		/>
 
-		<div v-if="classes.length" class="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
-			<UCard
+		<UPageGrid v-if="classes.length" :class="[gridColsClass, 'gap-4 sm:gap-6 lg:gap-px']">
+			<UPageCard
 				v-for="c in classes"
 				:key="c"
+				icon="lucide:layers"
+				:title="`Kelas ${c}`"
+				:to="`/soal/${c}`"
 				variant="subtle"
-				class="cursor-pointer hover:ring-primary transition-colors"
-				@click="navigateTo(`/soal/${c}`)"
-			>
-				<div class="flex flex-col items-center justify-center gap-2 py-6 text-center">
-					<UIcon name="lucide:layers" class="size-6 text-primary" />
-					<p class="text-lg font-semibold">
-						Kelas {{ c }}
-					</p>
-				</div>
-			</UCard>
-		</div>
+				:ui="{
+					container: 'gap-y-1.5',
+					wrapper: 'items-start',
+					leading: 'p-2.5 rounded-full bg-primary/10 ring ring-inset ring-primary/25 flex-col',
+					title: 'font-medium text-lg'
+				}"
+				class="lg:rounded-none first:rounded-l-lg last:rounded-r-lg hover:z-1"
+			/>
+		</UPageGrid>
 
 		<UAlert
 			v-else
-			icon="lucide:inbox"
+			icon="i-lucide-inbox"
 			title="Belum ada kelas"
 			description="Tambahkan kelas terlebih dahulu di halaman Pengaturan."
 			variant="subtle"

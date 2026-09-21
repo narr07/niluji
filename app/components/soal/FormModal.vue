@@ -91,6 +91,11 @@
 		{ immediate: true }
 	);
 
+	const removeImage = () => {
+		form.image = null;
+		imagePreview.value = "";
+	};
+
 	const pickImage = async () => {
 		const path = await openDialog({
 			multiple: false,
@@ -110,7 +115,9 @@
 		}
 	};
 
-	const submitForm = async () => {
+	// keepOpen cuma relevan buat soal baru (bukan edit) — "Simpan" nutup modal otomatis begitu
+	// tersimpan, "Simpan & Lanjutkan" tetap buka modal & bersihkan form buat input soal berikutnya.
+	const submitForm = async (keepOpen: boolean) => {
 		formError.value = "";
 		savedMessage.value = "";
 		const isEssay = form.questionType.value === "essay";
@@ -151,9 +158,13 @@
 				openModel.value = false;
 			} else {
 				await invoke("create_question", { input });
-				savedMessage.value = "Soal tersimpan. Lanjut input soal berikutnya.";
-				Object.assign(form, emptyQuestionFields());
-				imagePreview.value = "";
+				if (keepOpen) {
+					savedMessage.value = "Soal tersimpan. Lanjut input soal berikutnya.";
+					Object.assign(form, emptyQuestionFields());
+					imagePreview.value = "";
+				} else {
+					openModel.value = false;
+				}
 			}
 			emit("saved");
 		} catch (e) {
@@ -167,13 +178,13 @@
 <template>
 	<UModal v-model:open="openModel" :title="editingId ? 'Edit Soal' : 'Tambah Soal'" :ui="{ content: 'max-w-2xl' }">
 		<template #body>
-			<form class="grid gap-4 sm:grid-cols-2" @submit.prevent="submitForm">
+			<form class="grid gap-4 sm:grid-cols-2" @submit.prevent="submitForm(false)">
 				<UFormField label="Tipe Soal" class="sm:col-span-2">
 					<USelectMenu v-model="form.questionType" :items="questionTypeItems" />
 				</UFormField>
 
 				<UFormField label="Pertanyaan" class="sm:col-span-2">
-					<UTextarea v-model="form.questionText" :rows="3" />
+					<SoalEditor v-model="form.questionText" placeholder="Tulis pertanyaan di sini..." />
 				</UFormField>
 
 				<div class="sm:col-span-2 flex items-center gap-3">
@@ -184,6 +195,15 @@
 						:loading="uploadingImage"
 						@click="pickImage">
 						{{ form.image ? "Ganti Gambar" : "Tambah Gambar" }}
+					</UButton>
+					<UButton
+						v-if="form.image"
+						size="sm"
+						variant="soft"
+						color="error"
+						icon="lucide:trash-2"
+						@click="removeImage">
+						Hapus Gambar
 					</UButton>
 					<img
 						v-if="imagePreview"
@@ -233,10 +253,10 @@
 
 				<div class="sm:col-span-2 flex gap-2">
 					<UButton type="submit" :loading="saving">
-						{{ editingId ? "Simpan Perubahan" : "Simpan & Lanjut Soal Berikutnya" }}
+						{{ editingId ? "Simpan Perubahan" : "Simpan" }}
 					</UButton>
-					<UButton variant="soft" color="neutral" @click="openModel = false">
-						Selesai
+					<UButton v-if="!editingId" type="button" variant="soft" :loading="saving" @click="submitForm(true)">
+						Simpan & Lanjutkan
 					</UButton>
 				</div>
 			</form>

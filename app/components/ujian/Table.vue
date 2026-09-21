@@ -39,7 +39,25 @@
 		return `${startText} – ${endText}`;
 	};
 
+	// Kolom dibatasi yang penting saja (Judul/Kelas/Mapel/Aksi) supaya tabel tidak melebar jauh
+	// ke kanan — detail lain (jenis soal, jadwal, durasi, token) dipindah ke baris expand yang
+	// muncul kalau barisnya diklik.
+	const expanded = ref({});
+
 	const columns = [
+		{
+			id: "expand",
+			cell: ({ row }: { row: { getIsExpanded: () => boolean, toggleExpanded: () => void } }) => {
+				const UButton = resolveComponent("UButton");
+				return h(UButton, {
+					size: "xs",
+					variant: "ghost",
+					color: "neutral",
+					icon: row.getIsExpanded() ? "lucide:chevron-down" : "lucide:chevron-right",
+					onClick: () => row.toggleExpanded()
+				});
+			}
+		},
 		{ accessorKey: "title", header: "Judul" },
 		{ accessorKey: "class", header: "Kelas", cell: ({ row }: { row: { original: Exam } }) => row.original.class ?? "-" },
 		{
@@ -47,37 +65,78 @@
 			header: "Mata Pelajaran",
 			cell: ({ row }: { row: { original: Exam } }) => subjectLabel(row.original.subject)
 		},
-		{ accessorKey: "jenis", header: "Jenis Soal", cell: ({ row }: { row: { original: Exam } }) => row.original.jenis ?? "-" },
-		{
-			accessorKey: "scheduledAt",
-			header: "Waktu Pelaksanaan",
-			cell: ({ row }: { row: { original: Exam } }) => formatWindow(row.original.scheduledAt, row.original.windowEnd)
-		},
-		{ accessorKey: "duration", header: "Durasi (menit)" },
-		{ accessorKey: "token", header: "Token" },
 		{
 			id: "actions",
 			header: "Aksi",
 			cell: ({ row }: { row: { original: Exam } }) => {
 				const UButton = resolveComponent("UButton");
-				return h("div", { class: "flex gap-2" }, [
+				const buttons = [];
+				if (row.original.class) {
+					const hasilPath = row.original.jenis
+						? `/hasil/${row.original.class}/${encodeURIComponent(row.original.subject)}/${encodeURIComponent(row.original.jenis)}`
+						: `/hasil/${row.original.class}/${encodeURIComponent(row.original.subject)}`;
+					buttons.push(
+						h(
+							UButton,
+							{
+								size: "xs",
+								variant: "soft",
+								color: "neutral",
+								icon: "lucide:bar-chart-3",
+								onClick: () => navigateTo(hasilPath)
+							},
+							() => "Lihat Hasil"
+						)
+					);
+				}
+				buttons.push(
 					h(UButton, { size: "xs", variant: "soft", icon: "lucide:pencil", onClick: () => emit("edit", row.original) }, () => "Edit"),
 					h(
 						UButton,
 						{ size: "xs", variant: "soft", color: "error", icon: "lucide:trash-2", onClick: () => emit("delete", row.original) },
 						() => "Hapus"
 					)
-				]);
+				);
+				return h("div", { class: "flex gap-2" }, buttons);
 			}
 		}
 	];
 </script>
 
 <template>
-	<UTable :data="exams" :columns="columns">
+	<UTable v-model:expanded="expanded" :data="exams" :columns="columns">
 		<template #empty>
 			<div class="text-center py-10 text-muted">
 				Belum ada ujian dibuat.
+			</div>
+		</template>
+
+		<template #expanded="{ row }">
+			<div class="grid gap-3 sm:grid-cols-3 p-2 text-sm">
+				<div>
+					<p class="text-muted text-xs">
+						Jenis Soal
+					</p>
+					<p>{{ row.original.jenis ?? "-" }}</p>
+				</div>
+				<div>
+					<p class="text-muted text-xs">
+						Waktu Pelaksanaan
+					</p>
+					<p>{{ formatWindow(row.original.scheduledAt, row.original.windowEnd) }}</p>
+				</div>
+				<div>
+					<p class="text-muted text-xs">
+						Durasi
+					</p>
+					<p>{{ row.original.duration }} menit</p>
+				</div>
+				<div>
+					<p class="text-muted text-xs">
+						Token
+					</p>
+					<p>{{ row.original.token }}</p>
+				</div>
 			</div>
 		</template>
 	</UTable>

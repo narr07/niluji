@@ -14,7 +14,7 @@
 </script>
 
 <template>
-	<div class="space-y-6 max-w-2xl">
+	<div class="space-y-6 w-full">
 		<UCard>
 			<div class="flex items-center gap-4">
 				<img src="/logo.png" alt="Logo Niluji" class="size-14">
@@ -34,34 +34,36 @@
 			</p>
 		</UCard>
 
-		<UCard>
-			<template #header>
-				<span class="font-semibold">Teknologi</span>
-			</template>
-			<ul class="text-sm space-y-1 text-muted">
-				<li>Nuxt 4 + Nuxt UI 4 + Tailwind CSS 4</li>
-				<li>Tauri 2 (Rust) + SQLite</li>
-				<li>Server HTTP tertanam (axum) untuk ujian siswa di jaringan lokal</li>
-			</ul>
-		</UCard>
+		<div class="grid gap-4 sm:grid-cols-2">
+			<UCard>
+				<template #header>
+					<span class="font-semibold">Teknologi</span>
+				</template>
+				<ul class="text-sm space-y-1 text-muted">
+					<li>Nuxt 4 + Nuxt UI 4 + Tailwind CSS 4</li>
+					<li>Tauri 2 (Rust) + SQLite</li>
+					<li>Server HTTP tertanam (axum) untuk ujian siswa di jaringan lokal</li>
+				</ul>
+			</UCard>
 
-		<UCard>
-			<template #header>
-				<span class="font-semibold">Tentang Pembuat</span>
-			</template>
-			<p class="text-sm text-muted">
-				Dibuat oleh <a
-					href="https://github.com/narr07"
-					target="_blank"
-					rel="noopener"
-					class="text-primary hover:underline">narr07</a>.
-				Kode sumber tersedia di
-				<a
-					href="https://github.com/narr07/niluji"
-					target="_blank"
-					rel="noopener"
-					class="text-primary hover:underline">github.com/narr07/niluji</a>.
-			</p>
-		</UCard>
+			<UCard>
+				<template #header>
+					<span class="font-semibold">Tentang Pembuat</span>
+				</template>
+				<p class="text-sm text-muted">
+					Dibuat oleh <a
+						href="https://github.com/narr07"
+						target="_blank"
+						rel="noopener"
+						class="text-primary hover:underline">narr07</a>.
+					Kode sumber tersedia di
+					<a
+						href="https://github.com/narr07/niluji"
+						target="_blank"
+						rel="noopener"
+						class="text-primary hover:underline">github.com/narr07/niluji</a>.
+				</p>
+			</UCard>
+		</div>
 	</div>
 </template>

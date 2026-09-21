@@ -49,12 +49,17 @@
 	};
 	const toTimestamp = (date: string, time: string) => Math.floor(new Date(`${date}T${time}`).getTime() / 1000);
 
+	const today = () => {
+		const d = new Date();
+		return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+	};
+
 	const emptyForm = () => ({
 		subject: undefined as { label: string, value: number } | undefined,
 		class: undefined as string | undefined,
 		jenis: undefined as string | undefined,
 		title: "",
-		examDate: "",
+		examDate: today(),
 		startTime: "",
 		endTime: "",
 		duration: 60,
@@ -129,7 +134,7 @@
 			|| !form.startTime
 			|| !form.endTime
 		) {
-			formError.value = "Kelas, mata pelajaran, judul, tanggal, jam mulai, jam selesai, dan token wajib diisi.";
+			formError.value = "Kelas, mata pelajaran, jenis soal, tanggal, jam mulai, jam selesai, dan token wajib diisi.";
 			return;
 		}
 
@@ -171,11 +176,7 @@
 </script>
 
 <template>
-	<UCard>
-		<template #header>
-			<span class="font-semibold">{{ editingExam ? "Edit Ujian" : "Buat Ujian Baru" }}</span>
-		</template>
-
+	<div>
 		<form class="grid gap-4 sm:grid-cols-2" @submit.prevent="submit">
 			<UFormField label="Kelas" :description="classesWithQuestions.length ? undefined : 'Belum ada soal di Bank Soal.'">
 				<USelectMenu
@@ -212,49 +213,41 @@
 				/>
 			</UFormField>
 
-			<UFormField label="Judul Ujian" class="sm:col-span-2" description="Terisi otomatis dari jenis soal, boleh diubah">
-				<UInput v-model="form.title" placeholder="Contoh: UTS Matematika Kelas 6" />
+			<UFormField label="Tanggal Ujian">
+				<UInput v-model="form.examDate" type="date" class="w-full" />
 			</UFormField>
 
-			<UFormField label="Tanggal Ujian" class="sm:col-span-2">
-				<UInput v-model="form.examDate" type="date" />
+			<UFormField label="Durasi Pengerjaan (menit)" description="Waktu yang didapat tiap siswa sejak mereka mulai">
+				<UInputNumber v-model="form.duration" :min="1" class="w-full" />
 			</UFormField>
 
-			<UFormField label="Jam Mulai" description="Waktu pelaksanaan: kapan siswa boleh mulai membuka ujian">
-				<UInput v-model="form.startTime" type="time" />
+			<UFormField label="Jam Mulai" description="Kapan siswa boleh mulai membuka ujian">
+				<UInput v-model="form.startTime" type="time" class="w-full" />
 			</UFormField>
 
-			<UFormField label="Jam Selesai" description="Batas terakhir siswa boleh mulai/membuka ujian">
-				<UInput v-model="form.endTime" type="time" />
-			</UFormField>
-
-			<UFormField label="Durasi Pengerjaan (menit)" class="sm:col-span-2" description="Waktu yang didapat tiap siswa sejak mereka mulai — tidak terpotong walau jam selesai sudah dekat">
-				<UInputNumber v-model="form.duration" :min="1" />
+			<UFormField label="Jam Selesai" description="Batas terakhir siswa boleh mulai membuka ujian">
+				<UInput v-model="form.endTime" type="time" class="w-full" />
 			</UFormField>
 
 			<UFormField label="Token Masuk">
 				<UInput v-model="form.token" placeholder="Contoh: UTS2026" />
 			</UFormField>
 
+			<UAlert
+				v-if="formError"
+				color="error"
+				variant="subtle"
+				class="sm:col-span-2"
+				:title="formError" />
+
 			<div class="sm:col-span-2 flex gap-2">
 				<UButton type="submit" :loading="saving">
 					{{ editingExam ? "Simpan Perubahan" : "Simpan Ujian" }}
 				</UButton>
-				<UButton
-					v-if="editingExam"
-					variant="soft"
-					color="neutral"
-					@click="emit('cancel')">
+				<UButton variant="soft" color="neutral" @click="emit('cancel')">
 					Batal
 				</UButton>
 			</div>
 		</form>
-
-		<UAlert
-			v-if="formError"
-			color="error"
-			variant="subtle"
-			class="mt-4"
-			:title="formError" />
-	</UCard>
+	</div>
 </template>

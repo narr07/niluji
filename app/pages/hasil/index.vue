@@ -27,6 +27,10 @@
 		</template>
 
 		<template #body>
+			<UPageHeader
+				title="Hasil Ujian Siswa"
+				description="Pilih kelas untuk melihat rekap nilai, progres pengerjaan, dan analisis soal."
+			/>
 			<HasilKelasGrid :classes="classes" />
 		</template>
 	</UDashboardPanel>

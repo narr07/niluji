@@ -294,6 +294,7 @@ pub struct SessionProgress {
 	pub exam_title: String,
 	pub class: Option<String>,
 	pub subject: String,
+	pub jenis: Option<String>,
 	pub total_questions: i64,
 	pub answered_count: i64,
 	pub pg_total: i64,
@@ -306,7 +307,7 @@ pub fn list_sessions(db: &Db) -> Result<Vec<SessionProgress>, String> {
 	let conn = db.lock().unwrap();
 	let mut stmt = conn
 		.prepare(
-			"SELECT es.id, es.student_name, es.student_nisn, e.title, e.class, s.name, es.question_ids, es.submitted_at, es.score
+			"SELECT es.id, es.student_name, es.student_nisn, e.title, e.class, s.name, e.jenis, es.question_ids, es.submitted_at, es.score
 			 FROM exam_sessions es
 			 JOIN exams e ON e.id = es.exam_id
 			 JOIN subjects s ON s.id = e.subject_id
@@ -314,6 +315,7 @@ pub fn list_sessions(db: &Db) -> Result<Vec<SessionProgress>, String> {
 		)
 		.map_err(|e| e.to_string())?;
 
+	#[allow(clippy::type_complexity)]
 	let rows = stmt
 		.query_map([], |r| {
 			Ok((
@@ -323,16 +325,17 @@ pub fn list_sessions(db: &Db) -> Result<Vec<SessionProgress>, String> {
 				r.get::<_, String>(3)?,
 				r.get::<_, Option<String>>(4)?,
 				r.get::<_, String>(5)?,
-				r.get::<_, String>(6)?,
-				r.get::<_, Option<i64>>(7)?,
-				r.get::<_, Option<f64>>(8)?
+				r.get::<_, Option<String>>(6)?,
+				r.get::<_, String>(7)?,
+				r.get::<_, Option<i64>>(8)?,
+				r.get::<_, Option<f64>>(9)?
 			))
 		})
 		.map_err(|e| e.to_string())?;
 
 	let mut result = Vec::new();
 	for row in rows {
-		let (session_id, student_name, student_nisn, exam_title, class, subject, question_ids, submitted_at, score) =
+		let (session_id, student_name, student_nisn, exam_title, class, subject, jenis, question_ids, submitted_at, score) =
 			row.map_err(|e| e.to_string())?;
 		let ids: Vec<i64> = question_ids.split(',').filter_map(|s| s.parse().ok()).collect();
 		let total_questions = ids.len() as i64;
@@ -369,6 +372,7 @@ pub fn list_sessions(db: &Db) -> Result<Vec<SessionProgress>, String> {
 			exam_title,
 			class,
 			subject,
+			jenis,
 			total_questions,
 			answered_count,
 			pg_total,
@@ -410,7 +414,7 @@ pub struct AnalyticsResponse {
 // Hasil Ujian analytics dashboard. Only counts sessions that finished the PG portion (matches
 // existing scoring: an unanswered PG question counts as wrong, same as `submit()`). Essay
 // questions are excluded entirely — their grading is manual, not something to chart.
-pub fn analytics(db: &Db, class: Option<String>, subject_id: i64) -> Result<AnalyticsResponse, String> {
+pub fn analytics(db: &Db, class: Option<String>, subject_id: i64, jenis: Option<String>) -> Result<AnalyticsResponse, String> {
 	let conn = db.lock().unwrap();
 
 	let mut stmt = conn
@@ -418,11 +422,11 @@ pub fn analytics(db: &Db, class: Option<String>, subject_id: i64) -> Result<Anal
 			"SELECT es.id, es.student_name, es.question_ids
 			 FROM exam_sessions es
 			 JOIN exams e ON e.id = es.exam_id
-			 WHERE e.subject_id = ?1 AND (?2 IS NULL OR e.class = ?2) AND es.pg_submitted_at IS NOT NULL"
+			 WHERE e.subject_id = ?1 AND (?2 IS NULL OR e.class = ?2) AND (?3 IS NULL OR e.jenis = ?3) AND es.pg_submitted_at IS NOT NULL"
 		)
 		.map_err(|e| e.to_string())?;
 	let rows = stmt
-		.query_map(params![subject_id, class], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?, r.get::<_, String>(2)?)))
+		.query_map(params![subject_id, class, jenis], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?, r.get::<_, String>(2)?)))
 		.map_err(|e| e.to_string())?;
 	let sessions: Vec<(i64, String, String)> = rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())?;
 
@@ -734,13 +738,13 @@ mod tests {
 		let qid = joined.questions[0].id;
 
 		// Before the PG session is submitted, this session shouldn't count yet.
-		let early = analytics(&db, None, subject_id).unwrap();
+		let early = analytics(&db, None, subject_id, None).unwrap();
 		assert!(early.student_stats.is_empty());
 
 		answer(&db, joined.session_id, qid, "A").unwrap();
 		submit_pg(&db, joined.session_id).unwrap();
 
-		let stats = analytics(&db, None, subject_id).unwrap();
+		let stats = analytics(&db, None, subject_id, None).unwrap();
 		assert_eq!(stats.question_stats.len(), 1);
 		assert_eq!(stats.question_stats[0].correct_count, 1);
 		assert_eq!(stats.question_stats[0].incorrect_count, 0);

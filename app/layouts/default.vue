@@ -16,7 +16,7 @@
 		>
 			<template #header="{ collapsed }">
 				<div class="flex items-center gap-2 px-1 overflow-hidden">
-					<SvgoLogo :font-controlled="false" class="size-6 shrink-0 text-primary dark:text-primary-200 "  />
+					<SvgoLogo :font-controlled="false" class="size-6 shrink-0 text-primary" />
 					<span v-if="!collapsed" class="font-bold truncate">{{ app.name }}</span>
 				</div>
 			</template>
@@ -32,8 +32,7 @@
 			</template>
 
 			<template #footer="{ collapsed }">
-				<UColorModeButton v-if="!collapsed" />
-				<UDashboardSidebarCollapse v-else />
+				<SettingsMenu :collapsed="collapsed" />
 			</template>
 		</UDashboardSidebar>
 

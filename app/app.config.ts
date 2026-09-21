@@ -20,10 +20,6 @@ export default defineAppConfig({
 		other: {
 			label: "Other",
 			icon: "lucide:folder"
-		},
-		settings: {
-			label: "Pengaturan",
-			icon: "lucide:settings"
 		}
 	},
 	ui: {

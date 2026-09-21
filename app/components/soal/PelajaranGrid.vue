@@ -5,24 +5,26 @@
 		code: string | null
 	}
 
-	interface QuestionSummary {
-		subject: string
+	interface QuestionTypeRecord {
+		id: number
 		class: string | null
-		jenis: string | null
+		subjectId: number | null
 	}
 
 	const props = defineProps<{
 		kelas: string
 		subjects: Subject[]
-		questions: QuestionSummary[]
+		questionTypes: QuestionTypeRecord[]
 	}>();
 
-	// Badge di kartu pelajaran ini nunjukin JUMLAH JENIS UJIAN yang ada, bukan jumlah soal —
-	// jumlah soal per jenis ada di kartu jenis-nya sendiri satu level di bawah.
-	const jenisCountFor = (subjectName: string) =>
-		new Set(
-			props.questions.filter((q) => q.class === props.kelas && q.subject === subjectName && q.jenis).map((q) => q.jenis)
-		).size;
+	// Badge di kartu pelajaran ini nunjukin JUMLAH JENIS UJIAN yang berlaku untuk kelas+pelajaran
+	// ini — dihitung dari jenis yang TERDAFTAR (termasuk yang masih kosong, belum ada soalnya),
+	// bukan cuma yang sudah dipakai di soal. class/subjectId NULL pada jenis berarti "berlaku
+	// untuk semua", jadi tetap dihitung meski bukan scope spesifik kelas/pelajaran ini.
+	const jenisCountFor = (subjectId: number) =>
+		props.questionTypes.filter(
+			(jt) => (jt.class === null || jt.class === props.kelas) && (jt.subjectId === null || jt.subjectId === subjectId)
+		).length;
 </script>
 
 <template>
@@ -41,7 +43,7 @@
 				size="lg"
 				class="absolute top-2 right-2"
 			>
-				{{ jenisCountFor(s.name) }}
+				{{ jenisCountFor(s.id) }}
 			</UBadge>
 
 			<div class="pr-6">

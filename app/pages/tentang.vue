@@ -1,11 +1,13 @@
 <script lang="ts" setup>
 	definePageMeta({
-		name: "Tentang",
-		icon: "lucide:info",
-		category: "settings",
-		order: 2,
-		description: "Info aplikasi, versi, dan pembuat"
+		hideFromNav: true
 	});
+
+	const links = [[
+		{ label: "About", icon: "lucide:info", to: "/tentang", exact: true },
+		{ label: "Fitur", icon: "lucide:layout-grid", to: "/tentang/fitur" },
+		{ label: "Changelog", icon: "lucide:history", to: "/tentang/changelog" }
+	]];
 </script>
 
 <template>
@@ -16,10 +18,14 @@
 					<UDashboardSidebarCollapse />
 				</template>
 			</UDashboardNavbar>
+
+			<UDashboardToolbar>
+				<UNavigationMenu :items="links" highlight class="-mx-1 flex-1" />
+			</UDashboardToolbar>
 		</template>
 
 		<template #body>
-			<PengaturanTentang />
+			<NuxtPage />
 		</template>
 	</UDashboardPanel>
 </template>

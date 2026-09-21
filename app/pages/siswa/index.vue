@@ -118,10 +118,12 @@
 		try {
 			const summary = await invoke<{ studentsImported: number }>("import_students", { path });
 			importMessage.value = `Berhasil import ${summary.studentsImported} siswa.`;
+			toast.add({ title: "Import selesai", description: importMessage.value, icon: "lucide:check", color: "success" });
 			await loadData();
 		} catch (error) {
 			importError.value = true;
 			importMessage.value = error instanceof Error ? error.message : String(error);
+			toast.add({ title: "Import gagal", description: importMessage.value, icon: "lucide:x", color: "error" });
 		} finally {
 			importing.value = false;
 		}
@@ -150,7 +152,7 @@
 
 				<template #right>
 					<UBadge color="success" variant="subtle" class="flex items-center gap-1.5">
-						<span class="inline-block size-1.5 rounded-full bg-success animate-pulse" />
+						<span class="inline-block size-1.5 rounded-full bg-success" />
 						{{ online.length }} online
 					</UBadge>
 

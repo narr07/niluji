@@ -183,7 +183,7 @@
 								:class="item.isCorrect ? 'border-success/50 bg-success/5' : 'border-error/50 bg-error/5'"
 							>
 								<p class="font-medium">
-									{{ i + 1 }}. {{ item.questionText }}
+									{{ i + 1 }}. <span v-html="renderSoalMarkdown(item.questionText)" />
 								</p>
 								<p class="text-sm mt-1">
 									Jawaban siswa: <strong>{{ item.studentAnswer ?? "(tidak dijawab)" }}</strong>
@@ -203,7 +203,7 @@
 						<div class="space-y-3 mt-4">
 							<div v-for="(item, i) in essayItems" :key="item.questionId" class="p-3 rounded-md border border-default">
 								<p class="font-medium">
-									{{ i + 1 }}. {{ item.questionText }}
+									{{ i + 1 }}. <span v-html="renderSoalMarkdown(item.questionText)" />
 								</p>
 								<p class="text-sm mt-1 whitespace-pre-wrap">
 									Jawaban siswa: <strong>{{ item.studentAnswer || "(tidak dijawab)" }}</strong>

@@ -17,11 +17,13 @@
 	interface DashboardStats {
 		students: number
 		subjects: number
-		questions: number
+		jenisUjian: number
 	}
 
 	interface Exam {
 		id: number
+		scheduledAt: number | null
+		windowEnd: number | null
 	}
 
 	interface SchoolInfo {
@@ -34,8 +36,19 @@
 	const school = ref<SchoolInfo | null>(null);
 	const info = ref<ServerInfo | null>(null);
 	const dashboardStats = ref<DashboardStats | null>(null);
-	const examCount = ref<number | null>(null);
+	const exams = ref<Exam[]>([]);
 	const loading = ref(false);
+
+	// Ujian "aktif" = jendela aksesnya sudah mulai dan belum ditutup. Ujian tanpa window_end
+	// dianggap terbuka terus begitu jendelanya mulai.
+	const activeExamCount = computed(() => {
+		const now = Math.floor(Date.now() / 1000);
+		return exams.value.filter((e) => {
+			if (e.scheduledAt !== null && now < e.scheduledAt) return false;
+			if (e.windowEnd !== null && now > e.windowEnd) return false;
+			return true;
+		}).length;
+	});
 
 	// Port 80 is the common case (see server.rs PREFERRED_PORT) so the URL only shows
 	// ":port" when it actually fell back to something else.
@@ -48,14 +61,14 @@
 	const stats = computed(() => [
 		{ title: "Siswa", icon: "lucide:users", value: dashboardStats.value?.students ?? "-", to: "/siswa" },
 		{ title: "Mata Pelajaran", icon: "lucide:book-open", value: dashboardStats.value?.subjects ?? "-", to: "/pengaturan/pelajaran" },
-		{ title: "Soal", icon: "lucide:list-checks", value: dashboardStats.value?.questions ?? "-", to: "/soal" },
-		{ title: "Ujian", icon: "lucide:calendar-clock", value: examCount.value ?? "-", to: "/ujian" }
+		{ title: "Jenis Ujian", icon: "lucide:list-checks", value: dashboardStats.value?.jenisUjian ?? "-", to: "/soal" },
+		{ title: "Ujian Aktif", icon: "lucide:calendar-clock", value: activeExamCount.value, to: "/ujian" }
 	]);
 
 	const refresh = async () => {
 		loading.value = true;
 		try {
-			const [serverInfo, dashStats, schoolInfo, exams] = await Promise.all([
+			const [serverInfo, dashStats, schoolInfo, examList] = await Promise.all([
 				invoke<ServerInfo>("get_server_info"),
 				invoke<DashboardStats>("get_dashboard_stats"),
 				invoke<SchoolInfo>("get_school"),
@@ -64,7 +77,7 @@
 			info.value = serverInfo;
 			dashboardStats.value = dashStats;
 			school.value = schoolInfo;
-			examCount.value = exams.length;
+			exams.value = examList;
 		} finally {
 			loading.value = false;
 		}
@@ -83,22 +96,21 @@
 
 				<template #title>
 					<div class="flex items-center gap-2">
-						<SvgoLogo :font-controlled="false" class="size-6 shrink-0 text-primary dark:text-primary-200 "  />
+						<SvgoLogo :font-controlled="false" class="size-6 shrink-0 text-primary" />
 						<span class="font-bold">{{ school?.name ?? "..." }}</span>
 					</div>
 				</template>
 
 				<template #right>
-					<span class="text-sm text-muted font-mono">
-						{{ info?.lanIp && info?.port ? `${info.lanIp}:${info.port}` : "-" }}
-					</span>
-					<UButton
-						icon="lucide:refresh-cw"
-						color="neutral"
-						variant="ghost"
-						:loading="loading"
-						@click="refresh"
-					/>
+					<DashboardAksesUjian :join-url="joinUrl" />
+
+
+					<UFieldGroup>
+						<UButton color="success"  >	{{ info?.lanIp && info?.port ? `${info.lanIp}:${info.port}` : "-" }}</UButton>
+						<UButton
+							icon="lucide:refresh-cw"
+							@click="refresh" />
+					</UFieldGroup>
 				</template>
 			</UDashboardNavbar>
 		</template>
@@ -106,7 +118,7 @@
 		<template #body>
 			<div class="space-y-6">
 				<DashboardStatsGrid :stats="stats" />
-				<DashboardAksesUjian :join-url="joinUrl" />
+
 				<DashboardSekolahInfo :school="school" />
 			</div>
 		</template>

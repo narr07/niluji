@@ -5,7 +5,10 @@
 		"windows": {
 			"certificateThumbprint": null,
 			"digestAlgorithm": "sha256",
-			"timestampUrl": ""
+			"timestampUrl": "",
+			"nsis": {
+				"installerIcon": "icons/icon.ico"
+			}
 		},
 		"icon": [
 			"icons/32x32.png",
@@ -46,7 +49,8 @@
 				"minWidth": 375,
 				"minHeight": 812,
 				"resizable": true,
-				"fullscreen": false
+				"fullscreen": false,
+				"maximized": true
 			}
 		],
 		"security": {

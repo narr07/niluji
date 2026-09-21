@@ -14,7 +14,6 @@
 	const route = useRoute();
 	const kelas = computed(() => route.params.kelas as string);
 	const pelajaran = computed(() => decodeURIComponent(route.params.pelajaran as string));
-	const pelajaranParam = computed(() => route.params.pelajaran as string);
 
 	const subjects = ref<Subject[]>([]);
 	const subject = computed(() => subjects.value.find((s) => s.name === pelajaran.value));
@@ -31,11 +30,6 @@
 		{ label: `Kelas ${kelas.value}`, to: `/hasil/${kelas.value}` },
 		{ label: subjectLabel.value }
 	]);
-
-	const links = computed(() => [[
-		{ label: "Daftar Siswa", icon: "lucide:users", to: `/hasil/${kelas.value}/${pelajaranParam.value}`, exact: true },
-		{ label: "Analisis Soal", icon: "lucide:bar-chart-3", to: `/hasil/${kelas.value}/${pelajaranParam.value}/analisis` }
-	]]);
 </script>
 
 <template>
@@ -47,10 +41,6 @@
 					<UButton icon="lucide:arrow-left" variant="ghost" :to="`/hasil/${kelas}`" />
 				</template>
 			</UDashboardNavbar>
-
-			<UDashboardToolbar>
-				<UNavigationMenu :items="links" highlight class="-mx-1 flex-1" />
-			</UDashboardToolbar>
 		</template>
 
 		<template #body>

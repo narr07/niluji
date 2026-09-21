@@ -153,6 +153,8 @@ fn migrate(conn: &Connection) -> rusqlite::Result<()> {
 	ensure_column(conn, "exams", "class", "TEXT")?;
 	ensure_column(conn, "exams", "scheduled_at", "INTEGER")?;
 	ensure_column(conn, "students", "class", "TEXT")?;
+	ensure_column(conn, "students", "school", "TEXT")?;
+	ensure_column(conn, "classes", "sort_order", "INTEGER")?;
 	ensure_column(conn, "subjects", "code", "TEXT")?;
 	ensure_column(conn, "questions", "jenis", "TEXT")?;
 	ensure_column(conn, "exams", "jenis", "TEXT")?;
@@ -166,6 +168,12 @@ fn migrate(conn: &Connection) -> rusqlite::Result<()> {
 	ensure_column(conn, "exam_sessions", "pg_submitted_at", "INTEGER")?;
 	// Teacher-assigned points for one essay answer; never rolled into the automatic score.
 	ensure_column(conn, "exam_answers", "essay_score", "REAL")?;
+	// PIN buat gerbang fitur Export soal — supaya tidak sembarang guru di komputer yang sama bisa
+	// mengekspor bank soal ke file. Default "1234" biar tidak langsung terkunci di instalasi baru;
+	// admin sekolah ganti sendiri lewat Pengaturan > Data Sekolah.
+	ensure_column(conn, "school", "export_pin", "TEXT")?;
+
+	relax_question_types_uniqueness(conn)?;
 
 	// Short default codes so existing installs get compact labels without a manual edit.
 	conn.execute_batch(
@@ -183,6 +191,8 @@ fn migrate(conn: &Connection) -> rusqlite::Result<()> {
 		-- Baris lama belum punya sort_order — pakai id (urutan input) sebagai default awal,
 		-- guru bisa geser urutannya sendiri lewat Pengaturan > Data Pelajaran sesudahnya.
 		UPDATE subjects SET sort_order = id WHERE sort_order IS NULL;
+		UPDATE classes SET sort_order = id WHERE sort_order IS NULL;
+		UPDATE school SET export_pin = '1234' WHERE export_pin IS NULL;
 		",
 	)
 }
@@ -194,6 +204,35 @@ fn ensure_column(conn: &Connection, table: &str, column: &str, definition: &str)
 		conn.execute(&format!("ALTER TABLE {table} ADD COLUMN {column} {definition}"), [])?;
 	}
 	Ok(())
+}
+
+// `question_types.name` used to be globally UNIQUE, but the same jenis name (e.g. "Ulangan
+// Harian") legitimately needs to exist independently per kelas + mata pelajaran once jenis
+// creation became scoped — NULL on `class`/`subject_id` means "applies to every class/subject
+// on that axis". SQLite can't ALTER a UNIQUE constraint directly, so this rebuilds the table
+// when the old single-column-UNIQUE shape is detected (idempotent: skipped once already done).
+fn relax_question_types_uniqueness(conn: &Connection) -> rusqlite::Result<()> {
+	let mut stmt = conn.prepare("PRAGMA table_info(question_types)")?;
+	let already_migrated = stmt.query_map([], |r| r.get::<_, String>(1))?.filter_map(Result::ok).any(|name| name == "class");
+	if already_migrated {
+		return Ok(());
+	}
+
+	conn.execute_batch(
+		"
+		CREATE TABLE question_types_new (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL,
+			description TEXT,
+			class TEXT,
+			subject_id INTEGER REFERENCES subjects(id) ON DELETE CASCADE,
+			UNIQUE(name, class, subject_id)
+		);
+		INSERT INTO question_types_new (id, name, description) SELECT id, name, description FROM question_types;
+		DROP TABLE question_types;
+		ALTER TABLE question_types_new RENAME TO question_types;
+		",
+	)
 }
 
 #[cfg(test)]

@@ -11,10 +11,10 @@
 		code: string | null
 	}
 
-	interface QuestionSummary {
-		subject: string
+	interface QuestionTypeRecord {
+		id: number
 		class: string | null
-		jenis: string | null
+		subjectId: number | null
 	}
 
 	const route = useRoute();
@@ -26,12 +26,14 @@
 	]);
 
 	const subjects = ref<Subject[]>([]);
-	const questions = ref<QuestionSummary[]>([]);
+	const questionTypes = ref<QuestionTypeRecord[]>([]);
 
 	onMounted(async () => {
-		[subjects.value, questions.value] = await Promise.all([
+		[subjects.value, questionTypes.value] = await Promise.all([
 			invoke<Subject[]>("list_subjects"),
-			invoke<QuestionSummary[]>("list_questions")
+			// Tanpa class/subjectId, backend mengembalikan SEMUA jenis ujian terdaftar (tidak
+			// difilter) — pencocokan per pelajaran+kelas dilakukan di SoalPelajaranGrid.
+			invoke<QuestionTypeRecord[]>("list_question_types", { class: null, subjectId: null })
 		]);
 	});
 </script>
@@ -49,7 +51,7 @@
 
 		<template #body>
 			<UBreadcrumb :items="breadcrumbItems" class="mb-4" />
-			<SoalPelajaranGrid :kelas="kelas" :subjects="subjects" :questions="questions" />
+			<SoalPelajaranGrid :kelas="kelas" :subjects="subjects" :question-types="questionTypes" />
 		</template>
 	</UDashboardPanel>
 </template>

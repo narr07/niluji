@@ -8,6 +8,7 @@ use tauri::Manager;
 mod db;
 mod exam_session;
 mod exams;
+mod export;
 mod import;
 mod server;
 mod settings;
@@ -26,6 +27,24 @@ fn get_server_info(port_state: tauri::State<server::PortState>, db: tauri::State
 #[tauri::command]
 fn import_questions(path: String, opts: import::ImportOptions, db: tauri::State<db::Db>) -> Result<import::ImportSummary, String> {
 	import::import_questions(&db, &path, opts)
+}
+
+// Raw bytes of a user-picked file (e.g. from the file dialog) for parsing on the frontend —
+// used by the Word (.docx) soal importer, which unzips/parses the file in JS via jszip rather
+// than needing a docx-parsing crate on the Rust side. Plain std::fs::read, so it isn't subject
+// to the webview's scoped fs:allow-document-read capability (that scoping only applies to
+// direct frontend fs-plugin calls, not to file I/O done here in Rust).
+#[tauri::command]
+fn read_file_bytes(path: String) -> Result<Vec<u8>, String> {
+	std::fs::read(&path).map_err(|e| format!("Gagal membaca file: {e}"))
+}
+
+// Sama alasannya dengan read_file_bytes di atas: ditulis di sisi Rust supaya tidak kena scoping
+// fs:allow-document-write, karena tujuan tulisnya adalah path bebas yang dipilih user lewat
+// dialog save (mis. export Hasil Ujian ke .xlsx), bukan folder tertentu yang sudah di-scope.
+#[tauri::command]
+fn write_file_bytes(path: String, bytes: Vec<u8>) -> Result<(), String> {
+	std::fs::write(&path, bytes).map_err(|e| format!("Gagal menyimpan file: {e}"))
 }
 
 #[tauri::command]
@@ -117,8 +136,13 @@ fn grade_essay_answer(session_id: i64, question_id: i64, score: f64, db: tauri::
 }
 
 #[tauri::command]
-fn get_exam_analytics(class: Option<String>, subject_id: i64, db: tauri::State<db::Db>) -> Result<exam_session::AnalyticsResponse, String> {
-	exam_session::analytics(&db, class, subject_id)
+fn get_exam_analytics(
+	class: Option<String>,
+	subject_id: i64,
+	jenis: Option<String>,
+	db: tauri::State<db::Db>
+) -> Result<exam_session::AnalyticsResponse, String> {
+	exam_session::analytics(&db, class, subject_id, jenis)
 }
 
 #[tauri::command]
@@ -144,6 +168,26 @@ fn update_student(id: i64, nisn: String, name: String, class: Option<String>, db
 #[tauri::command]
 fn delete_student(id: i64, db: tauri::State<db::Db>) -> Result<(), String> {
 	students::delete_student(&db, id)
+}
+
+#[tauri::command]
+fn list_schools(db: tauri::State<db::Db>) -> Result<Vec<String>, String> {
+	students::list_schools(&db)
+}
+
+#[tauri::command]
+fn students_by_school(school: String, db: tauri::State<db::Db>) -> Result<Vec<students::StudentRecord>, String> {
+	students::students_by_school(&db, &school)
+}
+
+#[tauri::command]
+async fn tarik_data_siswa(csv_url: String, school: String, db: tauri::State<'_, db::Db>) -> Result<usize, String> {
+	students::tarik_data_siswa(&db, &csv_url, &school).await
+}
+
+#[tauri::command]
+async fn list_schools_from_source(csv_url: String) -> Result<Vec<String>, String> {
+	students::list_schools_from_source(&csv_url).await
 }
 
 #[tauri::command]
@@ -184,6 +228,20 @@ fn save_question_image_bytes(file_name: String, bytes: Vec<u8>, uploads_dir: tau
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
+fn export_jenis_soal(
+	output_dir: String,
+	kelas: String,
+	subject_id: i64,
+	jenis: String,
+	pin: String,
+	db: tauri::State<db::Db>,
+	uploads_dir: tauri::State<UploadsDir>
+) -> Result<export::ExportSummary, String> {
+	export::export_jenis_soal(&db, &uploads_dir.0, &output_dir, &kelas, subject_id, &jenis, &pin)
+}
+
+#[tauri::command]
 fn get_school(db: tauri::State<db::Db>) -> Result<settings::SchoolInfo, String> {
 	settings::get_school(&db)
 }
@@ -214,6 +272,11 @@ fn delete_class(id: i64, db: tauri::State<db::Db>) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn reorder_classes(ordered_ids: Vec<i64>, db: tauri::State<db::Db>) -> Result<(), String> {
+	settings::reorder_classes(&db, ordered_ids)
+}
+
+#[tauri::command]
 fn create_subject(name: String, code: Option<String>, db: tauri::State<db::Db>) -> Result<i64, String> {
 	exams::create_subject(&db, name, code)
 }
@@ -234,13 +297,19 @@ fn reorder_subjects(ordered_ids: Vec<i64>, db: tauri::State<db::Db>) -> Result<(
 }
 
 #[tauri::command]
-fn list_question_types(db: tauri::State<db::Db>) -> Result<Vec<settings::QuestionTypeRecord>, String> {
-	settings::list_question_types(&db)
+fn list_question_types(class: Option<String>, subject_id: Option<i64>, db: tauri::State<db::Db>) -> Result<Vec<settings::QuestionTypeRecord>, String> {
+	settings::list_question_types(&db, class, subject_id)
 }
 
 #[tauri::command]
-fn create_question_type(name: String, description: Option<String>, db: tauri::State<db::Db>) -> Result<i64, String> {
-	settings::create_question_type(&db, name, description)
+fn create_question_type(
+	name: String,
+	description: Option<String>,
+	class: Option<String>,
+	subject_id: Option<i64>,
+	db: tauri::State<db::Db>
+) -> Result<i64, String> {
+	settings::create_question_type(&db, name, description, class, subject_id)
 }
 
 #[tauri::command]
@@ -251,6 +320,17 @@ fn update_question_type(id: i64, name: String, description: Option<String>, db: 
 #[tauri::command]
 fn delete_question_type(id: i64, db: tauri::State<db::Db>) -> Result<(), String> {
 	settings::delete_question_type(&db, id)
+}
+
+#[tauri::command]
+fn delete_question_type_scoped(
+	id: i64,
+	scope: String,
+	current_class: String,
+	current_subject_id: i64,
+	db: tauri::State<db::Db>
+) -> Result<(), String> {
+	settings::delete_question_type_scoped(&db, id, &scope, current_class, current_subject_id)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -315,6 +395,8 @@ pub fn run() {
 		.invoke_handler(tauri::generate_handler![
 			get_server_info,
 			import_questions,
+			read_file_bytes,
+			write_file_bytes,
 			list_questions,
 			get_dashboard_stats,
 			list_online_students,
@@ -334,6 +416,10 @@ pub fn run() {
 			create_student,
 			update_student,
 			delete_student,
+			list_schools,
+			students_by_school,
+			tarik_data_siswa,
+			list_schools_from_source,
 			get_question,
 			create_question,
 			update_question,
@@ -341,12 +427,14 @@ pub fn run() {
 			save_question_image,
 			load_image_data_url,
 			save_question_image_bytes,
+			export_jenis_soal,
 			get_school,
 			update_school,
 			list_classes_full,
 			create_class,
 			update_class,
 			delete_class,
+			reorder_classes,
 			create_subject,
 			update_subject,
 			delete_subject,
@@ -354,7 +442,8 @@ pub fn run() {
 			list_question_types,
 			create_question_type,
 			update_question_type,
-			delete_question_type
+			delete_question_type,
+			delete_question_type_scoped
 		])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

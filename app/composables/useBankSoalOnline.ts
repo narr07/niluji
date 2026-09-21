@@ -178,6 +178,138 @@ export const fetchBankSoal = async (kelas: string, mataPelajaran: string): Promi
 	};
 };
 
+export interface JenisFileOption {
+	fileName: string
+	label: string
+}
+
+// GitHub API (bukan raw.githubusercontent.com) dipakai khusus buat LISTING isi folder — raw
+// content host tidak punya endpoint listing direktori, cuma bisa serve file yang namanya sudah
+// diketahui persis.
+const GITHUB_API_REPO = "https://api.github.com/repos/narr07/niluji/contents/db-soal";
+
+/** Daftar file jenis ujian (.md hasil export) yang ada di folder kelas+pelajaran tertentu. */
+export const listJenisFiles = async (kelas: string, mataPelajaran: string): Promise<JenisFileOption[]> => {
+	const folderPath = buildFolderPath(kelas, mataPelajaran);
+	const response = await tauriFetch(`${GITHUB_API_REPO}/${folderPath.split("/").map(encodeURIComponent).join("/")}`, {
+		headers: { Accept: "application/vnd.github+json" }
+	});
+	if (!response.ok) {
+		if (response.status === 404) return [];
+		throw new Error(`Gagal mengambil daftar jenis ujian (status ${response.status}).`);
+	}
+	const items = (await response.json()) as { name: string, type: string }[];
+	return items
+		.filter((item) => item.type === "file" && item.name.toLowerCase().endsWith(".md"))
+		.map((item) => ({
+			fileName: item.name,
+			label: item.name
+				.replace(/\.md$/i, "")
+				.split("-")
+				.map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : w))
+				.join(" ")
+		}));
+};
+
+// Parser buat format Markdown hasil fitur Export (lihat src-tauri/src/export.rs) — frontmatter
+// YAML sederhana (kelas/pelajaran/jenis) diikuti soal bernomor pakai heading "## N. Tipe",
+// gambar (opsional) sebagai baris pertama isi blok, pilihan sebagai list "- A. teks", lalu baris
+// "Kunci: X" dan "Skor: N". Sengaja regex manual (bukan library markdown) karena strukturnya
+// sudah pasti — kita sendiri yang nulis exporter-nya.
+const parseSoalMarkdown = (text: string, folderPath: string): { jenis: string, rows: BankSoalOnlineRow[] } => {
+	const fmMatch = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/);
+	const frontmatter: Record<string, string> = {};
+	let body = text;
+	if (fmMatch) {
+		for (const line of fmMatch[1]!.split(/\r?\n/)) {
+			const m = line.match(/^([a-z_]+):\s*(.*)$/i);
+			if (m) frontmatter[m[1]!] = m[2]!.trim();
+		}
+		body = text.slice(fmMatch[0].length);
+	}
+
+	const headingRegex = /^##\s*(\d+)\.\s*(Pilihan Ganda|Esai)\s*$/gm;
+	const matches = [...body.matchAll(headingRegex)];
+	const rows: BankSoalOnlineRow[] = [];
+
+	matches.forEach((m, i) => {
+		const number = Number(m[1]);
+		const tipeLabel = m[2];
+		const start = m.index! + m[0].length;
+		const end = i + 1 < matches.length ? matches[i + 1]!.index! : body.length;
+		let content = body.slice(start, end).trim();
+
+		let imageFile: string | undefined;
+		const imgMatch = content.match(/^!\[gambar]\(gambar\/([^)]+)\)\s*\n*/);
+		if (imgMatch) {
+			imageFile = imgMatch[1];
+			content = content.slice(imgMatch[0].length);
+		}
+
+		const optionMatches = [...content.matchAll(/^-\s*([A-D])\.\s*(.+)$/gm)];
+		const kunciMatch = content.match(/^Kunci:\s*(.+)$/m);
+		const skorMatch = content.match(/^Skor:\s*([\d.]+)$/m);
+
+		let soalEnd = content.length;
+		if (optionMatches.length) soalEnd = optionMatches[0]!.index!;
+		else if (skorMatch) soalEnd = skorMatch.index!;
+		const soal = content.slice(0, soalEnd).trim();
+
+		const tipe: "pg" | "esai" = tipeLabel === "Esai" ? "esai" : "pg";
+		const pilihan: Record<string, string> = {};
+		for (const om of optionMatches) pilihan[om[1]!.toLowerCase()] = om[2]!.trim();
+		const kunci_jawaban = kunciMatch ? kunciMatch[1]!.trim() : "";
+		const skor = skorMatch ? Number(skorMatch[1]) : 1;
+
+		const filledChoices = Object.values(pilihan).filter(Boolean);
+		const invalidReasons: string[] = [];
+		if (!soal) invalidReasons.push("teks soal kosong");
+		if (tipe === "pg") {
+			if (filledChoices.length < 2) invalidReasons.push("kurang dari 2 pilihan terisi");
+			if (!kunci_jawaban) invalidReasons.push("kunci jawaban kosong");
+		}
+
+		const nama_file_gambar = imageFile ?? "";
+		const pathRelatifGambar = imageFile ? `${folderPath}/gambar/${imageFile}` : undefined;
+
+		rows.push({
+			id: `${tipe}-${number}`,
+			rowNumber: number,
+			tipe,
+			soal,
+			jenis: frontmatter.jenis ?? "",
+			pilihan_a: pilihan.a ?? "",
+			pilihan_b: pilihan.b ?? "",
+			pilihan_c: pilihan.c ?? "",
+			pilihan_d: pilihan.d ?? "",
+			kunci_jawaban,
+			skor,
+			nama_file_gambar,
+			...(pathRelatifGambar
+				? { pathRelatifGambar, urlGambar: `${CDN_BASE}/${pathRelatifGambar.split("/").map(encodeURIComponent).join("/")}` }
+				: {}),
+			valid: invalidReasons.length === 0,
+			...(invalidReasons.length ? { alasan_invalid: invalidReasons.join("; ") } : {})
+		});
+	});
+
+	return { jenis: frontmatter.jenis ?? "", rows };
+};
+
+export const fetchBankSoalMarkdown = async (
+	kelas: string,
+	mataPelajaran: string,
+	fileName: string
+): Promise<BankSoalOnlineResult & { jenis: string }> => {
+	const folderPath = buildFolderPath(kelas, mataPelajaran);
+	const url = `${CDN_BASE}/${folderPath.split("/").map(encodeURIComponent).join("/")}/${encodeURIComponent(fileName)}`;
+	const response = await tauriFetch(url);
+	if (!response.ok) throw new Error(`File ${fileName} tidak ditemukan di folder ${folderPath}.`);
+	const text = await response.text();
+	const { jenis, rows } = parseSoalMarkdown(text, folderPath);
+	return { rows, fileName, fileUrl: response.url, folderPath, jenis };
+};
+
 /** Memastikan CDN yang dipakai bank soal benar-benar dapat diakses dari aplikasi offline. */
 export const checkBankSoalConnection = async (): Promise<BankSoalConnectionStatus> => {
 	try {
@@ -204,5 +336,7 @@ export const useBankSoalOnline = () => ({
 	buildQuestionFileName,
 	checkBankSoalConnection,
 	fetchBankSoal,
+	listJenisFiles,
+	fetchBankSoalMarkdown,
 	subjectFolderCode
 });

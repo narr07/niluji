@@ -44,7 +44,9 @@
 		{
 			"identifier": "http:default",
 			"allow": [
-				{ "url": "https://raw.githubusercontent.com/*" }
+				{ "url": "https://raw.githubusercontent.com/*" },
+				{ "url": "https://docs.google.com/*" },
+				{ "url": "https://api.github.com/*" }
 			]
 		},
 		"core:webview:allow-create-webview",

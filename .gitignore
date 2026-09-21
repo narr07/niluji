@@ -10,3 +10,11 @@ node_modules
 .cargo
 dist
 src-tauri/target
+
+# Contoh naskah soal & kunci jawaban asli (Word) yang dipakai buat uji coba fitur Import dari
+# Word — dokumen sekolah sungguhan, bukan aset proyek, jangan ikut ter-commit.
+soal-docx/
+Soal docx/
+*.docx
+# Pengaturan lokal Claude Code, spesifik per komputer/user, jangan ikut repo
+.claude/

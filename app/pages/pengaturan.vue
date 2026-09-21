@@ -7,6 +7,7 @@
 		{ label: "Data Sekolah", icon: "lucide:school", to: "/pengaturan", exact: true },
 		{ label: "Data Kelas", icon: "lucide:layers", to: "/pengaturan/kelas" },
 		{ label: "Data Pelajaran", icon: "lucide:book-open", to: "/pengaturan/pelajaran" },
+		{ label: "Tarik Data Siswa", icon: "lucide:users", to: "/pengaturan/tarik-data-siswa" },
 		{ label: "Tarik Soal Online", icon: "lucide:cloud-download", to: "/pengaturan/tarik-soal-online" }
 	]];
 </script>

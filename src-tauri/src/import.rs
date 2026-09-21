@@ -27,10 +27,11 @@ pub struct QuestionSummary {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DashboardStats {
 	pub students: i64,
 	pub subjects: i64,
-	pub questions: i64
+	pub jenis_ujian: i64
 }
 
 pub fn dashboard_stats(db: &Db) -> Result<DashboardStats, String> {
@@ -38,7 +39,10 @@ pub fn dashboard_stats(db: &Db) -> Result<DashboardStats, String> {
 	let count = |table: &str| -> Result<i64, String> {
 		conn.query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |r| r.get(0)).map_err(|e| e.to_string())
 	};
-	Ok(DashboardStats { students: count("students")?, subjects: count("subjects")?, questions: count("questions")? })
+	// Jumlah jenis ujian yang TERDAFTAR (dari registry question_types) — sama seperti badge di
+	// Bank Soal, dihitung dari jenis yang sudah dibuat, bukan cuma yang sudah ada isi soalnya.
+	let jenis_ujian = count("question_types")?;
+	Ok(DashboardStats { students: count("students")?, subjects: count("subjects")?, jenis_ujian })
 }
 
 pub fn list_questions(db: &Db) -> Result<Vec<QuestionSummary>, String> {

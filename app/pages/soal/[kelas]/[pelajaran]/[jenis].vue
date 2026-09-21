@@ -46,7 +46,10 @@
 	const loading = ref(false);
 	const formOpen = ref(false);
 	const importOpen = ref(false);
+	const importDocxOpen = ref(false);
 	const editingId = ref<number | null>(null);
+	const previewOpen = ref(false);
+	const previewId = ref<number | null>(null);
 
 	const loadData = async () => {
 		loading.value = true;
@@ -70,6 +73,11 @@
 		formOpen.value = true;
 	};
 
+	const openPreview = (id: number) => {
+		previewId.value = id;
+		previewOpen.value = true;
+	};
+
 	const deleteQuestion = async (question: QuestionSummary) => {
 		if (!confirm(`Hapus soal "${question.questionText}"?`)) return;
 		await invoke("delete_question", { id: question.id });
@@ -89,6 +97,9 @@
 				</template>
 
 				<template #right>
+					<UButton icon="lucide:file-text" variant="soft" @click="importDocxOpen = true">
+						Import dari Word
+					</UButton>
 					<UButton icon="lucide:upload" variant="soft" @click="importOpen = true">
 						Import CSV / Excel
 					</UButton>
@@ -105,7 +116,8 @@
 				:questions="questions"
 				:loading="loading"
 				@edit="openEdit"
-				@delete="deleteQuestion" />
+				@delete="deleteQuestion"
+				@preview="openPreview" />
 		</template>
 	</UDashboardPanel>
 
@@ -123,4 +135,13 @@
 		:jenis="jenis"
 		:subject-id="subjectId"
 		@saved="loadData" />
+
+	<SoalImportDocxModal
+		v-model:open="importDocxOpen"
+		:kelas="kelas"
+		:jenis="jenis"
+		:subject-id="subjectId"
+		@saved="loadData" />
+
+	<SoalPreviewModal v-model:open="previewOpen" :question-id="previewId" />
 </template>
