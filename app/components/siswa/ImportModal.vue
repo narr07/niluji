@@ -164,7 +164,12 @@
 					sebagai preview yang bisa diperiksa dan diedit sebelum benar-benar disimpan.
 				</p>
 
-				<UFormField label="File Siswa (.csv / .xlsx)">
+				<div
+					class="rounded-lg border-2 border-dashed p-4 text-center transition-colors"
+					:class="isDragging ? 'border-primary bg-primary/5' : 'border-default'">
+					<p class="text-xs text-muted mb-2">
+						{{ isDragging ? "Lepas file di sini" : "Seret file .csv/.xlsx ke sini, atau" }}
+					</p>
 					<UButton
 						variant="soft"
 						icon="lucide:file-spreadsheet"
@@ -172,7 +177,7 @@
 						@click="pickFile">
 						{{ fileName || "Pilih File" }}
 					</UButton>
-				</UFormField>
+				</div>
 
 				<UAlert
 					v-if="errorMessage"

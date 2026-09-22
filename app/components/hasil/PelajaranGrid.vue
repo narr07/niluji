@@ -50,7 +50,11 @@
 			:ui="{ body: 'p-3' }"
 			@click="navigateTo(`/hasil/${kelas}/${encodeURIComponent(s.name)}`)"
 		>
-			<UBadge color="neutral" variant="subtle" size="lg" class="absolute top-2 right-2">
+			<UBadge
+				color="neutral"
+				variant="subtle"
+				size="lg"
+				class="absolute top-2 right-2">
 				{{ jenisCountFor(s.id, s.name) }}
 			</UBadge>
 

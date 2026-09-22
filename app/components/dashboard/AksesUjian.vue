@@ -1,63 +1,63 @@
 <script lang="ts" setup>
-const props = defineProps<{
-	joinUrl: string;
-}>();
+	const props = defineProps<{
+		joinUrl: string;
+	}>();
 
-const isOpen = ref(false);
-const qrCanvasModal = ref<HTMLCanvasElement | null>(null);
-const qrWrapper = ref<HTMLDivElement | null>(null);
-let resizeObserver: ResizeObserver | null = null;
+	const isOpen = ref(false);
+	const qrCanvasModal = ref<HTMLCanvasElement | null>(null);
+	const qrWrapper = ref<HTMLDivElement | null>(null);
+	let resizeObserver: ResizeObserver | null = null;
 
-async function renderQr(size: number) {
-	await nextTick();
-	if (!props.joinUrl || !qrCanvasModal.value || size <= 0) return;
-	const QRCode = await import("qrcode");
-	await QRCode.toCanvas(qrCanvasModal.value, props.joinUrl, {
-		width: Math.floor(size),
-		margin: 2,
-	});
-}
-
-function observeWrapper() {
-	if (!qrWrapper.value) return;
-	resizeObserver = new ResizeObserver((entries) => {
-		for (const entry of entries) {
-			const { width, height } = entry.contentRect;
-			const size = Math.max(Math.min(width, height) - 8, 120);
-			renderQr(size);
-		}
-	});
-	resizeObserver.observe(qrWrapper.value);
-}
-
-watch(isOpen, async (open) => {
-	if (open) {
+	async function renderQr(size: number) {
 		await nextTick();
-		observeWrapper();
-	} else {
-		resizeObserver?.disconnect();
-		resizeObserver = null;
+		if (!props.joinUrl || !qrCanvasModal.value || size <= 0) return;
+		const QRCode = await import("qrcode");
+		await QRCode.toCanvas(qrCanvasModal.value, props.joinUrl, {
+			width: Math.floor(size),
+			margin: 2,
+		});
 	}
-});
 
-watch(
-	() => props.joinUrl,
-	() => {
-		if (isOpen.value && qrWrapper.value) {
-			const { width, height } = qrWrapper.value.getBoundingClientRect();
-			renderQr(Math.max(Math.min(width, height) - 8, 120));
+	function observeWrapper() {
+		if (!qrWrapper.value) return;
+		resizeObserver = new ResizeObserver((entries) => {
+			for (const entry of entries) {
+				const { width, height } = entry.contentRect;
+				const size = Math.max(Math.min(width, height) - 8, 120);
+				renderQr(size);
+			}
+		});
+		resizeObserver.observe(qrWrapper.value);
+	}
+
+	watch(isOpen, async (open) => {
+		if (open) {
+			await nextTick();
+			observeWrapper();
+		} else {
+			resizeObserver?.disconnect();
+			resizeObserver = null;
 		}
+	});
+
+	watch(
+		() => props.joinUrl,
+		() => {
+			if (isOpen.value && qrWrapper.value) {
+				const { width, height } = qrWrapper.value.getBoundingClientRect();
+				renderQr(Math.max(Math.min(width, height) - 8, 120));
+			}
+		}
+	);
+
+	onUnmounted(() => resizeObserver?.disconnect());
+
+	const { copy, copied } = useClipboard();
+
+	function handleCopyJoinUrl() {
+		if (!props.joinUrl) return;
+		copy(props.joinUrl);
 	}
-);
-
-onUnmounted(() => resizeObserver?.disconnect());
-
-const { copy, copied } = useClipboard();
-
-function handleCopyJoinUrl() {
-	if (!props.joinUrl) return;
-	copy(props.joinUrl);
-}
 </script>
 
 <template>

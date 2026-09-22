@@ -56,6 +56,11 @@
 		return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 	};
 
+	// 4 huruf acak — cukup pendek buat diketik siswa, tetap bisa diganti manual kalau guru mau
+	// token yang lebih gampang diingat (mis. "UTS2026").
+	const TOKEN_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+	const generateToken = () => Array.from({ length: 4 }, () => TOKEN_LETTERS[Math.floor(Math.random() * TOKEN_LETTERS.length)]).join("");
+
 	const emptyForm = () => ({
 		subject: undefined as { label: string, value: number } | undefined,
 		class: undefined as string | undefined,
@@ -65,7 +70,7 @@
 		startTime: "",
 		endTime: "",
 		duration: 60,
-		token: "",
+		token: generateToken(),
 		randomizePg: true,
 		randomizeEssay: true
 	});
@@ -227,8 +232,18 @@
 			<UInput v-model="form.examDate" type="date" class="w-full" />
 		</UFormField>
 
-		<UFormField label="Token Masuk">
-			<UInput v-model="form.token" placeholder="Contoh: UTS2026" class="w-full" />
+		<UFormField label="Token Masuk" description="Terisi otomatis, bisa diganti bebas.">
+			<UInput v-model="form.token" placeholder="Contoh: UTS2026" class="w-full">
+				<template #trailing>
+					<UButton
+						size="2xs"
+						variant="ghost"
+						color="neutral"
+						icon="lucide:refresh-cw"
+						title="Acak ulang token"
+						@click="form.token = generateToken()" />
+				</template>
+			</UInput>
 		</UFormField>
 
 		<UFormField label="Jam Mulai">

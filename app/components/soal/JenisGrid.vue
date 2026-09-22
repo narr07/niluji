@@ -200,49 +200,45 @@
 		</div>
 
 		<div v-if="loading" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-			<USkeleton v-for="i in 3" :key="i" class="h-24 rounded-lg" />
+			<USkeleton v-for="i in 3" :key="i" class="h-28 rounded-lg" />
 		</div>
 
 		<div v-else-if="jenisGroups.length" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-			<UPageCard
+			<div
 				v-for="g in jenisGroups"
 				:key="g.id"
-				:ui="{ header: 'p-2 sm:px-3', wrapper: 'items-stretch' }"
-
-
-				variant="subtle"
-				class="cursor-pointer hover:ring-primary/60 transition-shadow"
+				class="flex flex-col gap-3 rounded-lg bg-elevated/50 ring ring-default p-4 sm:p-6 cursor-pointer hover:ring-primary/60 transition-shadow"
 				@click="navigateTo(`/soal/${kelas}/${encodeURIComponent(pelajaran)}/${encodeURIComponent(g.jenis)}`)"
 			>
-				<template #title>
-
-					<h1 class="text-2xl">{{ g.jenis }}</h1>
-
-
-				</template>
-				<template #leading>
-					<div class="flex items-center justify-between w-full gap-2">
-						<UBadge
+				<div class="flex items-start justify-between gap-2">
+					<h3 class="text-base font-semibold text-highlighted leading-snug break-words min-w-0 flex-1">
+						{{ g.jenis }}
+					</h3>
+					<UDropdownMenu :items="menuItemsFor(g)" :content="{ align: 'end' }">
+						<UButton
+							icon="i-lucide-more-vertical"
+							variant="ghost"
 							color="neutral"
-							variant="subtle"
-							size="xl"
-							class="mt-1">
-							{{ g.count }} soal
-						</UBadge>
-						<UDropdownMenu :items="menuItemsFor(g)" :content="{ align: 'end' }">
-							<UButton
-								icon="i-lucide-more-vertical"
-								variant="subtle"
-								color="neutral"
-								size="md"
-								@click.stop />
-						</UDropdownMenu></div>
-				</template>
-			</UPageCard>
+							size="sm"
+							class="shrink-0 -mr-1.5 -mt-1"
+							@click.stop />
+					</UDropdownMenu>
+				</div>
+
+				<UBadge
+					color="neutral"
+					variant="subtle"
+					size="lg"
+					class="font-medium self-start">
+					{{ g.count }} soal
+				</UBadge>
+			</div>
 		</div>
 
 		<div v-else class="flex flex-col items-center text-center gap-3 py-16 border border-dashed border-default rounded-lg">
-			<UIcon name="i-lucide-clipboard-list" class="size-8 text-muted" />
+			<div class="flex items-center justify-center size-12 rounded-full bg-elevated">
+				<UIcon name="i-lucide-clipboard-list" class="size-6 text-muted" />
+			</div>
 			<div>
 				<p class="font-medium text-highlighted">
 					Belum ada jenis ujian

@@ -2,53 +2,61 @@
 	import { invoke } from "@tauri-apps/api/core";
 
 	interface FiturItem {
-		judul: string
-		menu: string
-		isi: string[]
+		judul: string;
+		menu: string;
+		icon: string;
+		ringkasan: string;
+		isi: string[];
 	}
 
 	const fitur: FiturItem[] = [
 		{
 			judul: "Import dari Naskah Soal Word",
 			menu: "Bank Soal > (dalam Jenis Ujian) > Import dari Word",
+			icon: "i-lucide-file-text",
+			ringkasan: "Naskah soal Word (.docx) + kunci jawaban terpisah, langsung jadi soal tanpa diketik ulang.",
 			isi: [
-				"Punya naskah soal yang sudah diketik di Word (format siap cetak) plus file kunci jawaban terpisah? Nggak perlu diketik ulang. Pilih file naskah soal (.docx) dan file kunci jawaban (.docx) — sistem otomatis mencocokkan soal dengan jawabannya berdasarkan nomor.",
-				"Jumlah soal PG dan esai biasanya terdeteksi otomatis dari file kunci jawaban. Kalau deteksinya salah atau soalnya kurang dari yang seharusnya, angkanya bisa diedit manual sebelum diproses.",
-				"Sesudah diproses, ada tabel preview — soal yang polanya nggak terbaca jelas ditandai \"Cek manual\" dan nggak ikut kecentang otomatis. Klik Edit di baris manapun (termasuk yang \"Cek manual\") buat membetulkan isinya langsung, atau klik Tambah Baris Manual kalau mau menambah soal di luar yang terdeteksi dari file (misalnya file cuma 20 soal tapi maunya 30)."
-			]
+				"Pilih file naskah soal (.docx) dan file kunci jawaban (.docx) — sistem otomatis mencocokkan soal dengan jawabannya berdasarkan nomor.",
+				"Jumlah soal PG dan esai biasanya terdeteksi otomatis dari file kunci jawaban. Kalau deteksinya salah, angkanya bisa diedit manual sebelum diproses.",
+				"Ada tabel preview sesudah diproses — soal yang polanya tidak terbaca jelas ditandai \"Cek manual\". Klik Edit di baris manapun untuk membetulkan, atau Tambah Baris Manual untuk soal di luar yang terdeteksi.",
+			],
 		},
 		{
 			judul: "Import CSV / Excel",
 			menu: "Bank Soal > (dalam Jenis Ujian) > Import CSV / Excel",
-			isi: [
-				"Cocok kalau soal sudah disiapkan dalam bentuk tabel (kolom soal, pilihan A-D, kunci jawaban, skor). Unggah filenya, soal langsung masuk ke jenis ujian yang sedang dibuka."
-			]
+			icon: "i-lucide-table",
+			ringkasan: "Soal dalam bentuk tabel (kolom soal, pilihan, kunci, skor) diunggah langsung ke jenis ujian yang dibuka.",
+			isi: [],
 		},
 		{
 			judul: "Tarik Soal Online",
 			menu: "Pengaturan > Tarik Soal Online",
+			icon: "i-lucide-cloud-download",
+			ringkasan: "Tarik bank soal sekolah lain dari repo GitHub NILUJI tanpa impor manual.",
 			isi: [
-				"Kalau sekolah sudah punya bank soal yang diunggah ke repo GitHub NILUJI (format Markdown hasil Export, lihat poin Export Bank Soal di bawah), soal itu bisa ditarik langsung tanpa impor manual.",
-				"Pilih Kelas, Mata Pelajaran, lalu Jenis Ujian (daftarnya diambil otomatis dari file yang ada di repo). Klik Ambil & Preview, cek soalnya, lalu Impor ke Bank Soal."
-			]
+				"Kalau sekolah sudah punya bank soal yang diunggah ke repo GitHub NILUJI (format Markdown hasil Export), soal itu bisa ditarik langsung.",
+				"Pilih Kelas, Mata Pelajaran, lalu Jenis Ujian — daftarnya diambil otomatis dari file di repo. Klik Ambil & Preview, cek soalnya, lalu Impor ke Bank Soal.",
+			],
 		},
 		{
 			judul: "Tarik Data Siswa",
 			menu: "Pengaturan > Tarik Data Siswa",
+			icon: "i-lucide-users",
+			ringkasan: "Tarik data siswa dari spreadsheet online sekolah, tanpa input manual atau CSV.",
 			isi: [
-				"Alternatif dari input manual/impor CSV, kalau data siswa sekolah sudah ada di spreadsheet online bersama. Ketik nama sekolah (bisa cari sebagian nama, lalu pilih yang persis dari daftar), klik Tarik Data Siswa.",
-				"Ada kesalahan nama atau NISN di data sumbernya? Klik \"Buka & Edit Data Sumber\" di halaman itu buat langsung membetulkannya di spreadsheet, lalu tarik ulang di sini."
-			]
-		}
+				"Ketik nama sekolah (bisa cari sebagian nama, lalu pilih yang persis dari daftar), klik Tarik Data Siswa.",
+				"Ada kesalahan nama atau NISN di data sumbernya? Klik \"Buka & Edit Data Sumber\" untuk membetulkan langsung di spreadsheet, lalu tarik ulang.",
+			],
+		},
 	];
 
 	const exportOpen = ref(false);
 
 	interface BackupInfo {
-		fileName: string
-		path: string
-		sizeBytes: number
-		createdAt: number
+		fileName: string;
+		path: string;
+		sizeBytes: number;
+		createdAt: number;
 	}
 
 	const toast = useToast();
@@ -75,7 +83,7 @@
 				title: "Backup selesai",
 				description: `Disimpan sebagai ${info.fileName}`,
 				icon: "lucide:check",
-				color: "success"
+				color: "success",
 			});
 			await loadBackups();
 		} catch (error) {
@@ -83,7 +91,7 @@
 				title: "Backup gagal",
 				description: error instanceof Error ? error.message : String(error),
 				icon: "lucide:x",
-				color: "error"
+				color: "error",
 			});
 		} finally {
 			backingUp.value = false;
@@ -96,67 +104,83 @@
 <template>
 	<div class="space-y-6 w-full">
 		<div class="grid gap-4 sm:grid-cols-2">
-			<UCard v-for="f in fitur" :key="f.judul">
+			<UPageCard
+				v-for="f in fitur"
+				:key="f.judul"
+				:title="f.judul"
+				:description="f.ringkasan"
+				:icon="f.icon"
+			>
 				<template #header>
-					<p class="font-semibold">
-						{{ f.judul }}
-					</p>
 					<UBadge
 						color="neutral"
 						variant="subtle"
 						size="sm"
-						class="mt-1">
+						class="mb-1">
 						{{ f.menu }}
 					</UBadge>
 				</template>
-				<div class="space-y-2 text-sm">
-					<p v-for="(p, i) in f.isi" :key="i">
-						{{ p }}
-					</p>
-				</div>
-			</UCard>
 
-			<UCard>
-				<template #header>
-					<span class="font-semibold">Export Bank Soal</span>
-				</template>
-				<p class="text-sm text-muted mb-3">
-					Kebalikan dari Tarik Soal Online — fitur ini buat mengeluarkan bank soal jadi file (Markdown + folder gambar)
-					yang nanti diunggah ke repo GitHub, supaya bisa ditarik sekolah lain lewat Tarik Soal Online. Dibatasi PIN
-					supaya tidak sembarang orang bisa export (PIN default 1234, ganti sendiri lewat Pengaturan > Data Sekolah).
-				</p>
-				<p class="text-xs text-muted mb-3">
-					Mau lihat/edit format Markdown-nya langsung?
+				<UCollapsible v-if="f.isi.length" class="mt-1">
+					<UButton
+						label="Lihat detail"
+						color="neutral"
+						variant="link"
+						trailing-icon="i-lucide-chevron-down"
+						size="xs"
+						class="px-0" />
+
+					<template #content>
+						<div class="space-y-2 text-sm text-toned mt-2">
+							<p v-for="(p, i) in f.isi" :key="i">
+								{{ p }}
+							</p>
+						</div>
+					</template>
+				</UCollapsible>
+			</UPageCard>
+
+			<UPageCard
+				title="Export Bank Soal"
+				description="Kebalikan dari Tarik Soal Online — keluarkan bank soal jadi file (Markdown + folder gambar) untuk diunggah ke repo GitHub."
+				icon="i-lucide-upload"
+			>
+				<p class="text-xs text-muted mt-2">
+					Dibatasi PIN (default 1234, ganti lewat Pengaturan > Data Sekolah).
 					<a
 						href="/templates/contoh-soal-markdown.md"
 						download
 						class="text-primary underline"
-						@click="notifyTemplateDownload('format Markdown')">Unduh contoh</a>.
+						@click="notifyTemplateDownload('format Markdown')">Unduh contoh format</a>.
 				</p>
-				<UButton icon="lucide:download" variant="soft" @click="exportOpen = true">
+				<UButton
+					icon="lucide:download"
+					variant="soft"
+					size="sm"
+					class="mt-3"
+					@click="exportOpen = true">
 					Export Bank Soal
 				</UButton>
-			</UCard>
+			</UPageCard>
 
-			<UCard>
-				<template #header>
-					<span class="font-semibold">Backup Database</span>
-				</template>
-				<p class="text-sm text-muted mb-3">
-					Database (soal, siswa, hasil ujian) otomatis dibackup tiap kali aplikasi dibuka — tersimpan di folder
-					data aplikasi, 14 backup terakhir disimpan. Bisa juga backup manual kapan saja lewat tombol di bawah.
-				</p>
-				<p v-if="latestBackup" class="text-xs text-muted mb-3">
+			<UPageCard
+				title="Backup Database"
+				description="Database (soal, siswa, hasil ujian) otomatis dibackup tiap kali aplikasi dibuka. 14 backup terakhir disimpan."
+				icon="i-lucide-database-backup"
+			>
+				<p v-if="latestBackup" class="text-xs text-muted mt-2">
 					Backup terakhir: {{ formatDate(latestBackup.createdAt) }} ({{ formatSize(latestBackup.sizeBytes) }}) — {{ backups.length }} backup tersimpan
 				</p>
 				<UButton
 					icon="lucide:database-backup"
 					variant="soft"
+					size="sm"
+					class="mt-3"
 					:loading="backingUp"
 					@click="backupNow">
 					Backup Sekarang
 				</UButton>
-			</UCard>
+			</UPageCard>
 		</div>
 	</div>
 

@@ -76,7 +76,11 @@
 				:ui="{ body: 'p-3' }"
 				@click="navigateTo(`/hasil/${kelas}/${encodeURIComponent(pelajaran)}/${encodeURIComponent(g.jenis)}`)"
 			>
-				<UBadge color="neutral" variant="subtle" size="lg" class="absolute top-2 right-2">
+				<UBadge
+					color="neutral"
+					variant="subtle"
+					size="lg"
+					class="absolute top-2 right-2">
 					{{ g.count }} sesi
 				</UBadge>
 
