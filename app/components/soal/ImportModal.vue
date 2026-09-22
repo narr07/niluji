@@ -57,12 +57,22 @@
 		}
 	);
 
-	const pickImportFile = async () => {
-		const path = await openDialog({ multiple: false, filters: [{ name: "Soal", extensions: ["csv", "xlsx", "xls"] }] });
-		if (!path) return;
+	const setImportFile = (path: string) => {
 		form.filePath = path;
 		form.fileName = path.split(/[/\\]/).pop() ?? path;
 	};
+
+	const pickImportFile = async () => {
+		const path = await openDialog({ multiple: false, filters: [{ name: "Soal", extensions: ["csv", "xlsx", "xls"] }] });
+		if (!path) return;
+		setImportFile(path);
+	};
+
+	const { isDragging } = useFileDrop({
+		isActive: () => props.open,
+		accept: (path) => /\.(csv|xlsx|xls)$/i.test(path),
+		onDrop: (paths) => setImportFile(paths[0]!)
+	});
 
 	const pickImportImages = async () => {
 		const paths = await openDialog({ multiple: true, filters: [{ name: "Gambar", extensions: ["jpg", "jpeg", "png", "gif", "webp"] }] });
@@ -88,7 +98,7 @@
 				imageMap[filename] = saved.path;
 			}
 
-			const summary = await invoke<{ questionsImported: number, subjectsCreated: number }>("import_questions", {
+			const summary = await invoke<{ questionsImported: number, subjectsCreated: number, questionsSkipped: number }>("import_questions", {
 				path: form.filePath,
 				opts: {
 					defaultSubjectId: props.subjectId,
@@ -98,7 +108,10 @@
 					imageMap
 				}
 			});
-			importResult.value = `Berhasil import ${summary.questionsImported} soal.`;
+			importResult.value = `Berhasil import ${summary.questionsImported} soal.`
+				+ (summary.questionsSkipped
+					? ` ${summary.questionsSkipped} baris dilewati (opsi kurang dari 2, atau kunci jawaban tidak cocok opsi manapun).`
+					: "");
 			emit("saved");
 		} catch (error) {
 			importError.value = error instanceof Error ? error.message : String(error);
@@ -131,11 +144,16 @@
 						@click="notifyTemplateDownload('Excel')">Excel</a>
 				</p>
 
-				<UFormField label="File Soal (.csv atau .xlsx)">
+				<div
+					class="rounded-lg border-2 border-dashed p-4 text-center transition-colors"
+					:class="isDragging ? 'border-primary bg-primary/5' : 'border-default'">
+					<p class="text-xs text-muted mb-2">
+						{{ isDragging ? "Lepas file di sini" : "Seret file .csv/.xlsx ke sini, atau" }}
+					</p>
 					<UButton variant="soft" icon="lucide:file-spreadsheet" @click="pickImportFile">
 						{{ form.fileName || "Pilih File" }}
 					</UButton>
-				</UFormField>
+				</div>
 
 				<UFormField label="Gambar Soal (opsional)" description="Upload semua gambar yang direferensikan di kolom 'image' pada file.">
 					<UButton variant="soft" icon="lucide:images" @click="pickImportImages">

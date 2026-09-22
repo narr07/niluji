@@ -60,7 +60,11 @@
 	};
 
 	const remove = async (c: ClassRecord) => {
-		if (!confirm(`Hapus kelas "${c.title}"? Data siswa/soal/ujian yang sudah memakai kelas ini tidak ikut terhapus.`)) return;
+		const ok = await confirmDelete({
+			title: `Hapus kelas "${c.title}"?`,
+			description: "Data siswa/soal/ujian yang sudah memakai kelas ini tidak ikut terhapus."
+		});
+		if (!ok) return;
 		await invoke("delete_class", { id: c.id });
 		await load();
 	};

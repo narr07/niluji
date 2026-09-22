@@ -31,6 +31,8 @@
 		scheduledAt: number | null
 		windowEnd: number | null
 		token: string
+		randomizePg: boolean
+		randomizeEssay: boolean
 	}
 
 	const subjects = ref<Subject[]>([]);
@@ -64,7 +66,11 @@
 	};
 
 	const deleteExam = async (exam: Exam) => {
-		if (!confirm(`Hapus ujian "${exam.title}"? Semua sesi & hasil siswa untuk ujian ini juga akan terhapus.`)) return;
+		const ok = await confirmDelete({
+			title: `Hapus ujian "${exam.title}"?`,
+			description: "Semua sesi & hasil siswa untuk ujian ini juga akan terhapus."
+		});
+		if (!ok) return;
 		await invoke("delete_exam", { id: exam.id });
 		if (editingExam.value?.id === exam.id) editingExam.value = null;
 		await loadData();
@@ -97,7 +103,10 @@
 		</template>
 	</UDashboardPanel>
 
-	<UModal v-model:open="formOpen" :title="editingExam ? 'Edit Ujian' : 'Buat Ujian Baru'" :ui="{ content: 'max-w-3xl' }">
+	<UModal
+		v-model:open="formOpen"
+		:title="editingExam ? 'Edit Ujian' : 'Buat Ujian Baru'"
+		:ui="{ content: 'max-w-2xl', header: 'py-3', body: 'py-3' }">
 		<template #body>
 			<UjianForm
 				:subjects="subjects"

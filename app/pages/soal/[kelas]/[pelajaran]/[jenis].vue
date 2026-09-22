@@ -47,9 +47,19 @@
 	const formOpen = ref(false);
 	const importOpen = ref(false);
 	const importDocxOpen = ref(false);
+	const importMarkdownOpen = ref(false);
 	const editingId = ref<number | null>(null);
 	const previewOpen = ref(false);
 	const previewId = ref<number | null>(null);
+	const importMenuOpen = ref(false);
+
+	// Satu tombol Import Soal dengan pilihan format, bukan beberapa tombol terpisah —
+	// alur importnya sendiri (modal Word vs CSV/Excel vs Markdown) tidak berubah, cuma pintu masuknya digabung.
+	const importItems = [[
+		{ label: "Dari Naskah Word (.docx)", icon: "lucide:file-text", onSelect: () => (importDocxOpen.value = true) },
+		{ label: "Dari CSV / Excel", icon: "lucide:file-spreadsheet", onSelect: () => (importOpen.value = true) },
+		{ label: "Dari file Markdown (.md)", icon: "lucide:file-code", onSelect: () => (importMarkdownOpen.value = true) }
+	]];
 
 	const loadData = async () => {
 		loading.value = true;
@@ -79,8 +89,14 @@
 	};
 
 	const deleteQuestion = async (question: QuestionSummary) => {
-		if (!confirm(`Hapus soal "${question.questionText}"?`)) return;
+		const ok = await confirmDelete({ title: "Hapus soal ini?", description: stripSoalMarkdown(question.questionText) });
+		if (!ok) return;
 		await invoke("delete_question", { id: question.id });
+		await loadData();
+	};
+
+	const deleteManyQuestions = async (ids: number[]) => {
+		await Promise.all(ids.map((id) => invoke("delete_question", { id })));
 		await loadData();
 	};
 
@@ -97,12 +113,14 @@
 				</template>
 
 				<template #right>
-					<UButton icon="lucide:file-text" variant="soft" @click="importDocxOpen = true">
-						Import dari Word
-					</UButton>
-					<UButton icon="lucide:upload" variant="soft" @click="importOpen = true">
-						Import CSV / Excel
-					</UButton>
+					<UDropdownMenu v-model:open="importMenuOpen" :items="importItems">
+						<UButton
+							icon="lucide:upload"
+							variant="soft"
+							:trailing-icon="importMenuOpen ? 'lucide:chevron-up' : 'lucide:chevron-down'">
+							Import Soal
+						</UButton>
+					</UDropdownMenu>
 					<UButton icon="lucide:plus" @click="openCreate">
 						Tambah Soal
 					</UButton>
@@ -117,6 +135,7 @@
 				:loading="loading"
 				@edit="openEdit"
 				@delete="deleteQuestion"
+				@delete-many="deleteManyQuestions"
 				@preview="openPreview" />
 		</template>
 	</UDashboardPanel>
@@ -138,6 +157,13 @@
 
 	<SoalImportDocxModal
 		v-model:open="importDocxOpen"
+		:kelas="kelas"
+		:jenis="jenis"
+		:subject-id="subjectId"
+		@saved="loadData" />
+
+	<SoalImportMarkdownModal
+		v-model:open="importMarkdownOpen"
 		:kelas="kelas"
 		:jenis="jenis"
 		:subject-id="subjectId"

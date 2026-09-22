@@ -1,5 +1,5 @@
 use crate::db::Db;
-use rusqlite::params;
+use rusqlite::{params, OptionalExtension};
 use serde::Serialize;
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -12,7 +12,8 @@ fn now_secs() -> i64 {
 #[serde(rename_all = "camelCase")]
 pub struct OptionView {
 	pub key: String,
-	pub text: String
+	pub text: String,
+	pub image: Option<String>
 }
 
 #[derive(Debug, Serialize)]
@@ -45,7 +46,7 @@ pub fn join(db: &Db, token: &str, nisn: &str, name: &str) -> Result<JoinResponse
 	let conn = db.lock().unwrap();
 
 	#[allow(clippy::type_complexity)]
-	let (exam_id, exam_title, subject_id, class, jenis, duration, window_start, window_end): (
+	let (exam_id, exam_title, subject_id, class, jenis, duration, window_start, window_end, randomize_pg, randomize_essay): (
 		i64,
 		String,
 		i64,
@@ -53,12 +54,32 @@ pub fn join(db: &Db, token: &str, nisn: &str, name: &str) -> Result<JoinResponse
 		Option<String>,
 		i64,
 		Option<i64>,
-		Option<i64>
+		Option<i64>,
+		bool,
+		bool
 	) = conn
 		.query_row(
-			"SELECT id, title, subject_id, class, jenis, duration, scheduled_at, window_end FROM exams WHERE token = ?1",
+			"SELECT id, title, subject_id, class, jenis, duration, scheduled_at, window_end, randomize_pg, randomize_essay
+			 FROM exams WHERE token = ?1",
 			params![token.trim()],
-			|r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?, r.get(5)?, r.get(6)?, r.get(7)?))
+			// randomize_pg/randomize_essay bisa NULL untuk baris yang di-INSERT tanpa
+			// menyebutkannya secara eksplisit (mis. data lama, atau test) — dianggap true
+			// (perilaku lama: selalu diacak), bukan bikin query ini gagal gara-gara tipe
+			// kolomnya tidak cocok.
+			|r| {
+				Ok((
+					r.get(0)?,
+					r.get(1)?,
+					r.get(2)?,
+					r.get(3)?,
+					r.get(4)?,
+					r.get(5)?,
+					r.get(6)?,
+					r.get(7)?,
+					r.get::<_, Option<i64>>(8)?.unwrap_or(1) != 0,
+					r.get::<_, Option<i64>>(9)?.unwrap_or(1) != 0
+				))
+			}
 		)
 		.map_err(|_| "Token ujian tidak ditemukan".to_string())?;
 
@@ -97,15 +118,25 @@ pub fn join(db: &Db, token: &str, nisn: &str, name: &str) -> Result<JoinResponse
 		// jenis-less exam) draw from the whole subject as before — the "?2 IS NULL OR ..."
 		// pattern lets one query cover every combination. Multiple-choice questions come
 		// before essay ones, so students finish PG before moving on to essay. Every
-		// matching question is included — no random subset.
+		// matching question is included — no random subset. Order WITHIN each group is
+		// shuffled per student only when that group's own randomize flag is on — PG and esai
+		// diatur terpisah (?4 buat PG, ?5 buat esai), jadi guru bisa mau PG-nya diacak tapi
+		// esainya urut tetap, atau sebaliknya.
 		let mut stmt = conn
 			.prepare(
 				"SELECT id FROM questions
 				 WHERE subject_id = ?1 AND (?2 IS NULL OR class = ?2) AND (?3 IS NULL OR jenis = ?3)
-				 ORDER BY CASE WHEN question_type = 'essay' THEN 1 ELSE 0 END, RANDOM()"
+				 ORDER BY
+				 	CASE WHEN question_type = 'essay' THEN 1 ELSE 0 END,
+				 	CASE
+				 		WHEN question_type = 'essay' THEN (CASE WHEN ?5 = 1 THEN RANDOM() ELSE id END)
+				 		ELSE (CASE WHEN ?4 = 1 THEN RANDOM() ELSE id END)
+				 	END"
 			)
 			.map_err(|e| e.to_string())?;
-		let mapped = stmt.query_map(params![subject_id, class, jenis], |r| r.get(0)).map_err(|e| e.to_string())?;
+		let mapped = stmt
+			.query_map(params![subject_id, class, jenis, randomize_pg as i64, randomize_essay as i64], |r| r.get(0))
+			.map_err(|e| e.to_string())?;
 		let ids: Vec<i64> = mapped.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())?;
 
 		if ids.is_empty() {
@@ -126,17 +157,23 @@ pub fn join(db: &Db, token: &str, nisn: &str, name: &str) -> Result<JoinResponse
 
 	let mut questions = Vec::new();
 	for qid in &ids {
-		let (question_text, question_type, image): (String, String, Option<String>) = conn
+		let question_row: Option<(String, String, Option<String>)> = conn
 			.query_row("SELECT question_text, question_type, image FROM questions WHERE id = ?1", params![qid], |r| {
 				Ok((r.get(0)?, r.get(1)?, r.get(2)?))
 			})
+			.optional()
 			.map_err(|e| e.to_string())?;
+		// Soal ini sudah dihapus dari Bank Soal sesudah sesi ini dibuat — dilewati, bukan bikin
+		// siswa tidak bisa masuk ke halaman ujiannya sama sekali gara-gara satu soal hilang.
+		let Some((question_text, question_type, image)) = question_row else {
+			continue;
+		};
 
 		let mut opt_stmt = conn
-			.prepare("SELECT option_key, option_text FROM question_options WHERE question_id = ?1 ORDER BY option_key")
+			.prepare("SELECT option_key, option_text, image FROM question_options WHERE question_id = ?1 ORDER BY option_key")
 			.map_err(|e| e.to_string())?;
 		let options = opt_stmt
-			.query_map(params![qid], |r| Ok(OptionView { key: r.get(0)?, text: r.get(1)? }))
+			.query_map(params![qid], |r| Ok(OptionView { key: r.get(0)?, text: r.get(1)?, image: r.get(2)? }))
 			.map_err(|e| e.to_string())?
 			.collect::<Result<Vec<_>, _>>()
 			.map_err(|e| e.to_string())?;
@@ -234,15 +271,25 @@ pub fn session_detail(db: &Db, session_id: i64) -> Result<SessionDetail, String>
 		)
 		.map_err(|_| "Sesi ujian tidak ditemukan".to_string())?;
 
-	let ids: Vec<i64> = question_ids.split(',').filter_map(|s| s.parse().ok()).collect();
+	// `question_ids` menyimpan urutan PERSIS seperti yang dilihat siswa ini (bisa acak per siswa
+	// kalau ujiannya pakai opsi "Acak Soal") — tapi laporan hasil harus konsisten buat semua
+	// siswa, mengikuti urutan soal diinput guru di Bank Soal (id menaik), bukan urutan acak itu.
+	let mut ids: Vec<i64> = question_ids.split(',').filter_map(|s| s.parse().ok()).collect();
+	ids.sort_unstable();
 
 	let mut items = Vec::new();
 	for qid in ids {
-		let (question_text, question_type, max_score): (String, String, f64) = conn
+		let question_row: Option<(String, String, f64)> = conn
 			.query_row("SELECT question_text, question_type, score FROM questions WHERE id = ?1", params![qid], |r| {
 				Ok((r.get(0)?, r.get(1)?, r.get(2)?))
 			})
+			.optional()
 			.map_err(|e| e.to_string())?;
+		// Soal ini sudah dihapus dari Bank Soal sesudah sesi ini berjalan — lewati saja, bukan
+		// bikin seluruh halaman detail hasil ujian siswa ini gagal dimuat.
+		let Some((question_text, question_type, max_score)) = question_row else {
+			continue;
+		};
 		let correct_answer: Option<String> =
 			conn.query_row("SELECT answer_key FROM questions WHERE id = ?1", params![qid], |r| r.get(0)).ok();
 		let (student_answer, essay_score): (Option<String>, Option<f64>) = conn
@@ -346,9 +393,16 @@ pub fn list_sessions(db: &Db) -> Result<Vec<SessionProgress>, String> {
 		let mut pg_total = 0i64;
 		let mut pg_answered = 0i64;
 		for qid in &ids {
-			let question_type: String = conn
+			// Soal yang dirujuk sesi ini bisa saja sudah dihapus dari Bank Soal sesudahnya (mis.
+			// diedit ulang guru) — kalau begitu dilewati saja, bukan bikin SELURUH daftar hasil
+			// ujian gagal dimuat gara-gara satu sesi lama merujuk soal yang sudah tidak ada.
+			let question_type: Option<String> = conn
 				.query_row("SELECT question_type FROM questions WHERE id = ?1", params![qid], |r| r.get(0))
+				.optional()
 				.map_err(|e| e.to_string())?;
+			let Some(question_type) = question_type else {
+				continue;
+			};
 			if question_type == "essay" {
 				continue;
 			}
@@ -441,11 +495,15 @@ pub fn analytics(db: &Db, class: Option<String>, subject_id: i64, jenis: Option<
 		let mut incorrect = 0i64;
 
 		for qid in &ids {
-			let (question_type, question_text, answer_key): (String, String, Option<String>) = conn
+			let row: Option<(String, String, Option<String>)> = conn
 				.query_row("SELECT question_type, question_text, answer_key FROM questions WHERE id = ?1", params![qid], |r| {
 					Ok((r.get(0)?, r.get(1)?, r.get(2)?))
 				})
+				.optional()
 				.map_err(|e| e.to_string())?;
+			let Some((question_type, question_text, answer_key)) = row else {
+				continue;
+			};
 			if question_type == "essay" {
 				continue;
 			}
@@ -505,10 +563,11 @@ pub fn answer(db: &Db, session_id: i64, question_id: i64, option_key: &str) -> R
 	}
 
 	if pg_submitted_at.is_some() {
-		let question_type: String = conn
+		let question_type: Option<String> = conn
 			.query_row("SELECT question_type FROM questions WHERE id = ?1", params![question_id], |r| r.get(0))
+			.optional()
 			.map_err(|e| e.to_string())?;
-		if question_type != "essay" {
+		if question_type.as_deref() != Some("essay") {
 			return Err("Sesi Pilihan Ganda sudah dikirim, jawaban tidak bisa diubah lagi".to_string());
 		}
 	}
@@ -550,11 +609,18 @@ pub fn submit(db: &Db, session_id: i64) -> Result<SubmitResponse, String> {
 	let mut earned_score = 0.0;
 
 	for qid in &ids {
-		let (question_type, answer_key, score): (String, Option<String>, f64) = conn
+		let question_row: Option<(String, Option<String>, f64)> = conn
 			.query_row("SELECT question_type, answer_key, score FROM questions WHERE id = ?1", params![qid], |r| {
 				Ok((r.get(0)?, r.get(1)?, r.get(2)?))
 			})
+			.optional()
 			.map_err(|e| e.to_string())?;
+		// Soal ini sudah dihapus dari Bank Soal sesudah ujian dimulai — dilewati dari perhitungan
+		// skor (bukan dianggap salah, bukan juga bikin submit gagal total), sama seperti soal
+		// yang memang tidak pernah ada di paket ujian ini.
+		let Some((question_type, answer_key, score)) = question_row else {
+			continue;
+		};
 
 		// Essay answers need a human to grade them; they don't count toward the auto score.
 		if question_type == "essay" {

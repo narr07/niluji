@@ -9,7 +9,11 @@ use std::path::Path;
 #[serde(rename_all = "camelCase")]
 pub struct ImportSummary {
 	pub questions_imported: usize,
-	pub subjects_created: usize
+	pub subjects_created: usize,
+	// Baris pilihan ganda yang dilewati karena kurang dari 2 opsi terisi, atau kunci jawabannya
+	// tidak cocok dengan opsi manapun — dilewati (bukan bikin seluruh import gagal), supaya satu
+	// baris bermasalah tidak menghapus soal-soal lain yang sudah benar dalam file yang sama.
+	pub questions_skipped: usize
 }
 
 #[derive(Debug, Serialize)]
@@ -187,11 +191,30 @@ pub fn import_questions(db: &Db, path: &str, opts: ImportOptions) -> Result<Impo
 
 	let mut subjects_created = 0usize;
 	let mut questions_imported = 0usize;
+	let mut questions_skipped = 0usize;
 
 	for (line, row) in rows.iter().enumerate() {
 		let Some(question_text) = find_column(&headers, row, QUESTION_COLS) else {
 			continue;
 		};
+
+		let correct_option = if is_essay { String::new() } else { find_column(&headers, row, CORRECT_COLS).unwrap_or_default() };
+
+		// Kumpulkan opsi dulu SEBELUM menulis apa pun ke database, supaya soal pilihan ganda
+		// yang datanya tidak lengkap (kurang dari 2 opsi, atau kunci jawaban tidak cocok opsi
+		// manapun) bisa dilewati bersih tanpa menyisakan baris `questions` yang setengah jadi.
+		let options: Vec<(&str, String)> = if is_essay {
+			Vec::new()
+		} else {
+			OPTION_COLS.into_iter().filter_map(|(key, cols)| find_column(&headers, row, cols).map(|text| (key, text))).collect()
+		};
+		if !is_essay {
+			let valid = options.len() >= 2 && options.iter().any(|(key, _)| correct_option.eq_ignore_ascii_case(key));
+			if !valid {
+				questions_skipped += 1;
+				continue;
+			}
+		}
 
 		let subject_id: i64 = if let Some(name) = find_column(&headers, row, SUBJECT_COLS) {
 			match tx.query_row("SELECT id FROM subjects WHERE name = ?1", params![name], |r| r.get(0)) {
@@ -211,7 +234,6 @@ pub fn import_questions(db: &Db, path: &str, opts: ImportOptions) -> Result<Impo
 		let jenis = find_column(&headers, row, JENIS_COLS).or_else(|| opts.default_jenis.clone());
 		let score: f64 = find_column(&headers, row, SCORE_COLS).and_then(|s| s.parse().ok()).unwrap_or(1.0);
 		let image = find_column(&headers, row, IMAGE_COLS).and_then(|filename| resolve_image(&opts.image_map, &filename));
-		let correct_option = if is_essay { String::new() } else { find_column(&headers, row, CORRECT_COLS).unwrap_or_default() };
 		let question_type = if is_essay { "essay" } else { "multiple_choice" };
 
 		tx.execute(
@@ -221,24 +243,20 @@ pub fn import_questions(db: &Db, path: &str, opts: ImportOptions) -> Result<Impo
 		.map_err(|e| e.to_string())?;
 		let question_id = tx.last_insert_rowid();
 
-		if !is_essay {
-			for (key, cols) in OPTION_COLS {
-				if let Some(text) = find_column(&headers, row, cols) {
-					let is_correct = correct_option.eq_ignore_ascii_case(key);
-					tx.execute(
-						"INSERT INTO question_options (question_id, option_key, option_text, is_correct) VALUES (?1, ?2, ?3, ?4)",
-						params![question_id, key, text, is_correct]
-					)
-					.map_err(|e| e.to_string())?;
-				}
-			}
+		for (key, text) in &options {
+			let is_correct = correct_option.eq_ignore_ascii_case(key);
+			tx.execute(
+				"INSERT INTO question_options (question_id, option_key, option_text, is_correct) VALUES (?1, ?2, ?3, ?4)",
+				params![question_id, key, text, is_correct]
+			)
+			.map_err(|e| e.to_string())?;
 		}
 
 		questions_imported += 1;
 	}
 
 	tx.commit().map_err(|e| e.to_string())?;
-	Ok(ImportSummary { questions_imported, subjects_created })
+	Ok(ImportSummary { questions_imported, subjects_created, questions_skipped })
 }
 
 #[derive(Debug, Deserialize)]
@@ -256,6 +274,11 @@ pub struct QuestionInput {
 	pub option_c: Option<String>,
 	pub option_d: Option<String>,
 	pub option_e: Option<String>,
+	pub option_a_image: Option<String>,
+	pub option_b_image: Option<String>,
+	pub option_c_image: Option<String>,
+	pub option_d_image: Option<String>,
+	pub option_e_image: Option<String>,
 	pub correct_option: String
 }
 
@@ -275,6 +298,11 @@ pub struct QuestionDetail {
 	pub option_c: String,
 	pub option_d: String,
 	pub option_e: String,
+	pub option_a_image: Option<String>,
+	pub option_b_image: Option<String>,
+	pub option_c_image: Option<String>,
+	pub option_d_image: Option<String>,
+	pub option_e_image: Option<String>,
 	pub correct_option: String
 }
 
@@ -298,14 +326,19 @@ pub fn get_question(db: &Db, id: i64) -> Result<QuestionDetail, String> {
 		)
 		.map_err(|_| "Soal tidak ditemukan".to_string())?;
 
-	let mut options: std::collections::HashMap<String, String> = std::collections::HashMap::new();
-	let mut stmt =
-		conn.prepare("SELECT option_key, option_text FROM question_options WHERE question_id = ?1").map_err(|e| e.to_string())?;
-	let mapped = stmt.query_map(params![id], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))).map_err(|e| e.to_string())?;
+	let mut options: std::collections::HashMap<String, (String, Option<String>)> = std::collections::HashMap::new();
+	let mut stmt = conn
+		.prepare("SELECT option_key, option_text, image FROM question_options WHERE question_id = ?1")
+		.map_err(|e| e.to_string())?;
+	let mapped = stmt
+		.query_map(params![id], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?, r.get::<_, Option<String>>(2)?)))
+		.map_err(|e| e.to_string())?;
 	for row in mapped {
-		let (k, v) = row.map_err(|e| e.to_string())?;
-		options.insert(k, v);
+		let (k, text, img) = row.map_err(|e| e.to_string())?;
+		options.insert(k, (text, img));
 	}
+	let text_of = |key: &str| options.get(key).map(|(t, _)| t.clone()).unwrap_or_default();
+	let image_of = |key: &str| options.get(key).and_then(|(_, i)| i.clone());
 
 	Ok(QuestionDetail {
 		id,
@@ -316,25 +349,35 @@ pub fn get_question(db: &Db, id: i64) -> Result<QuestionDetail, String> {
 		question_type,
 		image,
 		score,
-		option_a: options.get("A").cloned().unwrap_or_default(),
-		option_b: options.get("B").cloned().unwrap_or_default(),
-		option_c: options.get("C").cloned().unwrap_or_default(),
-		option_d: options.get("D").cloned().unwrap_or_default(),
-		option_e: options.get("E").cloned().unwrap_or_default(),
+		option_a: text_of("A"),
+		option_b: text_of("B"),
+		option_c: text_of("C"),
+		option_d: text_of("D"),
+		option_e: text_of("E"),
+		option_a_image: image_of("A"),
+		option_b_image: image_of("B"),
+		option_c_image: image_of("C"),
+		option_d_image: image_of("D"),
+		option_e_image: image_of("E"),
 		correct_option: answer_key.unwrap_or_default()
 	})
 }
 
-fn save_options(tx: &rusqlite::Transaction, question_id: i64, correct_option: &str, opts: &[(&str, &str)]) -> Result<(), String> {
+fn save_options(
+	tx: &rusqlite::Transaction,
+	question_id: i64,
+	correct_option: &str,
+	opts: &[(&str, &str, Option<&str>)]
+) -> Result<(), String> {
 	tx.execute("DELETE FROM question_options WHERE question_id = ?1", params![question_id]).map_err(|e| e.to_string())?;
-	for (key, text) in opts {
-		if text.trim().is_empty() {
+	for (key, text, image) in opts {
+		if text.trim().is_empty() && image.is_none() {
 			continue;
 		}
 		let is_correct = correct_option.eq_ignore_ascii_case(key);
 		tx.execute(
-			"INSERT INTO question_options (question_id, option_key, option_text, is_correct) VALUES (?1, ?2, ?3, ?4)",
-			params![question_id, key, text.trim(), is_correct]
+			"INSERT INTO question_options (question_id, option_key, option_text, is_correct, image) VALUES (?1, ?2, ?3, ?4, ?5)",
+			params![question_id, key, text.trim(), is_correct, image]
 		)
 		.map_err(|e| e.to_string())?;
 	}
@@ -367,11 +410,11 @@ pub fn create_question(db: &Db, input: QuestionInput) -> Result<i64, String> {
 		id,
 		&input.correct_option,
 		&[
-			("A", &input.option_a),
-			("B", &input.option_b),
-			("C", input.option_c.as_deref().unwrap_or("")),
-			("D", input.option_d.as_deref().unwrap_or("")),
-			("E", input.option_e.as_deref().unwrap_or(""))
+			("A", &input.option_a, input.option_a_image.as_deref()),
+			("B", &input.option_b, input.option_b_image.as_deref()),
+			("C", input.option_c.as_deref().unwrap_or(""), input.option_c_image.as_deref()),
+			("D", input.option_d.as_deref().unwrap_or(""), input.option_d_image.as_deref()),
+			("E", input.option_e.as_deref().unwrap_or(""), input.option_e_image.as_deref())
 		]
 	)?;
 
@@ -405,11 +448,11 @@ pub fn update_question(db: &Db, id: i64, input: QuestionInput) -> Result<(), Str
 		id,
 		&input.correct_option,
 		&[
-			("A", &input.option_a),
-			("B", &input.option_b),
-			("C", input.option_c.as_deref().unwrap_or("")),
-			("D", input.option_d.as_deref().unwrap_or("")),
-			("E", input.option_e.as_deref().unwrap_or(""))
+			("A", &input.option_a, input.option_a_image.as_deref()),
+			("B", &input.option_b, input.option_b_image.as_deref()),
+			("C", input.option_c.as_deref().unwrap_or(""), input.option_c_image.as_deref()),
+			("D", input.option_d.as_deref().unwrap_or(""), input.option_d_image.as_deref()),
+			("E", input.option_e.as_deref().unwrap_or(""), input.option_e_image.as_deref())
 		]
 	)?;
 

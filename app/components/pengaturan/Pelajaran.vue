@@ -60,7 +60,11 @@
 	};
 
 	const remove = async (s: SubjectRecord) => {
-		if (!confirm(`Hapus mata pelajaran "${s.name}"? Semua soal & ujian untuk mata pelajaran ini juga akan terhapus.`)) return;
+		const ok = await confirmDelete({
+			title: `Hapus mata pelajaran "${s.name}"?`,
+			description: "Semua soal & ujian untuk mata pelajaran ini juga akan terhapus."
+		});
+		if (!ok) return;
 		await invoke("delete_subject", { id: s.id });
 		await load();
 	};

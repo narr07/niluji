@@ -21,6 +21,9 @@
 	});
 
 	const toast = useToast();
+	const notifyTemplateDownload = (name: string) => {
+		toast.add({ title: "Template diunduh", description: `Contoh ${name} sedang diunduh.`, icon: "lucide:download", color: "success" });
+	};
 
 	const soalPath = ref("");
 	const soalName = ref("");
@@ -60,16 +63,12 @@
 		}
 	);
 
-	const pickSoal = async () => {
-		const path = await openDialog({ multiple: false, filters: [{ name: "Naskah Soal", extensions: ["docx"] }] });
-		if (!path) return;
+	const setSoal = (path: string) => {
 		soalPath.value = path;
 		soalName.value = path.split(/[/\\]/).pop() ?? path;
 	};
 
-	const pickKunci = async () => {
-		const path = await openDialog({ multiple: false, filters: [{ name: "Kunci Jawaban", extensions: ["docx"] }] });
-		if (!path) return;
+	const setKunci = async (path: string) => {
 		kunciPath.value = path;
 		kunciName.value = path.split(/[/\\]/).pop() ?? path;
 		errorMessage.value = "";
@@ -82,6 +81,32 @@
 			errorMessage.value = error instanceof Error ? error.message : String(error);
 		}
 	};
+
+	const pickSoal = async () => {
+		const path = await openDialog({ multiple: false, filters: [{ name: "Naskah Soal", extensions: ["docx"] }] });
+		if (!path) return;
+		setSoal(path);
+	};
+
+	const pickKunci = async () => {
+		const path = await openDialog({ multiple: false, filters: [{ name: "Kunci Jawaban", extensions: ["docx"] }] });
+		if (!path) return;
+		await setKunci(path);
+	};
+
+	// Satu drop-zone buat dua slot — kalau cuma 1 file di-drop, masuk ke slot yang masih kosong
+	// (naskah dulu, baru kunci); kalau 2 file sekaligus di-drop, urutannya jadi naskah lalu
+	// kunci. Kalau salah, tinggal drop ulang atau pilih manual lewat tombolnya.
+	const { isDragging } = useFileDrop({
+		isActive: () => props.open,
+		accept: (path) => path.toLowerCase().endsWith(".docx"),
+		onDrop: async (paths) => {
+			for (const path of paths) {
+				if (!soalPath.value) setSoal(path);
+				else if (!kunciPath.value) await setKunci(path);
+			}
+		}
+	});
 
 	const processFiles = async () => {
 		if (!canProcess.value || !kunciResult.value) return;
@@ -264,18 +289,39 @@
 					Pilih file naskah soal (untuk dicetak) dan file kunci jawabannya — keduanya format
 					<code>.docx</code>. Sistem akan mencocokkan soal dengan jawabannya otomatis berdasarkan nomor.
 				</p>
+				<p class="text-sm text-muted -mt-2">
+					Belum tahu formatnya? Unduh contoh:
+					<a
+						href="/templates/naskah-soal-word/contoh-naskah-soal.docx"
+						download
+						class="text-primary underline"
+						@click="notifyTemplateDownload('Naskah Soal')">Contoh Naskah Soal.docx</a>
+					·
+					<a
+						href="/templates/naskah-soal-word/contoh-kunci-jawaban.docx"
+						download
+						class="text-primary underline"
+						@click="notifyTemplateDownload('Kunci Jawaban')">Contoh Kunci Jawaban.docx</a>
+				</p>
 
-				<div class="grid gap-4 sm:grid-cols-2">
-					<UFormField label="File Naskah Soal (.docx)">
-						<UButton variant="soft" icon="lucide:file-text" @click="pickSoal">
-							{{ soalName || "Pilih File" }}
-						</UButton>
-					</UFormField>
-					<UFormField label="File Kunci Jawaban (.docx)">
-						<UButton variant="soft" icon="lucide:key" @click="pickKunci">
-							{{ kunciName || "Pilih File" }}
-						</UButton>
-					</UFormField>
+				<div
+					class="rounded-lg border-2 border-dashed p-4 transition-colors"
+					:class="isDragging ? 'border-primary bg-primary/5' : 'border-default'">
+					<p class="text-xs text-muted text-center mb-3">
+						{{ isDragging ? "Lepas file di sini" : "Seret 1-2 file .docx ke sini sekaligus, atau pilih manual di bawah" }}
+					</p>
+					<div class="grid gap-4 sm:grid-cols-2">
+						<UFormField label="File Naskah Soal (.docx)">
+							<UButton variant="soft" icon="lucide:file-text" @click="pickSoal">
+								{{ soalName || "Pilih File" }}
+							</UButton>
+						</UFormField>
+						<UFormField label="File Kunci Jawaban (.docx)">
+							<UButton variant="soft" icon="lucide:key" @click="pickKunci">
+								{{ kunciName || "Pilih File" }}
+							</UButton>
+						</UFormField>
+					</div>
 				</div>
 
 				<div v-if="kunciPath" class="grid gap-4 sm:grid-cols-3 items-end">
@@ -382,7 +428,11 @@
 										<p v-if="row.alasanInvalid" class="text-xs text-error mt-1">{{ row.alasanInvalid }}</p>
 									</td>
 									<td class="p-2 align-top">
-										<UButton size="xs" variant="soft" icon="lucide:pencil" @click="openEditRow(row)">
+										<UButton
+											size="xs"
+											variant="soft"
+											icon="lucide:pencil"
+											@click="openEditRow(row)">
 											Edit
 										</UButton>
 									</td>

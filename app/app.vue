@@ -5,6 +5,7 @@
 				<NuxtLayout>
 					<NuxtPage />
 				</NuxtLayout>
+				<ConfirmDeleteModal />
 			</UApp>
 		</Body>
 	</Html>

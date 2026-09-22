@@ -5,6 +5,7 @@ use tauri::{
 };
 use tauri::Manager;
 
+mod backup;
 mod db;
 mod exam_session;
 mod exams;
@@ -83,9 +84,11 @@ fn create_exam(
 	scheduled_at: i64,
 	window_end: i64,
 	token: String,
+	randomize_pg: bool,
+	randomize_essay: bool,
 	db: tauri::State<db::Db>
 ) -> Result<i64, String> {
-	exams::create_exam(&db, subject_id, class, jenis, title, duration, scheduled_at, window_end, token)
+	exams::create_exam(&db, subject_id, class, jenis, title, duration, scheduled_at, window_end, token, randomize_pg, randomize_essay)
 }
 
 #[tauri::command]
@@ -105,9 +108,11 @@ fn update_exam(
 	scheduled_at: i64,
 	window_end: i64,
 	token: String,
+	randomize_pg: bool,
+	randomize_essay: bool,
 	db: tauri::State<db::Db>
 ) -> Result<(), String> {
-	exams::update_exam(&db, id, subject_id, class, jenis, title, duration, scheduled_at, window_end, token)
+	exams::update_exam(&db, id, subject_id, class, jenis, title, duration, scheduled_at, window_end, token, randomize_pg, randomize_essay)
 }
 
 #[tauri::command]
@@ -219,6 +224,24 @@ fn delete_question(id: i64, db: tauri::State<db::Db>) -> Result<(), String> {
 }
 
 struct UploadsDir(std::path::PathBuf);
+struct DataDir(std::path::PathBuf);
+
+#[tauri::command]
+fn backup_now(db: tauri::State<db::Db>, data_dir: tauri::State<DataDir>) -> Result<backup::BackupInfo, String> {
+	let path = backup::backup_now(&db, &data_dir.0)?;
+	let metadata = std::fs::metadata(&path).map_err(|e| e.to_string())?;
+	Ok(backup::BackupInfo {
+		file_name: path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default(),
+		path: path.to_string_lossy().to_string(),
+		size_bytes: metadata.len(),
+		created_at: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64
+	})
+}
+
+#[tauri::command]
+fn list_backups(data_dir: tauri::State<DataDir>) -> Result<Vec<backup::BackupInfo>, String> {
+	backup::list_backups(&data_dir.0)
+}
 
 #[tauri::command]
 fn save_question_image(path: String, uploads_dir: tauri::State<UploadsDir>) -> Result<uploads::SavedImage, String> {
@@ -368,6 +391,13 @@ pub fn run() {
 			let data_dir = app.path().app_data_dir().expect("no app data dir");
 			let db = db::open(&data_dir);
 
+			// Backup sekali tiap aplikasi dibuka — cukup buat jaga-jaga kalau ada apa-apa di
+			// sesi berjalan, tanpa perlu penjadwal terpisah. Kegagalan backup TIDAK boleh
+			// menghentikan aplikasi (mis. disk penuh) — cuma dicatat ke konsol.
+			if let Err(e) = backup::backup_now(&db, &data_dir) {
+				eprintln!("Backup otomatis saat start gagal: {e}");
+			}
+
 			// Debug builds read the live `dist/` folder directly so `bun run generate` is reflected
 			// immediately. Release builds use the bundled resource copy (see tauri.conf.json).
 			#[cfg(debug_assertions)]
@@ -390,6 +420,7 @@ pub fn run() {
 			app.manage(port_state);
 			app.manage(login_state);
 			app.manage(UploadsDir(uploads_dir));
+			app.manage(DataDir(data_dir));
 
 			Ok(())
 		})
@@ -434,6 +465,8 @@ pub fn run() {
 			update_question,
 			delete_question,
 			save_question_image,
+			backup_now,
+			list_backups,
 			load_image_data_url,
 			save_question_image_bytes,
 			export_jenis_soal,

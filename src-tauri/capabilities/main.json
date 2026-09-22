@@ -41,6 +41,7 @@
 		"fs:allow-document-write",
 		"store:default",
 		"dialog:allow-open",
+		"dialog:allow-save",
 		{
 			"identifier": "http:default",
 			"allow": [

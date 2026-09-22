@@ -49,9 +49,7 @@
 		}
 	);
 
-	const pickFile = async () => {
-		const path = await openDialog({ multiple: false, filters: [{ name: "Siswa", extensions: ["csv", "xlsx", "xls"] }] });
-		if (!path) return;
+	const loadFile = async (path: string) => {
 		filePath.value = path;
 		fileName.value = path.split(/[/\\]/).pop() ?? path;
 
@@ -69,6 +67,18 @@
 			parsing.value = false;
 		}
 	};
+
+	const pickFile = async () => {
+		const path = await openDialog({ multiple: false, filters: [{ name: "Siswa", extensions: ["csv", "xlsx", "xls"] }] });
+		if (!path) return;
+		await loadFile(path);
+	};
+
+	const { isDragging } = useFileDrop({
+		isActive: () => props.open,
+		accept: (path) => /\.(csv|xlsx|xls)$/i.test(path),
+		onDrop: (paths) => loadFile(paths[0]!)
+	});
 
 	const isSelected = (row: ImportRow) => selectedIds.value.has(row.id);
 	const toggleRow = (row: ImportRow, value: boolean | "indeterminate") => {

@@ -1,0 +1,5 @@
+Poin 5-6 (template Word & Markdown sempurna) dan poin 7 (1 tombol import) — ini kerjaan desain/UX yang cukup besar, belum saya sentuh.
+Gambar per opsi jawaban — fitur nyata (butuh gambar terpisah tiap pilihan A-E), tapi butuh ubah skema + form + tampilan siswa, bukan hal kecil.
+Tabel backup_history — saya sarankan jangan dengan cara ini; solusi yang lebih tepat untuk CBT adalah backup otomatis dengan menyalin file cbt.sqlite ke folder lain terjadwal (mis. tiap habis ujian / tiap jam), bukan tabel di dalam database yang sama (kalau file databasenya rusak, tabel itu ikut rusak juga).
+Connection pool untuk >200 siswa bersamaan — saya sarankan jangan buru-buru — satu sekolah biasa jarang >40-an siswa nge-hit bersamaan, dan Mutex+WAL sudah cukup kuat untuk itu; ganti ke pool nanti kalau memang terbukti ada masalah performa nyata, bukan sekarang.
+Mau saya lanjut ke yang mana dulu?

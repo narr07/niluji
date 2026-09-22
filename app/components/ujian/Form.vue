@@ -23,6 +23,8 @@
 		scheduledAt: number | null
 		windowEnd: number | null
 		token: string
+		randomizePg: boolean
+		randomizeEssay: boolean
 	}
 
 	const props = defineProps<{
@@ -63,7 +65,9 @@
 		startTime: "",
 		endTime: "",
 		duration: 60,
-		token: ""
+		token: "",
+		randomizePg: true,
+		randomizeEssay: true
 	});
 
 	const form = reactive(emptyForm());
@@ -117,7 +121,9 @@
 				startTime: time,
 				endTime,
 				duration: exam.duration,
-				token: exam.token
+				token: exam.token,
+				randomizePg: exam.randomizePg,
+				randomizeEssay: exam.randomizeEssay
 			});
 		},
 		{ immediate: true }
@@ -159,7 +165,9 @@
 				duration: form.duration,
 				scheduledAt,
 				windowEnd,
-				token: form.token
+				token: form.token,
+				randomizePg: form.randomizePg,
+				randomizeEssay: form.randomizeEssay
 			};
 			if (props.editingExam) {
 				await invoke("update_exam", { id: props.editingExam.id, ...payload });
@@ -176,78 +184,90 @@
 </script>
 
 <template>
-	<div>
-		<form class="grid gap-4 sm:grid-cols-2" @submit.prevent="submit">
-			<UFormField label="Kelas" :description="classesWithQuestions.length ? undefined : 'Belum ada soal di Bank Soal.'">
-				<USelectMenu
-					v-model="form.class"
-					:items="classesWithQuestions"
-					placeholder="Pilih kelas"
-					@update:model-value="form.subject = undefined; form.jenis = undefined" />
-			</UFormField>
+	<form class="grid gap-2.5 sm:grid-cols-2" @submit.prevent="submit">
+		<UFormField label="Kelas" :description="classesWithQuestions.length ? undefined : 'Belum ada soal di Bank Soal.'">
+			<USelectMenu
+				v-model="form.class"
+				:items="classesWithQuestions"
+				placeholder="Pilih kelas"
+				class="w-full"
+				@update:model-value="form.subject = undefined; form.jenis = undefined" />
+		</UFormField>
 
-			<UFormField
-				label="Mata Pelajaran"
-				:description="form.class && subjectItemsForClass.length === 0 ? 'Belum ada soal untuk kelas ini.' : undefined"
-			>
-				<USelectMenu
-					v-model="form.subject"
-					:items="subjectItemsForClass"
-					:disabled="!form.class"
-					placeholder="Pilih mata pelajaran"
-					@update:model-value="form.jenis = undefined"
-				/>
-			</UFormField>
+		<UFormField
+			label="Mata Pelajaran"
+			:description="form.class && subjectItemsForClass.length === 0 ? 'Belum ada soal untuk kelas ini.' : undefined"
+		>
+			<USelectMenu
+				v-model="form.subject"
+				:items="subjectItemsForClass"
+				:disabled="!form.class"
+				placeholder="Pilih mata pelajaran"
+				class="w-full"
+				@update:model-value="form.jenis = undefined"
+			/>
+		</UFormField>
 
-			<UFormField
-				label="Jenis Soal"
-				class="sm:col-span-2"
-				:description="form.subject && jenisItemsForClassAndSubject.length === 0 ? 'Belum ada jenis soal untuk kelas & mata pelajaran ini — buat dulu di Bank Soal.' : 'Menentukan soal mana yang dipakai untuk ujian ini.'"
-			>
-				<USelectMenu
-					:model-value="form.jenis"
-					:items="jenisItemsForClassAndSubject"
-					:disabled="!form.subject"
-					placeholder="Pilih jenis soal"
-					@update:model-value="onJenisSelected"
-				/>
-			</UFormField>
+		<UFormField
+			label="Jenis Soal"
+			class="sm:col-span-2"
+			:description="form.subject && jenisItemsForClassAndSubject.length === 0 ? 'Belum ada jenis soal — buat dulu di Bank Soal.' : undefined"
+		>
+			<USelectMenu
+				:model-value="form.jenis"
+				:items="jenisItemsForClassAndSubject"
+				:disabled="!form.subject"
+				placeholder="Pilih jenis soal"
+				class="w-full"
+				@update:model-value="onJenisSelected"
+			/>
+		</UFormField>
 
-			<UFormField label="Tanggal Ujian">
-				<UInput v-model="form.examDate" type="date" class="w-full" />
-			</UFormField>
+		<UFormField label="Tanggal Ujian">
+			<UInput v-model="form.examDate" type="date" class="w-full" />
+		</UFormField>
 
-			<UFormField label="Durasi Pengerjaan (menit)" description="Waktu yang didapat tiap siswa sejak mereka mulai">
-				<UInputNumber v-model="form.duration" :min="1" class="w-full" />
-			</UFormField>
+		<UFormField label="Token Masuk">
+			<UInput v-model="form.token" placeholder="Contoh: UTS2026" class="w-full" />
+		</UFormField>
 
-			<UFormField label="Jam Mulai" description="Kapan siswa boleh mulai membuka ujian">
-				<UInput v-model="form.startTime" type="time" class="w-full" />
-			</UFormField>
+		<UFormField label="Jam Mulai">
+			<UInput v-model="form.startTime" type="time" class="w-full" />
+		</UFormField>
 
-			<UFormField label="Jam Selesai" description="Batas terakhir siswa boleh mulai membuka ujian">
-				<UInput v-model="form.endTime" type="time" class="w-full" />
-			</UFormField>
+		<UFormField label="Jam Selesai">
+			<UInput v-model="form.endTime" type="time" class="w-full" />
+		</UFormField>
 
-			<UFormField label="Token Masuk">
-				<UInput v-model="form.token" placeholder="Contoh: UTS2026" />
-			</UFormField>
+		<UFormField label="Durasi (menit)" class="sm:col-span-2">
+			<UInputNumber v-model="form.duration" :min="1" class="w-full sm:w-40" />
+		</UFormField>
 
-			<UAlert
-				v-if="formError"
-				color="error"
-				variant="subtle"
-				class="sm:col-span-2"
-				:title="formError" />
+		<div class="sm:col-span-2 flex items-center gap-6 py-1">
+			<label class="flex items-center gap-2 cursor-pointer">
+				<USwitch v-model="form.randomizePg" size="sm" />
+				<span class="text-sm">Acak Soal PG</span>
+			</label>
+			<label class="flex items-center gap-2 cursor-pointer">
+				<USwitch v-model="form.randomizeEssay" size="sm" />
+				<span class="text-sm">Acak Soal Esai</span>
+			</label>
+		</div>
 
-			<div class="sm:col-span-2 flex gap-2">
-				<UButton type="submit" :loading="saving">
-					{{ editingExam ? "Simpan Perubahan" : "Simpan Ujian" }}
-				</UButton>
-				<UButton variant="soft" color="neutral" @click="emit('cancel')">
-					Batal
-				</UButton>
-			</div>
-		</form>
-	</div>
+		<UAlert
+			v-if="formError"
+			color="error"
+			variant="subtle"
+			class="sm:col-span-2"
+			:title="formError" />
+
+		<div class="sm:col-span-2 flex gap-2">
+			<UButton type="submit" :loading="saving">
+				{{ editingExam ? "Simpan Perubahan" : "Simpan Ujian" }}
+			</UButton>
+			<UButton variant="soft" color="neutral" @click="emit('cancel')">
+				Batal
+			</UButton>
+		</div>
+	</form>
 </template>

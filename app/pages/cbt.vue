@@ -5,7 +5,7 @@
 		colorMode: "light"
 	});
 
-	interface OptionView { key: string, text: string }
+	interface OptionView { key: string, text: string, image: string | null }
 	interface QuestionView { id: number, questionText: string, questionType: string, image: string | null, options: OptionView[] }
 	interface JoinResponse {
 		sessionId: number
@@ -38,6 +38,13 @@
 	const remaining = ref(0);
 	const score = ref<number | null>(null);
 	const pgSubmittedAt = ref<number | null>(null);
+
+	// Status simpan tiap jawaban ke server — dipakai supaya kalau server/koneksi sempat putus
+	// (mis. listrik padam sebentar), siswa TAHU jawabannya belum benar-benar tersimpan, bukan
+	// cuma percaya tampilan lokal yang sudah keburu menandai pilihannya. `saveAnswer` di bawah
+	// terus mencoba lagi otomatis sampai berhasil, tidak pernah diam-diam menyerah.
+	const saveStatus = ref<Record<number, "saved" | "saving" | "error">>({});
+	const hasPendingSaves = computed(() => Object.values(saveStatus.value).some((s) => s !== "saved"));
 
 	const pgQuestions = computed(() => questions.value.filter((q) => q.questionType !== "essay"));
 	const essayQuestions = computed(() => questions.value.filter((q) => q.questionType === "essay"));
@@ -187,13 +194,32 @@
 		}
 	};
 
+	// Terus coba simpan sampai berhasil (server/listrik sempat mati pun akhirnya kekirim begitu
+	// server hidup lagi) — bukan sekali coba lalu diam-diam menyerah kalau gagal. Kalau
+	// jawabannya sudah berubah lagi sebelum percobaan ini selesai, hasilnya diabaikan (request
+	// yang lebih baru yang menentukan status akhir), supaya tidak ada balapan hasil.
+	const saveAnswer = async (questionId: number, optionKey: string) => {
+		saveStatus.value[questionId] = "saving";
+		try {
+			const res = await fetch("/api/exam/answer", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ sessionId: sessionId.value, questionId, optionKey })
+			});
+			if (!res.ok) throw new Error(`status ${res.status}`);
+			if (answers[questionId] === optionKey) saveStatus.value[questionId] = "saved";
+		} catch {
+			if (answers[questionId] !== optionKey) return;
+			saveStatus.value[questionId] = "error";
+			setTimeout(() => {
+				if (answers[questionId] === optionKey) saveAnswer(questionId, optionKey);
+			}, 4000);
+		}
+	};
+
 	const setAnswer = (questionId: number, optionKey: string) => {
 		answers[questionId] = optionKey;
-		fetch("/api/exam/answer", {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ sessionId: sessionId.value, questionId, optionKey })
-		});
+		saveAnswer(questionId, optionKey);
 	};
 
 	const doLogout = async () => {
@@ -208,6 +234,7 @@
 		questions.value = [];
 		pgSubmittedAt.value = null;
 		Object.keys(answers).forEach((k) => delete answers[Number(k)]);
+		saveStatus.value = {};
 		score.value = null;
 		stage.value = "login";
 	};
@@ -396,6 +423,11 @@
 								@change="setAnswer(currentQuestion!.id, opt.key)"
 							>
 							<span>{{ opt.key }}. {{ opt.text }}</span>
+							<img
+								v-if="opt.image"
+								:src="`/${opt.image}`"
+								class="max-h-24 rounded border border-default"
+								alt="">
 						</label>
 					</div>
 
@@ -481,16 +513,31 @@
 								@change="setAnswer(q.id, opt.key)"
 							>
 							<span>{{ opt.key }}. {{ opt.text }}</span>
+							<img
+								v-if="opt.image"
+								:src="`/${opt.image}`"
+								class="max-h-24 rounded border border-default"
+								alt="">
 						</label>
 					</div>
 				</UCard>
 			</template>
+
+			<UAlert
+				v-if="hasPendingSaves"
+				color="warning"
+				variant="subtle"
+				icon="lucide:refresh-cw"
+				title="Menyimpan jawaban..."
+				description="Koneksi ke server sempat terputus, sedang mencoba lagi otomatis. Tunggu sampai ini hilang sebelum menekan Selesai."
+				class="mb-3" />
 
 			<UButton
 				v-if="!pgSubmittedAt && hasEssay"
 				block
 				size="lg"
 				:loading="submitting"
+				:disabled="hasPendingSaves"
 				@click="confirmOpen = true">
 				Selesai Sesi Pilihan Ganda
 			</UButton>
@@ -499,6 +546,7 @@
 				block
 				size="lg"
 				:loading="submitting"
+				:disabled="hasPendingSaves"
 				@click="confirmOpen = true">
 				Selesai & Kumpulkan
 			</UButton>

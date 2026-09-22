@@ -17,6 +17,8 @@
 		scheduledAt: number | null
 		windowEnd: number | null
 		token: string
+		randomizePg: boolean
+		randomizeEssay: boolean
 	}
 
 	const props = defineProps<{
@@ -136,6 +138,18 @@
 						Token
 					</p>
 					<p>{{ row.original.token }}</p>
+				</div>
+				<div>
+					<p class="text-muted text-xs">
+						Acak Soal PG
+					</p>
+					<p>{{ row.original.randomizePg ? "Ya" : "Tidak" }}</p>
+				</div>
+				<div>
+					<p class="text-muted text-xs">
+						Acak Soal Esai
+					</p>
+					<p>{{ row.original.randomizeEssay ? "Ya" : "Tidak" }}</p>
 				</div>
 			</div>
 		</template>

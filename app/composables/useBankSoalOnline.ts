@@ -216,7 +216,12 @@ export const listJenisFiles = async (kelas: string, mataPelajaran: string): Prom
 // gambar (opsional) sebagai baris pertama isi blok, pilihan sebagai list "- A. teks", lalu baris
 // "Kunci: X" dan "Skor: N". Sengaja regex manual (bukan library markdown) karena strukturnya
 // sudah pasti — kita sendiri yang nulis exporter-nya.
-const parseSoalMarkdown = (text: string, folderPath: string): { jenis: string, rows: BankSoalOnlineRow[] } => {
+// Diekspor supaya bisa dipakai ulang untuk import file .md LOKAL juga (lihat SoalImportMarkdownModal.vue),
+// bukan cuma buat file yang ditarik dari GitHub lewat fetchBankSoalMarkdown di bawah. `folderPath`
+// cuma dipakai buat menyusun urlGambar/pathRelatifGambar (relevan buat sumber online) — pemanggil
+// yang bekerja dengan file lokal bisa mengabaikan dua field itu dan pakai `nama_file_gambar` (nama
+// file gambar apa adanya) buat mencari gambarnya sendiri relatif terhadap lokasi file .md di disk.
+export const parseSoalMarkdown = (text: string, folderPath: string): { jenis: string, rows: BankSoalOnlineRow[] } => {
 	const fmMatch = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/);
 	const frontmatter: Record<string, string> = {};
 	let body = text;

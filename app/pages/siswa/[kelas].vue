@@ -41,7 +41,8 @@
 	};
 
 	const deleteStudent = async (student: StudentRecord) => {
-		if (!confirm(`Hapus siswa ${student.name}?`)) return;
+		const ok = await confirmDelete({ title: `Hapus siswa ${student.name}?` });
+		if (!ok) return;
 		await invoke("delete_student", { id: student.id });
 		await loadStudents();
 	};

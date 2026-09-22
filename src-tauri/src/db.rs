@@ -32,6 +32,13 @@ fn migrate(conn: &Connection) -> rusqlite::Result<()> {
 	conn.execute_batch(
 		"
 		PRAGMA foreign_keys = ON;
+		-- WAL: pembacaan (dashboard guru, live-refresh tiap 3 detik) tidak saling mengunci
+		-- dengan penulisan (siswa yang lagi menjawab) — penting begitu banyak siswa jalan
+		-- bersamaan. synchronous=NORMAL aman dipakai bareng WAL (tetap tahan crash aplikasi,
+		-- cuma sedikit lebih longgar dari FULL soal power-loss di tengah write, yang wajar
+		-- untuk laptop/PC sekolah biasa).
+		PRAGMA journal_mode = WAL;
+		PRAGMA synchronous = NORMAL;
 
 		CREATE TABLE IF NOT EXISTS subjects (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -150,6 +157,9 @@ fn migrate(conn: &Connection) -> rusqlite::Result<()> {
 	// that already existed (CREATE TABLE IF NOT EXISTS is a no-op on those).
 	ensure_column(conn, "questions", "class", "TEXT")?;
 	ensure_column(conn, "questions", "image", "TEXT")?;
+	// Gambar per PILIHAN jawaban (bukan cuma per soal) — buat tipe soal yang jawabannya sendiri
+	// berupa gambar (mis. "gambar mana yang menunjukkan hewan mamalia?").
+	ensure_column(conn, "question_options", "image", "TEXT")?;
 	ensure_column(conn, "exams", "class", "TEXT")?;
 	ensure_column(conn, "exams", "scheduled_at", "INTEGER")?;
 	ensure_column(conn, "students", "class", "TEXT")?;
@@ -172,6 +182,15 @@ fn migrate(conn: &Connection) -> rusqlite::Result<()> {
 	// mengekspor bank soal ke file. Default "1234" biar tidak langsung terkunci di instalasi baru;
 	// admin sekolah ganti sendiri lewat Pengaturan > Data Sekolah.
 	ensure_column(conn, "school", "export_pin", "TEXT")?;
+	// Acak urutan soal per siswa saat ujian ini dimulai — dipisah PG dan esai (guru bisa mau
+	// PG-nya diacak tapi esainya tidak, atau sebaliknya). "randomize" (kolom lama, sekarang
+	// tidak dipakai lagi) jadi sumber nilai awal keduanya biar ujian yang sudah dibuat sebelum
+	// pemisahan ini tetap berperilaku sama seperti sebelumnya.
+	ensure_column(conn, "exams", "randomize", "INTEGER")?;
+	ensure_column(conn, "exams", "randomize_pg", "INTEGER")?;
+	ensure_column(conn, "exams", "randomize_essay", "INTEGER")?;
+	conn.execute("UPDATE exams SET randomize_pg = COALESCE(randomize, 1) WHERE randomize_pg IS NULL", [])?;
+	conn.execute("UPDATE exams SET randomize_essay = COALESCE(randomize, 1) WHERE randomize_essay IS NULL", [])?;
 
 	relax_question_types_uniqueness(conn)?;
 

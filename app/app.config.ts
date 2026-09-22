@@ -120,3 +120,52 @@ export default defineAppConfig({
 		}
 	}
 });
+
+
+// export default defineAppConfig({
+// 	ui: {
+// 		formField: {
+// 			defaultVariants: {
+// 				size: "sm",
+// 			},
+// 			slots: {
+// 				container: "mt-0.5",
+// 			},
+// 		},
+// 		input: {
+// 			defaultVariants: {
+// 				size: "sm",
+// 			},
+// 		},
+// 		select: {
+// 			defaultVariants: {
+// 				size: "sm",
+// 			},
+// 		},
+// 		selectMenu: {
+// 			defaultVariants: {
+// 				size: "sm",
+// 			},
+// 		},
+// 		inputNumber: {
+// 			defaultVariants: {
+// 				size: "sm",
+// 			},
+// 		},
+// 		textarea: {
+// 			defaultVariants: {
+// 				size: "sm",
+// 			},
+// 		},
+// 		switch: {
+// 			defaultVariants: {
+// 				size: "sm",
+// 			},
+// 		},
+// 		button: {
+// 			defaultVariants: {
+// 				size: "sm",
+// 			},
+// 		},
+// 	},
+// });

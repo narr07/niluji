@@ -4,6 +4,10 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 const ALLOWED_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "gif", "webp"];
+// Batas wajar buat gambar soal — cukup longgar untuk foto scan resolusi tinggi, tapi cegah
+// guru tidak sengaja pilih file yang salah (video, atau foto mentah kamera puluhan MB) yang
+// bikin database & folder backup membengkak tanpa perlu.
+const MAX_IMAGE_BYTES: u64 = 10 * 1024 * 1024;
 
 fn mime_for_ext(ext: &str) -> &'static str {
 	match ext {
@@ -37,6 +41,11 @@ pub fn save_image(uploads_dir: &Path, source_path: &str) -> Result<SavedImage, S
 		.filter(|e| ALLOWED_EXTENSIONS.contains(&e.as_str()))
 		.ok_or("Format gambar tidak didukung. Gunakan JPG, PNG, GIF, atau WEBP.")?;
 
+	let size = std::fs::metadata(source_path).map_err(|e| e.to_string())?.len();
+	if size > MAX_IMAGE_BYTES {
+		return Err(format!("Ukuran gambar {:.1} MB melebihi batas maksimal 10 MB.", size as f64 / 1024.0 / 1024.0));
+	}
+
 	let nanos = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
 	let filename = format!("{nanos}.{ext}");
 	let dest = uploads_dir.join(&filename);
@@ -58,6 +67,10 @@ pub fn save_image_bytes(uploads_dir: &Path, source_name: &str, bytes: &[u8]) -> 
 		.map(|e| e.to_lowercase())
 		.filter(|e| ALLOWED_EXTENSIONS.contains(&e.as_str()))
 		.ok_or("Format gambar tidak didukung. Gunakan JPG, PNG, GIF, atau WEBP.")?;
+
+	if bytes.len() as u64 > MAX_IMAGE_BYTES {
+		return Err(format!("Ukuran gambar {:.1} MB melebihi batas maksimal 10 MB.", bytes.len() as f64 / 1024.0 / 1024.0));
+	}
 
 	let nanos = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
 	let filename = format!("{nanos}.{ext}");

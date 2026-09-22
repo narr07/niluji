@@ -69,14 +69,16 @@ pub struct ExamSummary {
 	pub duration: i64,
 	pub scheduled_at: Option<i64>,
 	pub window_end: Option<i64>,
-	pub token: String
+	pub token: String,
+	pub randomize_pg: bool,
+	pub randomize_essay: bool
 }
 
 pub fn list_exams(db: &Db) -> Result<Vec<ExamSummary>, String> {
 	let conn = db.lock().unwrap();
 	let mut stmt = conn
 		.prepare(
-			"SELECT e.id, s.name, e.class, e.jenis, e.title, e.duration, e.scheduled_at, e.window_end, e.token
+			"SELECT e.id, s.name, e.class, e.jenis, e.title, e.duration, e.scheduled_at, e.window_end, e.token, e.randomize_pg, e.randomize_essay
 			 FROM exams e
 			 JOIN subjects s ON s.id = e.subject_id
 			 ORDER BY e.id DESC",
@@ -94,12 +96,37 @@ pub fn list_exams(db: &Db) -> Result<Vec<ExamSummary>, String> {
 				duration: r.get(5)?,
 				scheduled_at: r.get(6)?,
 				window_end: r.get(7)?,
-				token: r.get(8)?
+				token: r.get(8)?,
+				randomize_pg: r.get::<_, Option<i64>>(9)?.unwrap_or(1) != 0,
+				randomize_essay: r.get::<_, Option<i64>>(10)?.unwrap_or(1) != 0
 			})
 		})
 		.map_err(|e| e.to_string())?;
 
 	rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+}
+
+// Dipanggil di awal create_exam/update_exam supaya guru tidak bisa menyimpan jadwal yang
+// mustahil (durasi negatif/nol, atau ujian "selesai" sebelum "mulai").
+fn validate_schedule(duration: i64, scheduled_at: i64, window_end: i64) -> Result<(), String> {
+	if duration <= 0 {
+		return Err("Durasi ujian harus lebih dari 0 menit.".to_string());
+	}
+	if window_end < scheduled_at {
+		return Err("Jam selesai tidak boleh sebelum jam mulai.".to_string());
+	}
+	Ok(())
+}
+
+// `token UNIQUE` di database sudah mencegah dua ujian pakai token sama, tapi pesan error
+// mentahnya ("UNIQUE constraint failed: exams.token") membingungkan buat guru — diganti pesan
+// yang jelas begitu terdeteksi.
+fn friendly_db_error(e: rusqlite::Error) -> String {
+	if e.to_string().contains("UNIQUE constraint failed: exams.token") {
+		"Token ujian ini sudah dipakai ujian lain — pakai token yang berbeda.".to_string()
+	} else {
+		e.to_string()
+	}
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -112,14 +139,30 @@ pub fn create_exam(
 	duration: i64,
 	scheduled_at: i64,
 	window_end: i64,
-	token: String
+	token: String,
+	randomize_pg: bool,
+	randomize_essay: bool
 ) -> Result<i64, String> {
+	validate_schedule(duration, scheduled_at, window_end)?;
+
 	let conn = db.lock().unwrap();
 	conn.execute(
-		"INSERT INTO exams (subject_id, class, jenis, title, duration, scheduled_at, window_end, token) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-		params![subject_id, class, jenis, title.trim(), duration, scheduled_at, window_end, token.trim()]
+		"INSERT INTO exams (subject_id, class, jenis, title, duration, scheduled_at, window_end, token, randomize_pg, randomize_essay)
+		 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+		params![
+			subject_id,
+			class,
+			jenis,
+			title.trim(),
+			duration,
+			scheduled_at,
+			window_end,
+			token.trim(),
+			randomize_pg as i64,
+			randomize_essay as i64
+		]
 	)
-	.map_err(|e| e.to_string())?;
+	.map_err(friendly_db_error)?;
 	Ok(conn.last_insert_rowid())
 }
 
@@ -134,15 +177,32 @@ pub fn update_exam(
 	duration: i64,
 	scheduled_at: i64,
 	window_end: i64,
-	token: String
+	token: String,
+	randomize_pg: bool,
+	randomize_essay: bool
 ) -> Result<(), String> {
+	validate_schedule(duration, scheduled_at, window_end)?;
+
 	db.lock()
 		.unwrap()
 		.execute(
-			"UPDATE exams SET subject_id = ?1, class = ?2, jenis = ?3, title = ?4, duration = ?5, scheduled_at = ?6, window_end = ?7, token = ?8 WHERE id = ?9",
-			params![subject_id, class, jenis, title.trim(), duration, scheduled_at, window_end, token.trim(), id]
+			"UPDATE exams SET subject_id = ?1, class = ?2, jenis = ?3, title = ?4, duration = ?5, scheduled_at = ?6, window_end = ?7,
+			 token = ?8, randomize_pg = ?9, randomize_essay = ?10 WHERE id = ?11",
+			params![
+				subject_id,
+				class,
+				jenis,
+				title.trim(),
+				duration,
+				scheduled_at,
+				window_end,
+				token.trim(),
+				randomize_pg as i64,
+				randomize_essay as i64,
+				id
+			]
 		)
-		.map_err(|e| e.to_string())?;
+		.map_err(friendly_db_error)?;
 	Ok(())
 }
 
@@ -172,7 +232,9 @@ mod tests {
 			60,
 			1_700_000_000,
 			1_700_007_200,
-			"UTS2026".into()
+			"UTS2026".into(),
+			true,
+			true
 		)
 		.unwrap();
 		assert!(exam_id > 0);

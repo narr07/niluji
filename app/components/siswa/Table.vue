@@ -38,8 +38,9 @@
 		selected.value = selected.value.filter((id) => props.students.some((s) => s.id === id));
 	});
 
-	const confirmDeleteMany = () => {
-		if (!confirm(`Hapus ${selected.value.length} siswa terpilih?`)) return;
+	const confirmDeleteMany = async () => {
+		const ok = await confirmDelete({ title: `Hapus ${selected.value.length} siswa terpilih?` });
+		if (!ok) return;
 		emit("deleteMany", selected.value);
 		selected.value = [];
 	};

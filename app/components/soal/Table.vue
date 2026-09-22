@@ -20,6 +20,7 @@
 	const emit = defineEmits<{
 		edit: [id: number]
 		delete: [question: QuestionSummary]
+		deleteMany: [ids: number[]]
 		preview: [id: number]
 	}>();
 
@@ -36,7 +37,30 @@
 		typeFilter.value?.value === "all" ? props.questions : props.questions.filter((q) => q.questionType === typeFilter.value?.value)
 	);
 
+	const selected = ref<number[]>([]);
+	const allSelected = computed(() => filteredQuestions.value.length > 0 && selected.value.length === filteredQuestions.value.length);
+	const someSelected = computed(() => selected.value.length > 0 && !allSelected.value);
+
+	const toggleAll = (value: boolean) => {
+		selected.value = value ? filteredQuestions.value.map((q) => q.id) : [];
+	};
+	const toggleOne = (id: number, value: boolean) => {
+		selected.value = value ? [...selected.value, id] : selected.value.filter((v) => v !== id);
+	};
+
+	watch(filteredQuestions, () => {
+		selected.value = selected.value.filter((id) => filteredQuestions.value.some((q) => q.id === id));
+	});
+
+	const confirmDeleteMany = async () => {
+		const ok = await confirmDelete({ title: `Hapus ${selected.value.length} soal terpilih?` });
+		if (!ok) return;
+		emit("deleteMany", selected.value);
+		selected.value = [];
+	};
+
 	const columns = [
+		{ id: "select", header: "", enableSorting: false },
 		{
 			id: "no",
 			header: "No",
@@ -105,11 +129,49 @@
 			class="max-h-[32rem]"
 			:ui="{ th: 'bg-default', td: 'bg-default' }"
 		>
+			<template #select-header>
+				<UCheckbox :model-value="allSelected" :indeterminate="someSelected" @update:model-value="toggleAll" />
+			</template>
+			<template #select-cell="{ row }">
+				<UCheckbox
+					:model-value="selected.includes(row.original.id)"
+					@update:model-value="(v: boolean) => toggleOne(row.original.id, v)" />
+			</template>
 			<template #empty>
 				<div class="text-center py-10 text-muted">
 					Belum ada soal di kelas & mata pelajaran ini.
 				</div>
 			</template>
 		</UTable>
+
+		<Transition
+			enter-active-class="transition duration-200 ease-out"
+			enter-from-class="opacity-0 translate-y-3"
+			enter-to-class="opacity-100 translate-y-0"
+			leave-active-class="transition duration-150 ease-in"
+			leave-to-class="opacity-0 translate-y-3"
+		>
+			<UCard
+				v-if="selected.length"
+				class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 shadow-lg"
+				:ui="{ body: 'flex items-center gap-3 py-2 px-4 sm:p-2' }"
+			>
+				<UBadge>{{ selected.length }}</UBadge>
+				<span>Soal dipilih</span>
+				<USeparator orientation="vertical" class="h-4" />
+				<div class="flex items-center gap-2">
+					<UButton variant="subtle" color="neutral" @click="selected = []">
+						Batal
+					</UButton>
+					<UButton
+						variant="subtle"
+						color="error"
+						icon="lucide:trash-2"
+						@click="confirmDeleteMany">
+						Hapus
+					</UButton>
+				</div>
+			</UCard>
+		</Transition>
 	</div>
 </template>

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 	import { invoke } from "@tauri-apps/api/core";
+	import { open as openDialog } from "@tauri-apps/plugin-dialog";
 
 	const props = defineProps<{
 		open: boolean
@@ -30,13 +31,21 @@
 	];
 
 	const optionKeys = ["A", "B", "C", "D", "E"] as const;
-	const requiredOptionKeys: (typeof optionKeys)[number][] = ["A", "B"];
+	type OptionKey = (typeof optionKeys)[number];
+	const requiredOptionKeys: OptionKey[] = ["A", "B"];
+
+	interface OptionField {
+		text: string
+		image: string | null
+		imagePreview: string
+	}
+	const emptyOption = (): OptionField => ({ text: "", image: null, imagePreview: "" });
 
 	const emptyQuestionFields = () => ({
 		questionType: questionTypeItems[0]!,
 		questionText: "",
 		image: null as string | null,
-		options: { A: "", B: "", C: "", D: "", E: "" } as Record<(typeof optionKeys)[number], string>,
+		options: { A: emptyOption(), B: emptyOption(), C: emptyOption(), D: emptyOption(), E: emptyOption() } as Record<OptionKey, OptionField>,
 		correctOption: undefined as string | undefined,
 		score: 1
 	});
@@ -68,14 +77,31 @@
 				optionC: string
 				optionD: string
 				optionE: string
+				optionAImage: string | null
+				optionBImage: string | null
+				optionCImage: string | null
+				optionDImage: string | null
+				optionEImage: string | null
 				correctOption: string
 			}>("get_question", { id: editingId });
+
+			const loadOption = async (text: string, image: string | null): Promise<OptionField> => ({
+				text,
+				image,
+				imagePreview: image ? await invoke<string>("load_image_data_url", { path: image }) : ""
+			});
 
 			Object.assign(form, {
 				questionType: questionTypeItems.find((t) => t.value === detail.questionType) ?? questionTypeItems[0]!,
 				questionText: detail.questionText,
 				image: detail.image,
-				options: { A: detail.optionA, B: detail.optionB, C: detail.optionC, D: detail.optionD, E: detail.optionE },
+				options: {
+					A: await loadOption(detail.optionA, detail.optionAImage),
+					B: await loadOption(detail.optionB, detail.optionBImage),
+					C: await loadOption(detail.optionC, detail.optionCImage),
+					D: await loadOption(detail.optionD, detail.optionDImage),
+					E: await loadOption(detail.optionE, detail.optionEImage)
+				},
 				correctOption: detail.correctOption || undefined,
 				score: detail.score
 			});
@@ -94,6 +120,26 @@
 		imagePreview.value = dataUrl;
 	};
 
+	const pickOptionImage = async (key: OptionKey) => {
+		const path = await openDialog({
+			multiple: false,
+			filters: [{ name: "Gambar", extensions: ["jpg", "jpeg", "png", "gif", "webp"] }]
+		});
+		if (!path) return;
+		try {
+			const saved = await invoke<{ path: string, dataUrl: string }>("save_question_image", { path });
+			form.options[key].image = saved.path;
+			form.options[key].imagePreview = saved.dataUrl;
+		} catch (e) {
+			formError.value = e instanceof Error ? e.message : String(e);
+		}
+	};
+
+	const removeOptionImage = (key: OptionKey) => {
+		form.options[key].image = null;
+		form.options[key].imagePreview = "";
+	};
+
 	// keepOpen cuma relevan buat soal baru (bukan edit) — "Simpan" nutup modal otomatis begitu
 	// tersimpan, "Simpan & Lanjutkan" tetap buka modal & bersihkan form buat input soal berikutnya.
 	const submitForm = async (keepOpen: boolean) => {
@@ -109,8 +155,9 @@
 			formError.value = "Pertanyaan wajib diisi.";
 			return;
 		}
-		if (!isEssay && (!form.options.A.trim() || !form.options.B.trim() || !form.correctOption)) {
-			formError.value = "Pilihan A & B, dan kunci jawaban wajib diisi untuk soal pilihan ganda.";
+		const optionFilled = (key: OptionKey) => Boolean(form.options[key].text.trim() || form.options[key].image);
+		if (!isEssay && (!optionFilled("A") || !optionFilled("B") || !form.correctOption)) {
+			formError.value = "Pilihan A & B (teks atau gambar), dan kunci jawaban wajib diisi untuk soal pilihan ganda.";
 			return;
 		}
 
@@ -122,11 +169,16 @@
 			questionType: form.questionType.value,
 			image: form.image,
 			score: form.score,
-			optionA: isEssay ? "" : form.options.A,
-			optionB: isEssay ? "" : form.options.B,
-			optionC: isEssay ? null : form.options.C || null,
-			optionD: isEssay ? null : form.options.D || null,
-			optionE: isEssay ? null : form.options.E || null,
+			optionA: isEssay ? "" : form.options.A.text,
+			optionB: isEssay ? "" : form.options.B.text,
+			optionC: isEssay ? null : form.options.C.text || null,
+			optionD: isEssay ? null : form.options.D.text || null,
+			optionE: isEssay ? null : form.options.E.text || null,
+			optionAImage: isEssay ? null : form.options.A.image,
+			optionBImage: isEssay ? null : form.options.B.image,
+			optionCImage: isEssay ? null : form.options.C.image,
+			optionDImage: isEssay ? null : form.options.D.image,
+			optionEImage: isEssay ? null : form.options.E.image,
 			correctOption: isEssay ? "" : (form.correctOption ?? "")
 		};
 
@@ -218,19 +270,37 @@
 				</div>
 
 				<div v-if="form.questionType.value !== 'essay'" class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-					<UInput
-						v-for="key in optionKeys"
-						:key="key"
-						v-model="form.options[key]"
-						size="md"
-						variant="outline"
-						color="primary"
-						:placeholder="requiredOptionKeys.includes(key) ? 'Wajib' : 'Opsional'"
-						class="w-full">
-						<template #leading>
-							<span class="font-bold text-primary text-sm">{{ key }}</span>
-						</template>
-					</UInput>
+					<div v-for="key in optionKeys" :key="key" class="space-y-1">
+						<UInput
+							v-model="form.options[key].text"
+							size="md"
+							variant="outline"
+							color="primary"
+							:placeholder="requiredOptionKeys.includes(key) ? 'Wajib (teks atau gambar)' : 'Opsional'"
+							class="w-full">
+							<template #leading>
+								<span class="font-bold text-primary text-sm">{{ key }}</span>
+							</template>
+							<template #trailing>
+								<UButton
+									size="2xs"
+									variant="ghost"
+									color="neutral"
+									icon="lucide:image-plus"
+									title="Sisipkan gambar buat pilihan ini"
+									@click="pickOptionImage(key)" />
+							</template>
+						</UInput>
+						<div v-if="form.options[key].imagePreview" class="flex items-center gap-2 pl-7">
+							<img :src="form.options[key].imagePreview" class="h-10 rounded border border-default" alt="">
+							<UButton
+								size="2xs"
+								variant="ghost"
+								color="error"
+								icon="lucide:x"
+								@click="removeOptionImage(key)" />
+						</div>
+					</div>
 				</div>
 
 				<UAlert
