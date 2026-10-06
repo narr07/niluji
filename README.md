@@ -121,8 +121,9 @@ bun run tauri:build
 Output ada di `src-tauri/target/release/bundle/`.
 
 > Build rilis ikut membuat file tanda tangan untuk update otomatis, jadi butuh kunci privat:
-> set `TAURI_SIGNING_PRIVATE_KEY` ke isi file `~/.tauri/niluji.key` (dan
-> `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` kosong) sebelum menjalankan perintah di atas.
+> set `TAURI_SIGNING_PRIVATE_KEY` ke path/isi `~/.tauri/niluji.key` dan
+> `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` ke isi `~/.tauri/niluji.key.password` sebelum
+> menjalankan perintah di atas.
 
 ### Debug Build
 
@@ -148,9 +149,10 @@ Cara merilis versi baru:
 4. GitHub Actions (`.github/workflows/release.yml`) membangun installer Windows,
    menandatanganinya, dan membuat Release berisi installer + `latest.json`.
 
-Syarat sekali saja: secret `TAURI_SIGNING_PRIVATE_KEY` di repo GitHub berisi kunci privat.
+Syarat sekali saja: secret `TAURI_SIGNING_PRIVATE_KEY` (isi `~/.tauri/niluji.key`) dan
+`TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (isi `~/.tauri/niluji.key.password`) di repo GitHub.
 
-> ⚠️ Simpan cadangan `~/.tauri/niluji.key` di tempat aman. Kalau kunci ini hilang, aplikasi
+> ⚠️ Simpan cadangan `~/.tauri/niluji.key` beserta `niluji.key.password` di tempat aman. Kalau kunci ini hilang, aplikasi
 > yang sudah terpasang tidak bisa menerima update otomatis lagi dan harus dipasang ulang manual.
 
 ---

@@ -3,7 +3,8 @@
 # latest.json. Aplikasi yang sudah terpasang membaca latest.json itu untuk notifikasi update.
 #
 # Secret yang wajib ada di repo (Settings → Secrets and variables → Actions):
-#   TAURI_SIGNING_PRIVATE_KEY  = isi file kunci privat (~/.tauri/niluji.key)
+#   TAURI_SIGNING_PRIVATE_KEY           = isi file kunci privat (~/.tauri/niluji.key)
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  = isi file ~/.tauri/niluji.key.password
 # Versi di tag harus sama dengan "version" di src-tauri/tauri.conf.json.
 name: release
 
@@ -52,8 +53,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          # Kunci dibuat tanpa password.
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: v__VERSION__
           releaseName: Niluji v__VERSION__

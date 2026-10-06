@@ -42,7 +42,7 @@
 	"identifier": "com.narr07.niluji",
 	"plugins": {
 		"updater": {
-			"pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEU1NjJBQzZGRDBCRkQ2QzkKUldUSjFyL1FiNnhpNVZ6NjVHbk91TUh5UXZtVzA3V1BHK0V2aTBxTXJTSUd0TksxdkthQXFEVHcK",
+			"pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDFGRUYwRTk4OEMyMUZBMTcKUldRWCtpR01tQTd2SC93eDdrQTdjSmZ3UUJ5dDRMSVdWdVFwUlF3OFF5a0lXNzBNL3dUYktwTWgK",
 			"endpoints": [
 				"https://github.com/narr07/niluji/releases/latest/download/latest.json"
 			],
