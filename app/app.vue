@@ -6,6 +6,7 @@
 					<NuxtPage />
 				</NuxtLayout>
 				<ConfirmDeleteModal />
+				<AppUpdateModal />
 			</UApp>
 		</Body>
 	</Html>

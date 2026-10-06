@@ -17,12 +17,6 @@
 		optionCount: number
 	}
 
-	interface Subject {
-		id: number
-		name: string
-		code: string | null
-	}
-
 	const route = useRoute();
 	const kelas = computed(() => route.params.kelas as string);
 	const pelajaran = computed(() => decodeURIComponent(route.params.pelajaran as string));
@@ -32,14 +26,14 @@
 	const questions = computed(() =>
 		allQuestions.value.filter((q) => q.class === kelas.value && q.subject === pelajaran.value && q.jenis === jenis.value)
 	);
-	const subjects = ref<Subject[]>([]);
-	const subjectId = computed(() => subjects.value.find((s) => s.name === pelajaran.value)?.id);
-	const subjectLabel = computed(() => subjects.value.find((s) => s.name === pelajaran.value)?.code || pelajaran.value);
+	const { subject, label: subjectLabel } = useSubjectByName(pelajaran);
+	const subjectId = computed(() => subject.value?.id);
 
+	const title = computed(() => [`Kelas ${kelas.value}`, subjectLabel.value, jenis.value].filter(Boolean).join(" — "));
 	const breadcrumbItems = computed(() => [
 		{ label: "Bank Soal", icon: "lucide:list-checks", to: "/soal" },
 		{ label: `Kelas ${kelas.value}`, to: `/soal/${kelas.value}` },
-		{ label: subjectLabel.value, to: `/soal/${kelas.value}/${encodeURIComponent(pelajaran.value)}` },
+		...(subjectLabel.value ? [{ label: subjectLabel.value, to: `/soal/${kelas.value}/${encodeURIComponent(pelajaran.value)}` }] : []),
 		{ label: jenis.value }
 	]);
 
@@ -64,10 +58,7 @@
 	const loadData = async () => {
 		loading.value = true;
 		try {
-			[allQuestions.value, subjects.value] = await Promise.all([
-				invoke<QuestionSummary[]>("list_questions"),
-				invoke<Subject[]>("list_subjects")
-			]);
+			allQuestions.value = await invoke<QuestionSummary[]>("list_questions");
 		} finally {
 			loading.value = false;
 		}
@@ -106,7 +97,7 @@
 <template>
 	<UDashboardPanel id="soal-detail">
 		<template #header>
-			<UDashboardNavbar :title="`Kelas ${kelas} — ${subjectLabel} — ${jenis}`">
+			<UDashboardNavbar :title="title">
 				<template #leading>
 					<UDashboardSidebarCollapse />
 					<UButton icon="lucide:arrow-left" variant="ghost" :to="`/soal/${kelas}/${encodeURIComponent(pelajaran)}`" />

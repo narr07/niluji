@@ -121,16 +121,6 @@ fn migrate(conn: &Connection) -> rusqlite::Result<()> {
 		",
 	)?;
 
-	// ponytail: dummy roster so the student login page has something to test against
-	// before real import (CSV/Dapodik) exists. Remove once that ships.
-	conn.execute_batch(
-		"
-		INSERT OR IGNORE INTO students (nisn, name) VALUES ('0012345678', 'Ahmad Fauzi');
-		INSERT OR IGNORE INTO students (nisn, name) VALUES ('0012345679', 'Siti Aminah');
-		INSERT OR IGNORE INTO students (nisn, name) VALUES ('0012345680', 'Budi Santoso');
-		",
-	)?;
-
 	// Standard Kurikulum Merdeka SD subjects, seeded so they're pickable right away
 	// without needing an import first.
 	conn.execute_batch(

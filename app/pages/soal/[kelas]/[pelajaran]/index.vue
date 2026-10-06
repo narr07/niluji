@@ -7,17 +7,20 @@
 	const kelas = computed(() => route.params.kelas as string);
 	const pelajaran = computed(() => decodeURIComponent(route.params.pelajaran as string));
 
+	const { label: subjectLabel } = useSubjectByName(pelajaran);
+
+	const title = computed(() => (subjectLabel.value ? `Kelas ${kelas.value} — ${subjectLabel.value}` : `Kelas ${kelas.value}`));
 	const breadcrumbItems = computed(() => [
 		{ label: "Bank Soal", icon: "lucide:list-checks", to: "/soal" },
 		{ label: `Kelas ${kelas.value}`, to: `/soal/${kelas.value}` },
-		{ label: pelajaran.value }
+		...(subjectLabel.value ? [{ label: subjectLabel.value }] : [])
 	]);
 </script>
 
 <template>
 	<UDashboardPanel id="soal-pelajaran">
 		<template #header>
-			<UDashboardNavbar :title="`Kelas ${kelas} — ${pelajaran}`">
+			<UDashboardNavbar :title="title">
 				<template #leading>
 					<UDashboardSidebarCollapse />
 					<UButton icon="lucide:arrow-left" variant="ghost" :to="`/soal/${kelas}`" />

@@ -52,21 +52,23 @@ pub fn students_by_school(db: &Db, school: &str) -> Result<Vec<StudentRecord>, S
 	rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
 }
 
-// Baris CSV persis seperti yang dipublish dari Google Sheets untuk fitur "Tarik Data Siswa".
-// NISN & KELAS tetap String dengan sengaja: NISN bisa berawalan nol ("0166955541"), dan KELAS
-// kadang berupa teks ("IVA", "IVB") bukan cuma angka — keduanya tidak boleh pernah diperlakukan
-// sebagai angka.
-#[derive(Debug, Deserialize)]
+// Satu baris dari Google Sheet untuk fitur "Tarik Data Siswa". NISN & KELAS tetap String dengan
+// sengaja: NISN bisa berawalan nol ("0166955541"), dan KELAS kadang berupa teks ("IVA", "IVB")
+// bukan cuma angka — keduanya tidak boleh pernah diperlakukan sebagai angka.
+#[derive(Debug)]
 struct TarikSiswaRow {
-	#[serde(rename = "NISN")]
 	nisn: String,
-	#[serde(rename = "NAMA SISWA")]
 	name: String,
-	#[serde(rename = "KELAS")]
 	class: String,
-	#[serde(rename = "Nama Sekolah")]
 	school: String
 }
+
+// Sheet bisa disiapkan operator kecamatan mana pun, jadi judul kolom dicocokkan longgar (huruf
+// besar/kecil & variasi umum) — bukan harus persis "NAMA SISWA" / "Nama Sekolah".
+const TARIK_NISN_COLS: &[&str] = &["nisn"];
+const TARIK_NAME_COLS: &[&str] = &["nama siswa", "nama_siswa", "nama", "name"];
+const TARIK_SCHOOL_COLS: &[&str] = &["nama sekolah", "nama_sekolah", "sekolah", "school"];
+const TARIK_HEADER_HINT: &str = "NISN, NAMA SISWA, KELAS, NAMA SEKOLAH";
 
 fn upsert_students(db: &Db, records: &[TarikSiswaRow]) -> Result<usize, String> {
 	let mut conn = db.lock().unwrap();
@@ -106,12 +108,47 @@ async fn fetch_csv(csv_url: &str) -> Result<Vec<TarikSiswaRow>, String> {
 		return Err(format!("Gagal mengambil data: server merespons status {}", response.status()));
 	}
 	let body = response.text().await.map_err(|e| format!("Gagal membaca respons: {e}"))?;
+	parse_tarik_csv(&body)
+}
 
-	let mut reader = csv::Reader::from_reader(body.as_bytes());
-	reader
-		.deserialize::<TarikSiswaRow>()
-		.map(|record| record.map_err(|e| format!("Format CSV dari sumber tidak sesuai: {e}")))
-		.collect()
+fn parse_tarik_csv(body: &str) -> Result<Vec<TarikSiswaRow>, String> {
+	// Sheet yang belum dibagikan publik tidak mengembalikan CSV, melainkan halaman login Google.
+	let head = body.trim_start().get(..200).unwrap_or(body.trim_start()).to_ascii_lowercase();
+	if head.starts_with("<!doctype html") || head.starts_with("<html") {
+		return Err("Link tidak mengembalikan data CSV. Pastikan Google Sheet sudah dibagikan \"Siapa saja yang memiliki link\" (Viewer), atau dipublikasikan ke web sebagai CSV.".to_string());
+	}
+
+	let mut reader = csv::ReaderBuilder::new().flexible(true).from_reader(body.trim_start_matches('\u{feff}').as_bytes());
+	let headers: Vec<String> = reader.headers().map_err(|e| format!("Gagal membaca judul kolom: {e}"))?.iter().map(|h| h.trim().to_string()).collect();
+
+	let find = |names: &[&str]| headers.iter().position(|h| names.iter().any(|n| h.eq_ignore_ascii_case(n)));
+	let (nisn_idx, name_idx, class_idx, school_idx) = (find(TARIK_NISN_COLS), find(TARIK_NAME_COLS), find(CLASS_COLS), find(TARIK_SCHOOL_COLS));
+
+	let missing: Vec<&str> = [(nisn_idx, "NISN"), (name_idx, "NAMA SISWA"), (class_idx, "KELAS"), (school_idx, "NAMA SEKOLAH")]
+		.iter()
+		.filter(|(idx, _)| idx.is_none())
+		.map(|(_, label)| *label)
+		.collect();
+	if !missing.is_empty() {
+		return Err(format!(
+			"Kolom {} tidak ditemukan di baris pertama sheet. Baris pertama harus berisi judul kolom: {TARIK_HEADER_HINT}.",
+			missing.join(", ")
+		));
+	}
+	let (nisn_idx, name_idx, class_idx, school_idx) = (nisn_idx.unwrap(), name_idx.unwrap(), class_idx.unwrap(), school_idx.unwrap());
+
+	let mut rows = Vec::new();
+	for record in reader.records() {
+		let record = record.map_err(|e| format!("Format CSV dari sumber tidak sesuai: {e}"))?;
+		let cell = |idx: usize| record.get(idx).unwrap_or("").trim().to_string();
+		let row = TarikSiswaRow { nisn: cell(nisn_idx), name: cell(name_idx), class: cell(class_idx), school: cell(school_idx) };
+		// Baris kosong / setengah diisi di ujung sheet dilewati, bukan menggagalkan semuanya.
+		if row.nisn.is_empty() || row.name.is_empty() || row.school.is_empty() {
+			continue;
+		}
+		rows.push(row);
+	}
+	Ok(rows)
 }
 
 // Ambil CSV yang dipublish dari Google Sheets, filter baris sesuai nama sekolah, lalu simpan/update
@@ -134,7 +171,7 @@ pub async fn tarik_data_siswa(db: &Db, csv_url: &str, school: &str) -> Result<us
 // so Bank Soal, Kelola Ujian, Siswa, and Hasil Ujian all pick "kelas" from the same list.
 pub fn list_classes(db: &Db) -> Result<Vec<String>, String> {
 	let conn = db.lock().unwrap();
-	let mut stmt = conn.prepare("SELECT title FROM classes ORDER BY id").map_err(|e| e.to_string())?;
+	let mut stmt = conn.prepare("SELECT title FROM classes ORDER BY sort_order, id").map_err(|e| e.to_string())?;
 	let rows = stmt.query_map([], |r| r.get::<_, String>(0)).map_err(|e| e.to_string())?;
 	rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
 }
@@ -226,6 +263,22 @@ pub fn import_students_rows(db: &Db, rows: Vec<StudentImportRow>) -> Result<Stud
 mod tests {
 	use super::*;
 	use std::io::Write;
+
+	#[test]
+	fn parses_tarik_csv_with_loose_headers() {
+		let body = "\u{feff}nisn,Nama,Kelas,Sekolah\n0166955541,Ani,IVA,SD NEGERI 1\n,,,\n0166955542,Budi,5,SD NEGERI 1\n";
+		let rows = parse_tarik_csv(body).unwrap();
+		assert_eq!(rows.len(), 2);
+		assert_eq!(rows[0].nisn, "0166955541");
+		assert_eq!(rows[0].class, "IVA");
+	}
+
+	#[test]
+	fn tarik_csv_reports_missing_columns_and_html() {
+		let err = parse_tarik_csv("NISN,NAMA SISWA\n1,Ani\n").unwrap_err();
+		assert!(err.contains("KELAS") && err.contains("NAMA SEKOLAH"));
+		assert!(parse_tarik_csv("<!DOCTYPE html><html>login</html>").unwrap_err().contains("dibagikan"));
+	}
 
 	#[test]
 	fn imports_students_from_csv() {

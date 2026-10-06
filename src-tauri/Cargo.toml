@@ -1,6 +1,6 @@
 [package]
 name = "niluji"
-version = "1.0.1"
+version = "1.1.0"
 description = "NILUJI - Platform CBT dan e-Rapor terintegrasi untuk sekolah"
 authors = [ "narr07" ]
 license = "MIT"
@@ -40,6 +40,10 @@ reqwest = "0.12"
 [features]
 default = ["desktop"]
 desktop = ["tauri/tray-icon"]
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-process = "=2.3.1"
+tauri-plugin-updater = "=2.9.0"
 
 [dependencies.tauri]
 version = "=2.9.5"

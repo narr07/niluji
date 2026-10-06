@@ -12,13 +12,6 @@
 		code: string | null
 	}
 
-	interface QuestionTypeRecord {
-		id: number
-		name: string
-		class: string | null
-		subjectId: number | null
-	}
-
 	const route = useRoute();
 	const kelas = computed(() => route.params.kelas as string);
 
@@ -29,17 +22,26 @@
 
 	type SessionWithId = HasilSessionRow & { sessionId: number };
 
-	const subjects = ref<Subject[]>([]);
-	const questionTypes = ref<QuestionTypeRecord[]>([]);
+	const allSubjects = ref<Subject[]>([]);
 	const allSessions = ref<SessionWithId[]>([]);
 	const sessions = computed(() => allSessions.value.filter((s) => s.class === kelas.value));
+	const { loading, subjectsIn, ujianIn } = useHasilTerlaksana();
+
+	// Hanya mapel yang punya ujian TERLAKSANA di kelas ini (lihat useHasilTerlaksana), dengan
+	// jumlah jenis ujian yang terlaksana — bukan semua jenis yang terdaftar di Bank Soal.
+	const subjects = computed(() => {
+		const terlaksana = subjectsIn(kelas.value);
+		return allSubjects.value.filter((s) => terlaksana.has(s.name));
+	});
+	const jenisCounts = computed(() => {
+		const counts: Record<string, number> = {};
+		for (const s of subjects.value) counts[s.name] = new Set(ujianIn(kelas.value, s.name).map((u) => u.jenis)).size;
+		return counts;
+	});
 
 	onMounted(async () => {
-		[subjects.value, questionTypes.value, allSessions.value] = await Promise.all([
+		[allSubjects.value, allSessions.value] = await Promise.all([
 			invoke<Subject[]>("list_subjects"),
-			// Tanpa class/subjectId, backend mengembalikan SEMUA jenis ujian terdaftar (tidak
-			// difilter) — pencocokan per pelajaran+kelas dilakukan di HasilPelajaranGrid.
-			invoke<QuestionTypeRecord[]>("list_question_types", { class: null, subjectId: null }),
 			invoke<SessionWithId[]>("list_exam_sessions")
 		]);
 	});
@@ -103,11 +105,20 @@
 
 		<template #body>
 			<UBreadcrumb :items="breadcrumbItems" class="mb-4" />
+			<div v-if="loading" class="grid grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] gap-3">
+				<USkeleton v-for="i in 4" :key="i" class="h-32 rounded-lg" />
+			</div>
 			<HasilPelajaranGrid
+				v-else-if="subjects.length"
 				:kelas="kelas"
 				:subjects="subjects"
-				:question-types="questionTypes"
-				:sessions="sessions" />
+				:jenis-counts="jenisCounts" />
+			<UEmpty
+				v-else
+				icon="i-lucide-inbox"
+				title="Belum ada ujian yang terlaksana di kelas ini"
+				description="Mata pelajaran muncul di sini setelah ujiannya dibuat di Kelola Ujian, soalnya tersedia di Bank Soal, dan waktu ujiannya sudah dimulai."
+				:actions="[{ label: 'Buka Kelola Ujian', icon: 'i-lucide-calendar-clock', to: '/ujian', color: 'neutral', variant: 'outline' }]" />
 		</template>
 	</UDashboardPanel>
 </template>

@@ -1,25 +1,36 @@
 # Bank Soal Online
 
-Folder ini disiapkan untuk bank soal yang diambil oleh aplikasi NILUJI langsung dari GitHub
-(`raw.githubusercontent.com`). jsDelivr sempat dicoba tapi CDN-nya menolak (403 Forbidden)
-semua file `.xlsx`/dokumen Office — gambar tetap boleh, hanya dokumennya yang diblokir.
-
-Gunakan kode mata pelajaran dari tabel `subjects` sebagai nama folder, dalam bentuk URL-safe
-huruf kecil. Contoh kode `IPAS` menjadi `ipas`, dan `B.Indo` menjadi `b-indo`.
+Folder ini adalah sumber bawaan fitur **Tarik Soal Online** di NILUJI. Isinya file Markdown hasil
+fitur **Export Bank Soal** (Pengaturan → Fitur), satu file per jenis ujian.
 
 ```text
 db-soal/
 ├── kelas_4/
-│   └── ipas/
-│       ├── 4-ipas.xlsx
-│       └── gambar1.jpg
+│   ├── mtk/
+│   │   ├── sts-matematika-2026-2027.md
+│   │   └── gambar/
+│   │       └── soal-213.jpg
+│   └── ppkn/
+│       └── sts-pkn-2026-2027.md
 ├── kelas_5/
 └── kelas_6/
 ```
 
-Nama file utama mengikuti pola `{nomor-kelas}-{kode-mapel}.xlsx`, misalnya `4-ipas.xlsx`.
-Untuk kompatibilitas sementara, fitur juga masih menerima nama lama `soal.xlsx`.
+- Folder kelas: `kelas_4`, `kelas_5`, dst.
+- Folder mapel: kode mapel huruf kecil (MTK → `mtk`, B.Indo → `b-indo`) supaya otomatis cocok
+  dengan mapel di aplikasi. Kalau berbeda, sekolah memilih mapel tujuan secara manual saat impor.
+- Gambar soal ada di subfolder `gambar/` di sebelah file `.md`.
 
-Kolom Excel yang didukung:
+## Dipakai di kecamatan lain
 
-`soal`, `jenis`, `pilihan_a`, `pilihan_b`, `pilihan_c`, `pilihan_d`, `kunci_jawaban`, `skor`, `nama_file_gambar`
+Operator kecamatan menyiapkan folder `db-soal` dengan struktur yang sama, lalu membagikannya
+lewat salah satu cara berikut (sekolah memilih sumber yang sesuai di aplikasi):
+
+| Cara bagikan | Sumber yang dipilih sekolah |
+| --- | --- |
+| Repo GitHub publik berisi folder `db-soal` | Repo GitHub lain |
+| `db-soal.zip` di Google Drive / Dropbox (dibagikan "Siapa saja yang memiliki link") | Link file ZIP |
+| `db-soal.zip` lewat flashdisk / WhatsApp | File ZIP lokal (tanpa internet) |
+
+Panduan langkah demi langkah ada di aplikasi: Pengaturan → Tarik Soal Online → Panduan untuk
+operator kecamatan.

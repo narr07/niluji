@@ -5,67 +5,47 @@
 		code: string | null
 	}
 
-	interface QuestionTypeRecord {
-		id: number
-		name: string
-		class: string | null
-		subjectId: number | null
-	}
-
-	interface SessionProgress {
-		class: string | null
-		subject: string
-		jenis: string | null
-	}
-
 	const props = defineProps<{
 		kelas: string
 		subjects: Subject[]
-		questionTypes: QuestionTypeRecord[]
-		sessions: SessionProgress[]
+		/** Jumlah jenis ujian TERLAKSANA per nama mapel (dihitung di halaman, lihat useHasilTerlaksana). */
+		jenisCounts: Record<string, number>
 	}>();
 
-	// Badge di sini nunjukin JUMLAH JENIS UJIAN yang berlaku untuk kelas+pelajaran ini — gabungan
-	// dari jenis yang TERDAFTAR di registry (sama seperti SoalPelajaranGrid) DAN jenis yang
-	// benar-benar dipakai di sesi ujian nyata. Union ini sengaja, supaya kalau baris registry-nya
-	// kehapus/tergeser scope, jenis yang datanya masih ada tidak ikut hilang dari hitungan.
-	const jenisCountFor = (subjectId: number, subjectName: string) => {
-		const registered = props.questionTypes
-			.filter((jt) => (jt.class === null || jt.class === props.kelas) && (jt.subjectId === null || jt.subjectId === subjectId))
-			.map((jt) => jt.name);
-		const fromSessions = props.sessions
-			.filter((s) => s.class === props.kelas && s.subject === subjectName && s.jenis)
-			.map((s) => s.jenis as string);
-		return new Set([...registered, ...fromSessions]).size;
-	};
+	const jenisCountFor = (_subjectId: number, subjectName: string) => props.jenisCounts[subjectName] ?? 0;
 </script>
 
 <template>
-	<div class="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
-		<UCard
+	<div class="grid grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] gap-3">
+		<UPageCard
 			v-for="s in subjects"
 			:key="s.id"
-			variant="subtle"
-			class="relative cursor-pointer hover:ring-primary transition-colors"
-			:ui="{ body: 'p-3' }"
-			@click="navigateTo(`/hasil/${kelas}/${encodeURIComponent(s.name)}`)"
+			:to="`/hasil/${kelas}/${encodeURIComponent(s.name)}`"
+			variant="outline"
+			:ui="{ container: 'p-4 sm:p-4 gap-3', wrapper: 'gap-0.5 min-w-0' }"
 		>
-			<UBadge
-				color="neutral"
-				variant="subtle"
-				size="lg"
-				class="absolute top-2 right-2">
-				{{ jenisCountFor(s.id, s.name) }}
-			</UBadge>
-
-			<div class="pr-14">
-				<p class="text-xl font-bold truncate">
+			<template #title>
+				<span class="block truncate text-lg font-semibold text-highlighted">
 					{{ s.code || s.name }}
-				</p>
-				<p v-if="s.code" class="text-muted text-xs truncate">
+				</span>
+			</template>
+
+			<template #description>
+				<span v-if="s.code" class="block truncate text-[10px] text-muted">
 					{{ s.name }}
-				</p>
+				</span>
+			</template>
+
+			<div class="flex items-center gap-1.5 border-t border-default pt-3 text-xs">
+				<UIcon name="i-lucide-folder-open" class="size-3.5 shrink-0 text-muted" />
+				<template v-if="jenisCountFor(s.id, s.name)">
+					<span class="font-semibold tabular-nums text-highlighted">
+						{{ jenisCountFor(s.id, s.name) }}
+					</span>
+					<span class="text-muted">jenis ujian</span>
+				</template>
+				<span v-else class="text-muted">Belum ada jenis ujian</span>
 			</div>
-		</UCard>
+		</UPageCard>
 	</div>
 </template>

@@ -169,7 +169,7 @@ pub fn delete_question_type_scoped(
 	scope: &str,
 	current_class: String,
 	current_subject_id: i64
-) -> Result<(), String> {
+) -> Result<usize, String> {
 	let mut conn = db.lock().unwrap();
 	let tx = conn.transaction().map_err(|e| e.to_string())?;
 
@@ -224,13 +224,74 @@ pub fn delete_question_type_scoped(
 	}
 
 	tx.execute("DELETE FROM question_types WHERE id = ?1", params![id]).map_err(|e| e.to_string())?;
+
+	// Soal ikut dihapus — tapi HANYA soal yang (1) berada di cakupan yang dipilih guru DAN di
+	// cakupan baris jenis yang dihapus, dan (2) sesudah penghapusan tadi sudah tidak dinaungi
+	// baris jenis mana pun lagi. Jadi soal di kelas/mapel lain yang kebetulan memakai nama jenis
+	// yang sama (dengan barisnya sendiri) tetap aman.
+	let (scope_class, scope_subject): (Option<&str>, Option<i64>) = match scope {
+		"class" => (Some(current_class.as_str()), None),
+		"subject" => (None, Some(current_subject_id)),
+		_ => (None, None)
+	};
+	let deleted = tx
+		.execute(
+			"DELETE FROM questions
+			 WHERE jenis = ?1
+			   AND (?2 IS NULL OR class = ?2) AND (?3 IS NULL OR subject_id = ?3)
+			   AND (?4 IS NULL OR class = ?4) AND (?5 IS NULL OR subject_id = ?5)
+			   AND NOT EXISTS (
+			     SELECT 1 FROM question_types qt
+			     WHERE qt.name = questions.jenis
+			       AND (qt.class IS NULL OR qt.class = questions.class)
+			       AND (qt.subject_id IS NULL OR qt.subject_id = questions.subject_id)
+			   )",
+			params![name, row_class, row_subject_id, scope_class, scope_subject]
+		)
+		.map_err(|e| e.to_string())?;
+
 	tx.commit().map_err(|e| e.to_string())?;
-	Ok(())
+	Ok(deleted)
 }
 
 #[cfg(test)]
 mod tests {
 	use super::*;
+
+	#[test]
+	fn deleting_jenis_removes_only_orphaned_questions() {
+		let dir = std::env::temp_dir().join(format!(
+			"nuxtor_cbt_jenis_delete_test_{}_{}",
+			std::process::id(),
+			std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()
+		));
+		let db = crate::db::open(&dir);
+		let count = |db: &Db| -> i64 { db.lock().unwrap().query_row("SELECT COUNT(*) FROM questions", [], |r| r.get(0)).unwrap() };
+		{
+			let conn = db.lock().unwrap();
+			// Jenis "UTS" terdaftar terpisah untuk kelas 4 & kelas 5 (mapel 1), plus 1 soal tiap kelas,
+			// dan 1 soal mapel 2 kelas 4 dengan nama jenis sama yang dinaungi baris berbeda.
+			conn.execute_batch(
+				"INSERT INTO question_types (name, class, subject_id) VALUES ('UTS', '4', 1), ('UTS', '5', 1), ('UTS', '4', 2);
+				 INSERT INTO questions (subject_id, class, jenis, question_text) VALUES (1, '4', 'UTS', 'a'), (1, '5', 'UTS', 'b'), (2, '4', 'UTS', 'c');"
+			)
+			.unwrap();
+		}
+		let id_k4_m1: i64 = db
+			.lock()
+			.unwrap()
+			.query_row("SELECT id FROM question_types WHERE class = '4' AND subject_id = 1", [], |r| r.get(0))
+			.unwrap();
+
+		// Hapus "UTS" kelas 4 mapel 1 dengan scope "mapel ini, semua kelas": baris kelas 5 tetap ada,
+		// jadi soal kelas 5 aman; soal mapel 2 juga aman. Hanya soal 'a' yang ikut terhapus.
+		let deleted = delete_question_type_scoped(&db, id_k4_m1, "subject", "4".into(), 1).unwrap();
+		assert_eq!(deleted, 1);
+		assert_eq!(count(&db), 2);
+
+		drop(db);
+		let _ = std::fs::remove_dir_all(&dir);
+	}
 
 	#[test]
 	fn reads_and_updates_school() {

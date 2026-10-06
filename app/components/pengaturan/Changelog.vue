@@ -9,6 +9,23 @@
 
 	const riwayat: ChangelogEntry[] = [
 		{
+			title: "Update Otomatis & Sumber Data Kecamatan",
+			date: "2026-10-06",
+			badge: "v1.1.0",
+			badgeColor: "primary",
+			perubahan: [
+				"Update otomatis: aplikasi memeriksa versi baru setiap dibuka dan menampilkan notifikasi. Klik \"Update & Restart\" untuk mengunduh, memasang, lalu membuka kembali aplikasi. Bisa juga dicek manual di Pengaturan → Tentang. Update ditahan selama ada ujian berlangsung atau siswa yang sedang login, dan database dibackup dulu sebelum update.",
+				"Tarik Data Siswa bisa memakai link Google Sheet lain dari operator kecamatan, lengkap dengan panduan menyiapkan sheet dan template kolom NISN | NAMA SISWA | KELAS | NAMA SEKOLAH. Judul kolom dibaca lebih longgar, dan pesan error-nya lebih jelas (mis. sheet belum dibagikan).",
+				"Tarik Soal Online punya 4 pilihan sumber: bank soal NILUJI, repo GitHub lain, link file ZIP (Google Drive/Dropbox), dan file ZIP lokal dari flashdisk — yang terakhir tanpa internet. Kelas dan mapel dibaca dari isi sumbernya, dan mapel bisa dipilih manual kalau namanya berbeda.",
+				"Bank Soal: kartu kelas menampilkan jumlah mapel terisi (dengan progress bar), jenis ujian, dan soal. Tombol \"Buat Jenis Ujian\" ada di setiap halaman, dengan kelas dan mata pelajaran wajib dipilih dulu.",
+				"Menghapus jenis ujian sekarang ikut menghapus soal di dalamnya (hanya pada cakupan yang dipilih).",
+				"Hasil Ujian hanya menampilkan ujian yang sudah terlaksana — ada di Kelola Ujian, soalnya tersedia, dan waktunya sudah dimulai — dengan status \"Sedang berlangsung\" / \"Selesai\". Kartu kelas menampilkan progres pengerjaan, jumlah ujian, dan rata-rata nilai PG.",
+				"Unduhan template disimpan ke folder Downloads, dengan tombol \"Buka Folder\" di notifikasinya.",
+				"Perbaikan: urutan kelas di semua halaman kini mengikuti urutan di Pengaturan; judul halaman mapel tidak lagi berkedip dari nama panjang ke kode; menu sidebar tetap aktif di sub-halaman; 3 siswa contoh tidak lagi muncul sendiri setiap aplikasi dibuka.",
+				"Folder data aplikasi pindah ke nama baru; data dari versi sebelumnya disalin otomatis saat pertama kali dibuka.",
+			],
+		},
+		{
 			title: "Perbaikan & Fitur Tambahan",
 			date: "2026-09-22",
 			badge: "v1.0.1",

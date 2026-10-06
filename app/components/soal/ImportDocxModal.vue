@@ -21,9 +21,7 @@
 	});
 
 	const toast = useToast();
-	const notifyTemplateDownload = (name: string) => {
-		toast.add({ title: "Template diunduh", description: `Contoh ${name} sedang diunduh.`, icon: "lucide:download", color: "success" });
-	};
+	const { downloadTemplate } = useTemplateDownload();
 
 	const soalPath = ref("");
 	const soalName = ref("");
@@ -292,16 +290,14 @@
 				<p class="text-sm text-muted -mt-2">
 					Belum tahu formatnya? Unduh contoh:
 					<a
-						href="/templates/naskah-soal-word/contoh-naskah-soal.docx"
-						download
+						href="#"
 						class="text-primary underline"
-						@click="notifyTemplateDownload('Naskah Soal')">Contoh Naskah Soal.docx</a>
+						@click.prevent="downloadTemplate('/templates/naskah-soal-word/contoh-naskah-soal.docx', 'contoh-naskah-soal.docx', 'Contoh Naskah Soal')">Contoh Naskah Soal.docx</a>
 					·
 					<a
-						href="/templates/naskah-soal-word/contoh-kunci-jawaban.docx"
-						download
+						href="#"
 						class="text-primary underline"
-						@click="notifyTemplateDownload('Kunci Jawaban')">Contoh Kunci Jawaban.docx</a>
+						@click.prevent="downloadTemplate('/templates/naskah-soal-word/contoh-kunci-jawaban.docx', 'contoh-kunci-jawaban.docx', 'Contoh Kunci Jawaban')">Contoh Kunci Jawaban.docx</a>
 				</p>
 
 				<div

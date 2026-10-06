@@ -52,52 +52,10 @@
 		}))
 	);
 
-	// ---------- Buat jenis ujian (Slideover) ----------
+	// ---------- Buat jenis ujian (Slideover bersama, lihat SoalBuatJenisSlideover) ----------
 
 	const createOpen = ref(false);
-	const newJenisName = ref("");
-	const scopeOptions = [
-		{ label: "Kelas & mata pelajaran ini saja", description: "Hanya berlaku di sini", value: "narrow" as const },
-		{ label: "Semua pelajaran di kelas ini", description: `Berlaku untuk seluruh mapel di Kelas ${props.kelas}`, value: "class" as const },
-		{ label: "Semua kelas, mapel ini saja", description: `Berlaku untuk ${props.pelajaran} di semua kelas`, value: "subject" as const },
-		{ label: "Semua kelas & semua mapel", description: "Berlaku di seluruh aplikasi", value: "global" as const }
-	];
-	const scope = ref<"narrow" | "class" | "subject" | "global">("narrow");
-	const creating = ref(false);
-	const createError = ref("");
-
-	const openCreate = () => {
-		newJenisName.value = "";
-		scope.value = "narrow";
-		createError.value = "";
-		createOpen.value = true;
-	};
-
-	const createJenis = async () => {
-		createError.value = "";
-		const name = newJenisName.value.trim();
-		if (!name) {
-			createError.value = "Nama jenis ujian wajib diisi.";
-			return;
-		}
-		creating.value = true;
-		try {
-			await invoke("create_question_type", {
-				name,
-				description: null,
-				class: (scope.value === "narrow" || scope.value === "class") ? props.kelas : null,
-				subjectId: (scope.value === "narrow" || scope.value === "subject") ? subjectId.value : null
-			});
-			toast.add({ title: "Jenis ujian dibuat", description: `"${name}" siap diisi soal.`, color: "success", icon: "i-lucide-check-circle" });
-		} catch {
-			// Jenis dengan nama + scope yang sama mungkin sudah ada — tidak masalah, kita tetap
-			// lanjut masuk ke halaman soal jenis tersebut untuk kelas & pelajaran ini.
-		} finally {
-			creating.value = false;
-		}
-		createOpen.value = false;
-		navigateTo(`/soal/${props.kelas}/${encodeURIComponent(props.pelajaran)}/${encodeURIComponent(name)}`);
-	};
+	const openCreate = () => (createOpen.value = true);
 
 	// ---------- Edit jenis ujian (Modal) ----------
 
@@ -159,13 +117,18 @@
 		deleting.value = true;
 		deleteError.value = "";
 		try {
-			await invoke("delete_question_type_scoped", {
+			const deletedQuestions = await invoke<number>("delete_question_type_scoped", {
 				id: deletingJenis.value.id,
 				scope: deleteScope.value,
 				currentClass: props.kelas,
 				currentSubjectId: subjectId.value
 			});
-			toast.add({ title: "Jenis ujian dihapus", description: `"${deletingJenis.value.jenis}" sudah dihapus.`, color: "success", icon: "i-lucide-check-circle" });
+			toast.add({
+				title: "Jenis ujian dihapus",
+				description: `"${deletingJenis.value.jenis}" sudah dihapus${deletedQuestions ? `, beserta ${deletedQuestions} soal di dalamnya` : ""}.`,
+				color: "success",
+				icon: "i-lucide-check-circle"
+			});
 			deleteOpen.value = false;
 			await load();
 		} catch (e) {
@@ -252,34 +215,7 @@
 			</UButton>
 		</div>
 
-		<USlideover v-model:open="createOpen" title="Buat Jenis Ujian Baru">
-			<template #body>
-				<form class="space-y-5" @submit.prevent="createJenis">
-					<UFormField label="Nama jenis ujian">
-						<UInput
-							v-model="newJenisName"
-							placeholder="Contoh: UTS Ganjil 2026"
-							class="w-full"
-							autofocus />
-					</UFormField>
-
-					<UFormField label="Berlaku untuk">
-						<URadioGroup v-model="scope" :items="scopeOptions" />
-					</UFormField>
-
-					<UAlert
-						v-if="createError"
-						color="error"
-						variant="subtle"
-						:title="createError" />
-				</form>
-			</template>
-			<template #footer>
-				<UButton block :loading="creating" @click="createJenis">
-					Buat Jenis Ujian
-				</UButton>
-			</template>
-		</USlideover>
+		<SoalBuatJenisSlideover v-model:open="createOpen" :kelas="kelas" :pelajaran="pelajaran" />
 
 		<UModal v-model:open="editOpen" title="Edit Jenis Ujian">
 			<template #body>
@@ -316,10 +252,11 @@
 					<URadioGroup v-model="deleteScope" :items="deleteScopeOptions" />
 
 					<UAlert
-						color="warning"
+						color="error"
 						variant="subtle"
-						icon="i-lucide-info"
-						description="Soal yang sudah memakai jenis ini tidak ikut terhapus, tapi tidak akan muncul di jenis manapun lagi pada cakupan yang dipilih." />
+						icon="i-lucide-triangle-alert"
+						title="Soal di dalamnya ikut terhapus permanen"
+						description="Semua soal jenis ini pada cakupan yang dipilih akan dihapus dan tidak bisa dikembalikan. Soal di kelas/mapel lain yang masih memakai jenis ini tidak tersentuh." />
 
 					<UAlert
 						v-if="deleteError"

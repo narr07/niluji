@@ -2,6 +2,7 @@
 	"bundle": {
 		"active": true,
 		"targets": "all",
+		"createUpdaterArtifacts": true,
 		"windows": {
 			"certificateThumbprint": null,
 			"digestAlgorithm": "sha256",
@@ -37,9 +38,19 @@
 		"devUrl": "http://localhost:3000"
 	},
 	"productName": "Niluji",
-	"version": "1.0.1",
-	"identifier": "com.nicolaspadari.nuxtor",
-	"plugins": {},
+	"version": "1.1.0",
+	"identifier": "com.narr07.niluji",
+	"plugins": {
+		"updater": {
+			"pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEU1NjJBQzZGRDBCRkQ2QzkKUldUSjFyL1FiNnhpNVZ6NjVHbk91TUh5UXZtVzA3V1BHK0V2aTBxTXJTSUd0TksxdkthQXFEVHcK",
+			"endpoints": [
+				"https://github.com/narr07/niluji/releases/latest/download/latest.json"
+			],
+			"windows": {
+				"installMode": "passive"
+			}
+		}
+	},
 	"app": {
 		"windows": [
 			{

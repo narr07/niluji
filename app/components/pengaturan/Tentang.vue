@@ -12,6 +12,8 @@
 		}
 	});
 
+	const { status, update, errorMessage, checkForUpdate, openModal } = useAppUpdate();
+
 	const stacks = [
 		{ label: "Nuxt 4", icon: "i-simple-icons-nuxtdotjs" },
 		{ label: "Nuxt UI 4", icon: "i-simple-icons-nuxtdotjs" },
@@ -45,6 +47,40 @@
 				Guru mengelola bank soal, ujian, dan hasil dari satu aplikasi desktop; siswa
 				mengerjakan ujian lewat browser di jaringan lokal yang sama — tanpa internet.
 			</p>
+		</UCard>
+
+		<UCard>
+			<div class="flex flex-wrap items-center gap-3">
+				<UIcon
+					:name="status === 'available' ? 'i-lucide-sparkles' : status === 'error' ? 'i-lucide-circle-alert' : status === 'uptodate' ? 'i-lucide-circle-check' : 'i-lucide-refresh-cw'"
+					:class="['size-5 shrink-0', status === 'available' ? 'text-primary' : status === 'error' ? 'text-error' : status === 'uptodate' ? 'text-success' : 'text-muted']" />
+				<div class="min-w-0 flex-1">
+					<p class="font-semibold">
+						Pembaruan Aplikasi
+					</p>
+					<p class="text-sm text-muted">
+						<template v-if="status === 'checking'">Memeriksa pembaruan...</template>
+						<template v-else-if="status === 'available' && update">Versi {{ update.version }} tersedia.</template>
+						<template v-else-if="status === 'uptodate'">Aplikasi sudah versi terbaru.</template>
+						<template v-else-if="status === 'error'">Gagal memeriksa pembaruan — pastikan terhubung ke internet. ({{ errorMessage }})</template>
+						<template v-else>Aplikasi memeriksa pembaruan otomatis setiap dibuka (butuh internet).</template>
+					</p>
+				</div>
+				<UButton
+					v-if="status === 'available'"
+					icon="i-lucide-download"
+					@click="openModal">
+					Lihat & Update
+				</UButton>
+				<UButton
+					v-else
+					icon="i-lucide-refresh-cw"
+					variant="soft"
+					:loading="status === 'checking'"
+					@click="checkForUpdate()">
+					Periksa Pembaruan
+				</UButton>
+			</div>
 		</UCard>
 
 		<div class="grid gap-4 sm:grid-cols-2">

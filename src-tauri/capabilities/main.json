@@ -50,6 +50,8 @@
 				{ "url": "https://api.github.com/*" }
 			]
 		},
+		"updater:default",
+		"process:allow-restart",
 		"core:webview:allow-create-webview",
 		"core:webview:allow-create-webview-window"
 	]

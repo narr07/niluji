@@ -60,9 +60,7 @@
 	}
 
 	const toast = useToast();
-	const notifyTemplateDownload = (name: string) => {
-		toast.add({ title: "Template diunduh", description: `Contoh ${name} sedang diunduh.`, icon: "lucide:download", color: "success" });
-	};
+	const { downloadTemplate } = useTemplateDownload();
 
 	const backingUp = ref(false);
 	const backups = ref<BackupInfo[]>([]);
@@ -148,10 +146,9 @@
 				<p class="text-xs text-muted mt-2">
 					Dibatasi PIN (default 1234, ganti lewat Pengaturan > Data Sekolah).
 					<a
-						href="/templates/contoh-soal-markdown.md"
-						download
+						href="#"
 						class="text-primary underline"
-						@click="notifyTemplateDownload('format Markdown')">Unduh contoh format</a>.
+						@click.prevent="downloadTemplate('/templates/contoh-soal-markdown.md', 'contoh-soal-markdown.md', 'Contoh format Markdown')">Unduh contoh format</a>.
 				</p>
 				<UButton
 					icon="lucide:download"

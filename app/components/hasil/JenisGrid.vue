@@ -1,64 +1,28 @@
 <script lang="ts" setup>
-	import { invoke } from "@tauri-apps/api/core";
-
 	const props = defineProps<{
 		kelas: string
 		pelajaran: string
 	}>();
 
-	interface Subject {
-		id: number
-		name: string
-	}
+	const { loading, ujianIn, sessions } = useHasilTerlaksana();
 
-	interface QuestionTypeRecord {
-		id: number
-		name: string
-	}
-
-	interface SessionProgress {
-		class: string | null
-		subject: string
-		jenis: string | null
-	}
-
-	const subjects = ref<Subject[]>([]);
-	const questionTypes = ref<QuestionTypeRecord[]>([]);
-	const sessions = ref<SessionProgress[]>([]);
-	const loading = ref(true);
-
-	const subjectId = computed(() => subjects.value.find((s) => s.name === props.pelajaran)?.id);
-
-	const load = async () => {
-		loading.value = true;
-		try {
-			subjects.value = await invoke<Subject[]>("list_subjects");
-			[questionTypes.value, sessions.value] = await Promise.all([
-				invoke<QuestionTypeRecord[]>("list_question_types", { class: props.kelas, subjectId: subjectId.value }),
-				invoke<SessionProgress[]>("list_exam_sessions")
-			]);
-		} finally {
-			loading.value = false;
-		}
-	};
-
-	// Gabungan dari DUA sumber: jenis yang terdaftar di registry (question_types — biar jenis
-	// yang belum ada sesinya tetap kelihatan, badge-nya "0 sesi") DAN jenis yang benar-benar
-	// dipakai di data sesi ujian nyata (exam_sessions). Union ini sengaja — kalau baris
-	// registry-nya kehapus/tergeser scope (mis. lewat fitur hapus jenis bertingkat di Bank
-	// Soal), data sesi yang sudah ada tidak boleh sampai hilang dari tampilan cuma gara-gara
-	// registry-nya tidak sinkron lagi.
+	// Hanya jenis ujian yang TERLAKSANA (ada di Kelola Ujian, soalnya ada, dan sudah dimulai —
+	// lihat useHasilTerlaksana). Jenis yang ujiannya masih dijadwalkan untuk nanti belum muncul.
+	// Satu jenis bisa punya lebih dari satu ujian; statusnya "berlangsung" kalau salah satunya
+	// masih terbuka.
 	const jenisGroups = computed(() => {
-		const relevantSessions = sessions.value.filter((s) => s.class === props.kelas && s.subject === props.pelajaran && s.jenis);
-		const names = new Set<string>([...questionTypes.value.map((t) => t.name), ...relevantSessions.map((s) => s.jenis as string)]);
-		return [...names].map((name) => ({
-			id: questionTypes.value.find((t) => t.name === name)?.id ?? name,
-			jenis: name,
-			count: relevantSessions.filter((s) => s.jenis === name).length
+		const relevantSessions = sessions.value.filter((s) => s.class === props.kelas && s.subject === props.pelajaran);
+		const byJenis = new Map<string, "berlangsung" | "selesai">();
+		for (const u of ujianIn(props.kelas, props.pelajaran)) {
+			if (byJenis.get(u.jenis) !== "berlangsung") byJenis.set(u.jenis, u.status);
+		}
+		return [...byJenis.entries()].map(([jenis, status]) => ({
+			id: jenis,
+			jenis,
+			status,
+			count: relevantSessions.filter((s) => (s.jenis ?? "") === jenis).length
 		}));
 	});
-
-	onMounted(load);
 </script>
 
 <template>
@@ -88,6 +52,14 @@
 					<p class="text-xl font-bold truncate">
 						{{ g.jenis }}
 					</p>
+					<UBadge
+						:color="g.status === 'berlangsung' ? 'success' : 'neutral'"
+						:icon="g.status === 'berlangsung' ? 'i-lucide-radio' : 'i-lucide-check'"
+						variant="soft"
+						size="sm"
+						class="mt-2">
+						{{ g.status === 'berlangsung' ? 'Sedang berlangsung' : 'Selesai' }}
+					</UBadge>
 				</div>
 			</UCard>
 		</div>
@@ -95,8 +67,8 @@
 		<UAlert
 			v-else
 			icon="i-lucide-inbox"
-			title="Belum ada jenis ujian"
-			description="Buat jenis ujian dulu di Bank Soal untuk kelas & mata pelajaran ini."
+			title="Belum ada ujian yang terlaksana"
+			description="Jenis ujian muncul di sini setelah ujiannya dibuat di Kelola Ujian, soalnya tersedia di Bank Soal, dan waktu ujiannya sudah dimulai."
 			variant="subtle"
 			color="neutral" />
 	</div>

@@ -19,9 +19,10 @@
 		set: (value) => emit("update:open", value)
 	});
 
-	const toast = useToast();
-	const notifyTemplateDownload = (format: string) => {
-		toast.add({ title: "Template diunduh", description: `Contoh soal format ${format} sedang diunduh.`, icon: "lucide:download", color: "success" });
+	const { downloadTemplate } = useTemplateDownload();
+	const downloadSoalTemplate = (format: "csv" | "xlsx") => {
+		const url = templateLinks.value[format];
+		downloadTemplate(url, url.split("/").pop()!, `Contoh soal ${format === "csv" ? "CSV" : "Excel"}`);
 	};
 
 	const questionTypeItems = [
@@ -132,16 +133,14 @@
 				<p class="text-sm text-muted -mt-2">
 					Contoh format:
 					<a
-						:href="templateLinks.csv"
-						download
+						href="#"
 						class="text-primary underline"
-						@click="notifyTemplateDownload('CSV')">CSV</a>
+						@click.prevent="downloadSoalTemplate('csv')">CSV</a>
 					·
 					<a
-						:href="templateLinks.xlsx"
-						download
+						href="#"
 						class="text-primary underline"
-						@click="notifyTemplateDownload('Excel')">Excel</a>
+						@click.prevent="downloadSoalTemplate('xlsx')">Excel</a>
 				</p>
 
 				<div

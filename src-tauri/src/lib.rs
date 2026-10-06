@@ -11,6 +11,7 @@ mod exam_session;
 mod exams;
 mod export;
 mod import;
+mod legacy;
 mod server;
 mod settings;
 mod students;
@@ -46,6 +47,63 @@ fn read_file_bytes(path: String) -> Result<Vec<u8>, String> {
 #[tauri::command]
 fn write_file_bytes(path: String, bytes: Vec<u8>) -> Result<(), String> {
 	std::fs::write(&path, bytes).map_err(|e| format!("Gagal menyimpan file: {e}"))
+}
+
+// Simpan file template ke folder Downloads dan kembalikan path lengkapnya — pengganti <a download>
+// di webview, yang tidak memberi tahu file-nya mendarat di mana (jadi toast tidak bisa menawarkan
+// "Buka Folder"). Nama yang sudah ada tidak ditimpa: jadi "nama (1).csv", "nama (2).csv", dst.
+#[tauri::command]
+fn save_to_downloads(app: tauri::AppHandle, file_name: String, bytes: Vec<u8>) -> Result<String, String> {
+	let dir = app.path().download_dir().map_err(|e| format!("Folder Downloads tidak ditemukan: {e}"))?;
+	std::fs::create_dir_all(&dir).map_err(|e| format!("Gagal membuat folder Downloads: {e}"))?;
+
+	let name = std::path::Path::new(&file_name);
+	let stem = name.file_stem().and_then(|s| s.to_str()).unwrap_or("file");
+	let ext = name.extension().and_then(|s| s.to_str()).map(|e| format!(".{e}")).unwrap_or_default();
+	let mut dest = dir.join(format!("{stem}{ext}"));
+	let mut n = 1;
+	while dest.exists() {
+		dest = dir.join(format!("{stem} ({n}){ext}"));
+		n += 1;
+	}
+
+	std::fs::write(&dest, bytes).map_err(|e| format!("Gagal menyimpan file: {e}"))?;
+	Ok(dest.to_string_lossy().into_owned())
+}
+
+// Unduh file dari link bebas (Google Drive, Dropbox, dll.) untuk Tarik Soal Online sumber ZIP —
+// lewat reqwest di Rust, bukan plugin-http, karena domainnya tidak bisa didaftarkan satu per satu
+// di capabilities. Dikirim sebagai ipc::Response (ArrayBuffer mentah), bukan Vec<u8> yang
+// diserialisasi jadi array JSON angka — file ZIP bank soal bisa beberapa MB.
+#[tauri::command]
+async fn download_bytes(url: String) -> Result<tauri::ipc::Response, String> {
+	if !url.starts_with("https://") && !url.starts_with("http://") {
+		return Err("Link harus diawali https://".to_string());
+	}
+	let response = reqwest::get(&url).await.map_err(|e| format!("Gagal mengunduh: {e}"))?;
+	if !response.status().is_success() {
+		return Err(format!("Gagal mengunduh: server merespons status {}", response.status()));
+	}
+	let bytes = response.bytes().await.map_err(|e| format!("Gagal membaca unduhan: {e}"))?;
+	Ok(tauri::ipc::Response::new(bytes.to_vec()))
+}
+
+// Buka file explorer dengan file itu terpilih (Windows/macOS), atau buka foldernya (Linux).
+#[tauri::command]
+fn reveal_in_folder(path: String) -> Result<(), String> {
+	let path = std::path::PathBuf::from(&path);
+	#[cfg(target_os = "windows")]
+	let result = {
+		// raw_arg: explorer butuh bentuk /select,"path" persis — quoting bawaan .arg() membungkus
+		// seluruh argumen dan gagal untuk nama file berspasi seperti "template (1).csv".
+		use std::os::windows::process::CommandExt;
+		std::process::Command::new("explorer").raw_arg(format!("/select,\"{}\"", path.display())).spawn()
+	};
+	#[cfg(target_os = "macos")]
+	let result = std::process::Command::new("open").arg("-R").arg(&path).spawn();
+	#[cfg(not(any(target_os = "windows", target_os = "macos")))]
+	let result = std::process::Command::new("xdg-open").arg(path.parent().unwrap_or(&path)).spawn();
+	result.map(|_| ()).map_err(|e| format!("Gagal membuka folder: {e}"))
 }
 
 #[tauri::command]
@@ -360,7 +418,7 @@ fn delete_question_type_scoped(
 	current_class: String,
 	current_subject_id: i64,
 	db: tauri::State<db::Db>
-) -> Result<(), String> {
+) -> Result<usize, String> {
 	settings::delete_question_type_scoped(&db, id, &scope, current_class, current_subject_id)
 }
 
@@ -388,7 +446,16 @@ pub fn run() {
 					.build(app)?;
 			}
 
+			// Update otomatis dari GitHub Releases (lihat plugins.updater di tauri.conf.json) +
+			// restart sesudah update terpasang. Desktop saja — di mobile update lewat toko aplikasi.
+			#[cfg(desktop)]
+			{
+				app.handle().plugin(tauri_plugin_updater::Builder::new().build())?;
+				app.handle().plugin(tauri_plugin_process::init())?;
+			}
+
 			let data_dir = app.path().app_data_dir().expect("no app data dir");
+			legacy::migrate_legacy_data_dir(&data_dir);
 			let db = db::open(&data_dir);
 
 			// Backup sekali tiap aplikasi dibuka — cukup buat jaga-jaga kalau ada apa-apa di
@@ -436,6 +503,9 @@ pub fn run() {
 			import_questions,
 			read_file_bytes,
 			write_file_bytes,
+			save_to_downloads,
+			reveal_in_folder,
+			download_bytes,
 			list_questions,
 			get_dashboard_stats,
 			list_online_students,

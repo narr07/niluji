@@ -26,6 +26,7 @@
 	]);
 
 	const subjects = ref<Subject[]>([]);
+	const createOpen = ref(false);
 	const questionTypes = ref<QuestionTypeRecord[]>([]);
 
 	onMounted(async () => {
@@ -46,12 +47,18 @@
 					<UDashboardSidebarCollapse />
 					<UButton icon="lucide:arrow-left" variant="ghost" to="/soal" />
 				</template>
+				<template #right>
+					<UButton icon="i-lucide-plus" @click="createOpen = true">
+						Buat Jenis Ujian
+					</UButton>
+				</template>
 			</UDashboardNavbar>
 		</template>
 
 		<template #body>
 			<UBreadcrumb :items="breadcrumbItems" class="mb-4" />
 			<SoalPelajaranGrid :kelas="kelas" :subjects="subjects" :question-types="questionTypes" />
+			<SoalBuatJenisSlideover v-model:open="createOpen" :kelas="kelas" />
 		</template>
 	</UDashboardPanel>
 </template>

@@ -27,19 +27,9 @@
 	const isTauri = () => typeof window !== "undefined" && !!(window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;
 
 	const toast = useToast();
-	const notifyTemplateDownload = (format: string) => {
-		toast.add({ title: "Template diunduh", description: `Contoh siswa format ${format} sedang diunduh.`, icon: "lucide:download", color: "success" });
-	};
-
-	const downloadTemplate = (format: "csv" | "xlsx") => {
-		const link = document.createElement("a");
-		link.href = `/templates/siswa-template.${format}`;
-		link.download = `siswa-template.${format}`;
-		document.body.appendChild(link);
-		link.click();
-		document.body.removeChild(link);
-		notifyTemplateDownload(format === "csv" ? "CSV" : "Excel");
-	};
+	const { downloadTemplate: saveTemplate } = useTemplateDownload();
+	const downloadTemplate = (format: "csv" | "xlsx") =>
+		saveTemplate(`/templates/siswa-template.${format}`, `siswa-template.${format}`, `Template siswa ${format === "csv" ? "CSV" : "Excel"}`);
 
 	const templateItems = [
 		[
