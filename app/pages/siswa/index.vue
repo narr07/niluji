@@ -88,6 +88,7 @@
 	};
 
 	const importOpen = ref(false);
+	const eraporOpen = ref(false);
 	const openImport = () => {
 		if (!isTauri()) {
 			toast.add({ title: "Mode Pratinjau", description: "Fitur import berjalan di dalam aplikasi desktop Tauri.", color: "info" });
@@ -135,10 +136,18 @@
 
 					<UButton
 						icon="lucide:upload"
+						variant="subtle"
+						color="neutral"
+						@click="openImport">
+						Import File
+					</UButton>
+
+					<UButton
+						icon="lucide:database-zap"
 						variant="soft"
 						color="primary"
-						@click="openImport">
-						Import
+						@click="eraporOpen = true">
+						Tarik dari e-Rapor
 					</UButton>
 				</template>
 			</UDashboardNavbar>
@@ -153,4 +162,5 @@
 	</UDashboardPanel>
 
 	<SiswaImportModal v-model:open="importOpen" @imported="loadData" />
+	<SiswaEraporModal v-model:open="eraporOpen" @imported="loadData" />
 </template>

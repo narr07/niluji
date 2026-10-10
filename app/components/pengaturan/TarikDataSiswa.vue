@@ -236,6 +236,15 @@
 		}
 	];
 
+	const eraporOpen = ref(false);
+	const onEraporImported = async () => {
+		try {
+			schools.value = await invoke<string[]>("list_schools");
+		} catch {
+			// ignore
+		}
+	};
+
 	onMounted(async () => {
 		restoreSource();
 		const isConnected = await refreshConnection();
@@ -248,8 +257,30 @@
 		<div>
 			<h2 class="text-lg font-semibold">Tarik Data Siswa</h2>
 			<p class="text-sm text-muted mt-1">
-				Ambil data siswa dari Google Sheets, difilter berdasarkan nama sekolah, lalu disimpan ke database lokal.
+				Ambil data siswa dari e-Rapor Dapodik (offline) atau dari Google Sheets kecamatan secara online.
 			</p>
+		</div>
+
+		<!-- Banner Tarik e-Rapor Dapodik Lokal -->
+		<div class="rounded-xl border border-primary/30 bg-primary/5 p-4 flex flex-wrap items-center justify-between gap-4">
+			<div class="space-y-1">
+				<div class="flex items-center gap-2 font-semibold text-sm">
+					<UIcon name="lucide:database-zap" class="size-4 text-primary" />
+					<span>Tarik Siswa dari Database e-Rapor / Dapodik</span>
+					<UBadge color="primary" variant="subtle" size="xs">
+						Offline & Rekomendasi
+					</UBadge>
+				</div>
+				<p class="text-xs text-muted max-w-xl">
+					Jika data sekolah sudah disinkronkan dengan Dapodik di modul e-Rapor, Anda dapat langsung menarik seluruh siswa per rombel secara instan tanpa perlu koneksi internet.
+				</p>
+			</div>
+			<UButton
+				icon="lucide:database-zap"
+				color="primary"
+				@click="eraporOpen = true">
+				Buka Penarik e-Rapor
+			</UButton>
 		</div>
 
 		<div class="flex flex-wrap items-center gap-3 rounded-lg border border-default bg-elevated/40 px-4 py-3">
@@ -458,5 +489,7 @@
 				</tbody>
 			</table>
 		</div>
+
+		<SiswaEraporModal v-model:open="eraporOpen" @imported="onEraporImported" />
 	</div>
 </template>

@@ -211,7 +211,9 @@ pub fn delete_student(db: &Db, id: i64) -> Result<(), String> {
 pub struct StudentImportRow {
 	pub nisn: String,
 	pub name: String,
-	pub class: Option<String>
+	pub class: Option<String>,
+	#[serde(default)]
+	pub school: Option<String>
 }
 
 pub fn parse_students_file(path: &str) -> Result<Vec<StudentImportRow>, String> {
@@ -228,7 +230,7 @@ pub fn parse_students_file(path: &str) -> Result<Vec<StudentImportRow>, String> 
 		if nisn.is_empty() && name.is_empty() {
 			continue;
 		}
-		result.push(StudentImportRow { nisn, name, class });
+		result.push(StudentImportRow { nisn, name, class, school: None });
 	}
 	Ok(result)
 }
@@ -245,11 +247,19 @@ pub fn import_students_rows(db: &Db, rows: Vec<StudentImportRow>) -> Result<Stud
 			continue;
 		}
 		let class = row.class.as_deref().map(str::trim).filter(|c| !c.is_empty());
+		let school = row.school.as_deref().map(str::trim).filter(|s| !s.is_empty());
+
+		if let Some(c) = class {
+			let _ = tx.execute(
+				"INSERT OR IGNORE INTO classes (title, description) VALUES (?1, ?2)",
+				params![c, format!("Kelas {c}")]
+			);
+		}
 
 		tx.execute(
-			"INSERT INTO students (nisn, name, class) VALUES (?1, ?2, ?3)
-			 ON CONFLICT(nisn) DO UPDATE SET name = excluded.name, class = excluded.class",
-			params![nisn, name, class]
+			"INSERT INTO students (nisn, name, class, school) VALUES (?1, ?2, ?3, ?4)
+			 ON CONFLICT(nisn) DO UPDATE SET name = excluded.name, class = excluded.class, school = COALESCE(excluded.school, students.school)",
+			params![nisn, name, class, school]
 		)
 		.map_err(|e| e.to_string())?;
 		students_imported += 1;
