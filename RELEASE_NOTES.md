@@ -1,11 +1,10 @@
-Yang baru di versi ini:
+Yang baru di versi 1.2.0:
 
-• Update otomatis — aplikasi memberi tahu kalau ada versi baru, cukup klik "Update & Restart". Update ditahan selama ujian berlangsung.
-• Tarik Data Siswa bisa memakai Google Sheet dari operator kecamatan, lengkap dengan panduannya.
-• Tarik Soal Online: sumber bisa repo GitHub, link ZIP (Google Drive/Dropbox), atau file ZIP dari flashdisk (tanpa internet).
-• Bank Soal: ringkasan per kelas, tombol Buat Jenis Ujian di setiap halaman, dan hapus jenis ujian ikut menghapus soalnya.
-• Hasil Ujian hanya menampilkan ujian yang sudah terlaksana, dengan status Sedang berlangsung / Selesai.
-• Unduh template langsung ke folder Downloads + tombol Buka Folder.
-• Berbagai perbaikan tampilan dan urutan kelas.
+• Integrasi e-Rapor SD resmi: sinkronisasi data Dapodik offline, perencanaan Tujuan Pembelajaran (TP), penilaian rapor, dan status penilaian guru.
+• Tarik Data Siswa Dapodik ke CBT: data siswa dari e-Rapor dapat ditarik langsung ke database CBT secara instan (100% offline, bebas pilih rombel).
+• Sesi Online Guru: guru dapat mengisi nilai mandiri di laptop masing-masing melalui jaringan lokal atau Cloudflare Quick Tunnel.
+• Cetak Lengkap: cetak lembar rapor siswa (satuan & massal per rombel), cetak kelengkapan rapor, leger nilai Excel, dan transkrip ijazah.
+• Cetak Kartu Akun: cetak kartu akun login guru & siswa per kelas dengan QR code / PIN.
+• Antarmuka Terpadu: beralih mulus antara modul CBT Ujian dan e-Rapor SD tanpa bentrok database.
 
-Data soal, siswa, dan hasil ujian tetap aman — dibackup otomatis sebelum update.
+Data ujian CBT, bank soal, dan hasil penilaian tetap aman di database terisolasi.

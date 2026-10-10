@@ -9,10 +9,24 @@
 
 	const riwayat: ChangelogEntry[] = [
 		{
+			title: "Integrasi e-Rapor SD & Sinkronisasi Siswa Dapodik",
+			date: "2026-10-10",
+			badge: "v1.2.0",
+			badgeColor: "primary",
+			perubahan: [
+				"Integrasi penuh modul e-Rapor SD resmi: sinkronisasi master data Dapodik (sekolah, PTK/guru, rombel, peserta didik, pembelajaran) secara offline.",
+				"Tarik Data Siswa dari e-Rapor ke CBT: kini guru/admin dapat langsung mengimpor data peserta didik dari database e-Rapor lokal ke ujian CBT dalam satu klik (bebas pilih kelas/rombel, format tingkat angka atau nama rombel lengkap).",
+				"Sesi Online Guru: server lokal (port 8789) dan Cloudflare Quick Tunnel agar guru dapat menarik paket pembelajaran dan mengirim nilai rapor dari laptop masing-masing.",
+				"Perencanaan Tujuan Pembelajaran (TP): input TP per tingkat & semester, import/export template Excel, dan validasi deskripsi capaian kompetensi.",
+				"Penilaian & Cetak Rapor: input nilai akhir, ekskul, catatan wali kelas, kokurikuler P5, cetak lembar rapor resmi (satuan & massal per rombel), leger nilai Excel, transkrip ijazah, dan cetak kartu akun.",
+				"Database Terisolasi & Navigasi Cepat: modul CBT dan e-Rapor berjalan berdampingan secara aman dengan database masing-masing (cbt.sqlite dan erapor.sqlite), tanpa risiko konflik data.",
+			],
+		},
+		{
 			title: "Update Otomatis & Sumber Data Kecamatan",
 			date: "2026-10-06",
 			badge: "v1.1.0",
-			badgeColor: "primary",
+			badgeColor: "neutral",
 			perubahan: [
 				"Update otomatis: aplikasi memeriksa versi baru setiap dibuka dan menampilkan notifikasi. Klik \"Update & Restart\" untuk mengunduh, memasang, lalu membuka kembali aplikasi. Bisa juga dicek manual di Pengaturan → Tentang. Update ditahan selama ada ujian berlangsung atau siswa yang sedang login, dan database dibackup dulu sebelum update.",
 				"Tarik Data Siswa bisa memakai link Google Sheet lain dari operator kecamatan, lengkap dengan panduan menyiapkan sheet dan template kolom NISN | NAMA SISWA | KELAS | NAMA SEKOLAH. Judul kolom dibaca lebih longgar, dan pesan error-nya lebih jelas (mis. sheet belum dibagikan).",
