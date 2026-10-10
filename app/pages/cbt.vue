@@ -233,7 +233,9 @@
 		token.value = "";
 		questions.value = [];
 		pgSubmittedAt.value = null;
-		Object.keys(answers).forEach((k) => delete answers[Number(k)]);
+		Object.keys(answers).forEach((k) => {
+			Reflect.deleteProperty(answers, Number(k));
+		});
 		saveStatus.value = {};
 		score.value = null;
 		stage.value = "login";

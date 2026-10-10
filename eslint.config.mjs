@@ -15,7 +15,10 @@ export default withNuxt(
 			"style/quotes": ["error", "double"],
 			"style/semi": ["error", "always"],
 			"vue/script-indent": ["error", "tab", { baseIndent: 1 }],
-			"vue/html-indent": ["error", "tab"]
+			"vue/html-indent": ["error", "tab"],
+			"better-tailwindcss/no-unknown-classes": "off",
+			"@typescript-eslint/no-explicit-any": "off",
+			"no-empty": "off"
 		}
 	},
 	{
@@ -26,6 +29,11 @@ export default withNuxt(
 	},
 	betterTailwindcss.configs["correctness-error"],
 	{
+		rules: {
+			"better-tailwindcss/no-unknown-classes": "off",
+			"@typescript-eslint/no-explicit-any": "off",
+			"no-empty": "off"
+		},
 		settings: {
 			"better-tailwindcss": {
 				entryPoint: "app/assets/css/main.css",

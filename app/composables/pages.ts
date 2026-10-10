@@ -2,7 +2,7 @@ export const usePages = () => {
 	const router = useRouter();
 	const { pageCategories } = useAppConfig();
 
-	const routes = router.getRoutes().filter((route) => route.name !== "all");
+	const routes = router.getRoutes().filter((route) => route.name !== "all" && !route.path.startsWith("/e-rapor/"));
 
 	const topLevelRoutes: any[] = [];
 

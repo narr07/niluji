@@ -51,7 +51,7 @@ export default defineNuxtConfig({
 		clearScreen: false,
 		envPrefix: ["VITE_", "TAURI_"],
 		optimizeDeps: {
-			include: ["@nuxt/ui > prosemirror-state"]
+			include: ["@nuxt/ui > prosemirror-state", "sortablejs", "xlsx"]
 		},
 		server: {
 			strictPort: true,

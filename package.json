@@ -40,7 +40,8 @@
 		"tauri:build": "tauri build",
 		"tauri:build:debug": "tauri build --debug",
 		"tauri:build:ios": "tauri ios build",
-		"tauri:build:android": "tauri android build"
+		"tauri:build:android": "tauri android build",
+		"guru:sim": "bun scripts/guru-sim.ts"
 	},
 	"dependencies": {
 		"@fontsource-variable/tiktok-sans": "^5.3.0",

@@ -135,7 +135,7 @@
 					</div>
 				</template>
 				<ul class="space-y-3 text-sm">
-					<li v-for="(q, i) in easiestQuestions" :key="q.label">
+					<li v-for="q in easiestQuestions" :key="q.label">
 						<div class="flex items-center justify-between mb-1">
 							<span class="font-medium">{{ q.label }}</span>
 							<span class="text-xs text-muted">{{ pct(q.benar, q.salah) }}% benar</span>

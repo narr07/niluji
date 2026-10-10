@@ -29,13 +29,14 @@ tauri-plugin-dialog = "2"
 tauri-plugin-http = "=2.5.0"
 serde_json = "1"
 axum = "0.8"
-tokio = { version = "1", features = ["rt-multi-thread", "net", "macros"] }
+tokio = { version = "1", features = ["rt-multi-thread", "net", "macros", "process", "io-util", "sync", "time"] }
 tower-http = { version = "0.6", features = ["fs"] }
 rusqlite = { version = "0.32", features = ["bundled", "backup"] }
 csv = "1"
 calamine = "0.26"
 base64 = "0.22"
-reqwest = "0.12"
+reqwest = { version = "0.12", features = ["json"] }
+bcrypt = "0.17"
 
 [features]
 default = ["desktop"]
@@ -52,3 +53,9 @@ features = ["unstable"]
 [dependencies.serde]
 version = "1"
 features = [ "derive" ]
+
+[profile.dev.package.bcrypt]
+opt-level = 3
+[profile.dev.package.blowfish]
+opt-level = 3
+

@@ -16,6 +16,7 @@ mod server;
 mod settings;
 mod students;
 mod uploads;
+mod erapor;
 
 #[tauri::command]
 fn get_server_info(port_state: tauri::State<server::PortState>, db: tauri::State<db::Db>) -> serde_json::Value {
@@ -489,6 +490,10 @@ pub fn run() {
 			app.manage(UploadsDir(uploads_dir));
 			app.manage(DataDir(data_dir));
 
+			let erapor_dir = erapor::data_dir(app.handle())?;
+			app.manage(erapor::db::open(&erapor_dir));
+			app.manage(erapor::sesi::SesiState::default());
+
 			Ok(())
 		})
 		.plugin(tauri_plugin_shell::init())
@@ -555,8 +560,36 @@ pub fn run() {
 			create_question_type,
 			update_question_type,
 			delete_question_type,
-			delete_question_type_scoped
+			delete_question_type_scoped,
+			erapor::dapodik_request,
+			erapor::save_sample,
+			erapor::open_samples_dir,
+			erapor::cmds::db_query,
+			erapor::cmds::db_execute,
+			erapor::cmds::db_batch,
+			erapor::cmds::auth_login,
+			erapor::cmds::auth_logout,
+			erapor::cmds::auth_change_password,
+			erapor::cmds::auth_reset_password,
+			erapor::cmds::user_set_password,
+			erapor::cmds::users_create,
+			erapor::cmds::db_backup,
+			erapor::cmds::db_backup_list,
+			erapor::cmds::db_restore,
+			erapor::cmds::open_data_dir,
+			erapor::cmds::reveal_file,
+			erapor::cmds::http_post_json,
+			erapor::cmds::guru_set_local_user,
+			erapor::cmds::users_set_password,
+			erapor::sesi::sesi_buka,
+			erapor::sesi::sesi_tutup,
+			erapor::sesi::sesi_status
 		])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+		.build(tauri::generate_context!())
+		.expect("error while running tauri application")
+		.run(|app, event| {
+			if let tauri::RunEvent::Exit = event {
+				erapor::sesi::tutup(app);
+			}
+		});
 }
