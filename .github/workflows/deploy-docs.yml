@@ -15,9 +15,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./docs
     steps:
       - uses: actions/checkout@v4
         with:
@@ -33,10 +30,17 @@ jobs:
         with:
           bun-version: 1.3.6
 
-      - name: Install dependencies
+      - name: Prepare root types
+        run: |
+          bun install
+          bunx nuxt prepare
+
+      - name: Install docs dependencies
+        working-directory: ./docs
         run: bun install
 
       - name: Build static site for GitHub Pages
+        working-directory: ./docs
         run: bunx nuxt build --preset github_pages
         env:
           NUXT_APP_BASE_URL: /${{ github.event.repository.name }}/
@@ -59,4 +63,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
