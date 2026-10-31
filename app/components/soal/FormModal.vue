@@ -236,7 +236,7 @@
 									<USelectMenu
 										v-model="form.correctOption"
 										:items="['A', 'B', 'C', 'D', 'E']"
-										placeholder="—"
+										placeholder="-"
 										size="xs"
 										class="w-14" />
 								</template>

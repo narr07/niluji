@@ -35,7 +35,7 @@
 <template>
 	<UDashboardPanel id="hasil-detail">
 		<template #header>
-			<UDashboardNavbar :title="`Kelas ${kelas} — ${subjectLabel}`">
+			<UDashboardNavbar :title="`Kelas ${kelas} · ${subjectLabel}`">
 				<template #leading>
 					<UDashboardSidebarCollapse />
 					<UButton icon="lucide:arrow-left" variant="ghost" :to="`/hasil/${kelas}`" />

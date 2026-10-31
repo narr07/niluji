@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+	import type { TableColumn } from "@nuxt/ui";
 	import { invoke } from "@tauri-apps/api/core";
 	import { open as openDialog } from "@tauri-apps/plugin-dialog";
 	import { parseKunciJawabanDocx, parseNaskahSoalDocx, type DocxImportRow, type KunciJawabanResult } from "~/composables/useDocxSoalImport";
@@ -43,6 +44,16 @@
 	const validCount = computed(() => rows.value.filter((r) => r.valid).length);
 	const selectedCount = computed(() => selectedIds.value.size);
 	const canProcess = computed(() => Boolean(soalPath.value && kunciPath.value && pgCount.value && essayCount.value));
+
+	const columns: TableColumn<DocxImportRow>[] = [
+		{ id: "select", header: "Pilih" },
+		{ accessorKey: "number", header: "No" },
+		{ id: "tipe", header: "Tipe" },
+		{ id: "soal", header: "Soal" },
+		{ id: "pilihan", header: "Pilihan (kunci ditandai)" },
+		{ id: "status", header: "Status" },
+		{ id: "aksi", header: "Aksi" }
+	];
 
 	watch(
 		() => props.open,
@@ -94,9 +105,6 @@
 		await setKunci(path);
 	};
 
-	// Satu drop-zone buat dua slot — kalau cuma 1 file di-drop, masuk ke slot yang masih kosong
-	// (naskah dulu, baru kunci); kalau 2 file sekaligus di-drop, urutannya jadi naskah lalu
-	// kunci. Kalau salah, tinggal drop ulang atau pilih manual lewat tombolnya.
 	const { isDragging } = useFileDrop({
 		isActive: () => props.open,
 		accept: (path) => path.toLowerCase().endsWith(".docx"),
@@ -135,9 +143,6 @@
 		else next.delete(row.id);
 		selectedIds.value = next;
 	};
-
-	// ---------- Edit satu baris (buat benerin hasil deteksi yang salah/"Cek manual", atau
-	// isi baris yang ditambah manual) ----------
 
 	const editRowOpen = ref(false);
 	const editRowId = ref<string | null>(null);
@@ -192,9 +197,6 @@
 		selectedIds.value = new Set([...selectedIds.value, row.id]);
 		editRowOpen.value = false;
 	};
-
-	// ---------- Tambah baris manual (buat nambah soal di luar yang kedetek dari file, mis. file
-	// cuma ada 20 tapi guru mau 30 total) ----------
 
 	let manualCounter = 0;
 	const addManualRow = () => {
@@ -286,7 +288,7 @@
 		<template #body>
 			<div class="space-y-4">
 				<p class="text-sm text-muted">
-					Pilih file naskah soal (untuk dicetak) dan file kunci jawabannya — keduanya format
+					Pilih file naskah soal (untuk dicetak) dan file kunci jawabannya, keduanya format
 					<code>.docx</code>. Sistem akan mencocokkan soal dengan jawabannya otomatis berdasarkan nomor.
 				</p>
 				<p class="text-sm text-muted -mt-2">
@@ -336,7 +338,7 @@
 						:loading="parsing"
 						:disabled="!canProcess"
 						@click="processFiles">
-						Proses & Preview
+						Proses &amp; Preview
 					</UButton>
 				</div>
 
@@ -373,72 +375,56 @@
 					</div>
 
 					<div class="overflow-x-auto rounded-lg border border-default max-h-[28rem] overflow-y-auto">
-						<table class="w-full text-sm">
-							<thead class="bg-elevated text-left sticky top-0">
-								<tr>
-									<th class="p-2 w-10">Pilih</th>
-									<th class="p-2 w-12">No</th>
-									<th class="p-2 w-16">Tipe</th>
-									<th class="p-2 min-w-64">Soal</th>
-									<th class="p-2 min-w-48">Pilihan (kunci ditandai)</th>
-									<th class="p-2 min-w-40">Status</th>
-									<th class="p-2 w-16">Aksi</th>
-								</tr>
-							</thead>
-							<tbody class="divide-y divide-default">
-								<tr v-for="row in rows" :key="row.id" :class="row.valid ? '' : 'bg-error/5'">
-									<td class="p-2 align-top">
-										<UCheckbox
-											:model-value="isSelected(row)"
-											:disabled="!row.valid || importedIds.has(row.id)"
-											@update:model-value="(v) => toggleRow(row, v)" />
-									</td>
-									<td class="p-2 align-top text-muted">{{ row.number }}</td>
-									<td class="p-2 align-top">
-										<UBadge :color="row.tipe === 'pg' ? 'info' : 'neutral'" variant="subtle">
-											{{ row.tipe === "pg" ? "PG" : "Esai" }}
-										</UBadge>
-										<UIcon v-if="row.imageFileName" name="lucide:image" class="ml-1 size-3.5 inline" />
-									</td>
-									<td class="p-2 align-top max-w-sm">
-										<div class="line-clamp-3">{{ row.soal || "(kosong)" }}</div>
-									</td>
-									<td class="p-2 align-top">
-										<ul v-if="row.tipe === 'pg'" class="space-y-0.5">
-											<li
-												v-for="(opt, idx) in [row.pilihan_a, row.pilihan_b, row.pilihan_c, row.pilihan_d]"
-												:key="idx"
-												:class="row.kunci_jawaban.trim().toUpperCase() === 'ABCD'[idx] ? 'text-success font-medium' : ''">
-												{{ "abcd"[idx] }}. {{ opt || "(kosong)" }}
-											</li>
-										</ul>
-										<span v-else class="text-muted line-clamp-2">{{ row.catatanJawabanEsai || "-" }}</span>
-									</td>
-									<td class="p-2 align-top">
-										<UBadge :color="row.valid ? 'success' : 'error'" variant="subtle">
-											{{ row.valid ? "Valid" : "Cek manual" }}
-										</UBadge>
-										<UBadge
-											v-if="importedIds.has(row.id)"
-											color="info"
-											variant="subtle"
-											class="ml-1">
-											Diimpor
-										</UBadge>
-										<p v-if="row.alasanInvalid" class="text-xs text-error mt-1">{{ row.alasanInvalid }}</p>
-									</td>
-									<td class="p-2 align-top">
-										<UButton
-											size="xs"
-											variant="soft"
-											icon="lucide:pencil"
-											@click="openEditRow(row)">
-											Edit
-										</UButton>
-									</td>
-								</tr>
-							</tbody>
-						</table>
+						<UTable :data="rows" :columns="columns">
+							<template #select-cell="{ row }">
+								<UCheckbox
+									:model-value="isSelected(row.original)"
+									:disabled="!row.original.valid || importedIds.has(row.original.id)"
+									@update:model-value="(v) => toggleRow(row.original, v)" />
+							</template>
+							<template #tipe-cell="{ row }">
+								<UBadge :color="row.original.tipe === 'pg' ? 'info' : 'neutral'" variant="subtle">
+									{{ row.original.tipe === "pg" ? "PG" : "Esai" }}
+								</UBadge>
+								<UIcon v-if="row.original.imageFileName" name="lucide:image" class="ml-1 size-3.5 inline" />
+							</template>
+							<template #soal-cell="{ row }">
+								<div class="line-clamp-3 max-w-sm whitespace-normal">{{ row.original.soal || "(kosong)" }}</div>
+							</template>
+							<template #pilihan-cell="{ row }">
+								<ul v-if="row.original.tipe === 'pg'" class="space-y-0.5 text-xs">
+									<li
+										v-for="(opt, idx) in [row.original.pilihan_a, row.original.pilihan_b, row.original.pilihan_c, row.original.pilihan_d]"
+										:key="idx"
+										:class="row.original.kunci_jawaban.trim().toUpperCase() === 'ABCD'[idx] ? 'text-success font-medium' : ''">
+										{{ "abcd"[idx] }}. {{ opt || "(kosong)" }}
+									</li>
+								</ul>
+								<span v-else class="text-muted line-clamp-2 text-xs">{{ row.original.catatanJawabanEsai || "-" }}</span>
+							</template>
+							<template #status-cell="{ row }">
+								<UBadge :color="row.original.valid ? 'success' : 'error'" variant="subtle">
+									{{ row.original.valid ? "Valid" : "Cek manual" }}
+								</UBadge>
+								<UBadge
+									v-if="importedIds.has(row.original.id)"
+									color="info"
+									variant="subtle"
+									class="ml-1">
+									Diimpor
+								</UBadge>
+								<p v-if="row.original.alasanInvalid" class="text-xs text-error mt-1">{{ row.original.alasanInvalid }}</p>
+							</template>
+							<template #aksi-cell="{ row }">
+								<UButton
+									size="xs"
+									variant="soft"
+									icon="lucide:pencil"
+									@click="openEditRow(row.original)">
+									Edit
+								</UButton>
+							</template>
+						</UTable>
 					</div>
 				</div>
 			</div>

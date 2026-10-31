@@ -2,11 +2,11 @@
 	import { invoke } from "@tauri-apps/api/core";
 
 	interface FiturItem {
-		judul: string;
-		menu: string;
-		icon: string;
-		ringkasan: string;
-		isi: string[];
+		judul: string
+		menu: string
+		icon: string
+		ringkasan: string
+		isi: string[]
 	}
 
 	const fitur: FiturItem[] = [
@@ -16,17 +16,17 @@
 			icon: "i-lucide-file-text",
 			ringkasan: "Naskah soal Word (.docx) + kunci jawaban terpisah, langsung jadi soal tanpa diketik ulang.",
 			isi: [
-				"Pilih file naskah soal (.docx) dan file kunci jawaban (.docx) — sistem otomatis mencocokkan soal dengan jawabannya berdasarkan nomor.",
+				"Pilih file naskah soal (.docx) dan file kunci jawaban (.docx), sistem otomatis mencocokkan soal dengan jawabannya berdasarkan nomor.",
 				"Jumlah soal PG dan esai biasanya terdeteksi otomatis dari file kunci jawaban. Kalau deteksinya salah, angkanya bisa diedit manual sebelum diproses.",
-				"Ada tabel preview sesudah diproses — soal yang polanya tidak terbaca jelas ditandai \"Cek manual\". Klik Edit di baris manapun untuk membetulkan, atau Tambah Baris Manual untuk soal di luar yang terdeteksi.",
-			],
+				"Ada tabel preview sesudah diproses: soal yang polanya tidak terbaca jelas ditandai \"Cek manual\". Klik Edit di baris manapun untuk membetulkan, atau Tambah Baris Manual untuk soal di luar yang terdeteksi."
+			]
 		},
 		{
 			judul: "Import CSV / Excel",
 			menu: "Bank Soal > (dalam Jenis Ujian) > Import CSV / Excel",
 			icon: "i-lucide-table",
 			ringkasan: "Soal dalam bentuk tabel (kolom soal, pilihan, kunci, skor) diunggah langsung ke jenis ujian yang dibuka.",
-			isi: [],
+			isi: []
 		},
 		{
 			judul: "Tarik Soal Online",
@@ -35,8 +35,8 @@
 			ringkasan: "Tarik bank soal sekolah lain dari repo GitHub NILUJI tanpa impor manual.",
 			isi: [
 				"Kalau sekolah sudah punya bank soal yang diunggah ke repo GitHub NILUJI (format Markdown hasil Export), soal itu bisa ditarik langsung.",
-				"Pilih Kelas, Mata Pelajaran, lalu Jenis Ujian — daftarnya diambil otomatis dari file di repo. Klik Ambil & Preview, cek soalnya, lalu Impor ke Bank Soal.",
-			],
+				"Pilih Kelas, Mata Pelajaran, lalu Jenis Ujian (daftarnya diambil otomatis dari file di repo). Klik Ambil & Preview, cek soalnya, lalu Impor ke Bank Soal."
+			]
 		},
 		{
 			judul: "Tarik Data Siswa",
@@ -45,18 +45,18 @@
 			ringkasan: "Tarik data siswa dari spreadsheet online sekolah, tanpa input manual atau CSV.",
 			isi: [
 				"Ketik nama sekolah (bisa cari sebagian nama, lalu pilih yang persis dari daftar), klik Tarik Data Siswa.",
-				"Ada kesalahan nama atau NISN di data sumbernya? Klik \"Buka & Edit Data Sumber\" untuk membetulkan langsung di spreadsheet, lalu tarik ulang.",
-			],
-		},
+				"Ada kesalahan nama atau NISN di data sumbernya? Klik \"Buka & Edit Data Sumber\" untuk membetulkan langsung di spreadsheet, lalu tarik ulang."
+			]
+		}
 	];
 
 	const exportOpen = ref(false);
 
 	interface BackupInfo {
-		fileName: string;
-		path: string;
-		sizeBytes: number;
-		createdAt: number;
+		fileName: string
+		path: string
+		sizeBytes: number
+		createdAt: number
 	}
 
 	const toast = useToast();
@@ -83,7 +83,7 @@
 				title: "Backup selesai",
 				description: `Disimpan sebagai ${info.fileName}`,
 				icon: "lucide:check",
-				color: "success",
+				color: "success"
 			});
 			await loadBackups();
 		} catch (error) {
@@ -91,7 +91,7 @@
 				title: "Backup gagal",
 				description: error instanceof Error ? error.message : String(error),
 				icon: "lucide:x",
-				color: "error",
+				color: "error"
 			});
 		} finally {
 			backingUp.value = false;
@@ -109,8 +109,7 @@
 				:key="f.judul"
 				:title="f.judul"
 				:description="f.ringkasan"
-				:icon="f.icon"
-			>
+				:icon="f.icon">
 				<template #header>
 					<UBadge
 						color="neutral"
@@ -142,11 +141,10 @@
 
 			<UPageCard
 				title="Export Bank Soal"
-				description="Kebalikan dari Tarik Soal Online — keluarkan bank soal jadi file (Markdown + folder gambar) untuk diunggah ke repo GitHub."
-				icon="i-lucide-upload"
-			>
+				description="Kebalikan dari Tarik Soal Online: keluarkan bank soal menjadi file (Markdown + folder gambar) untuk diunggah ke repo GitHub."
+				icon="i-lucide-upload">
 				<p class="text-xs text-muted mt-2">
-					Dibatasi PIN (default 1234, ganti lewat Pengaturan > Data Sekolah).
+					Dibatasi PIN (default 1234, ganti lewat Pengaturan &gt; Data Sekolah).
 					<a
 						href="/templates/contoh-soal-markdown.md"
 						download
@@ -166,10 +164,9 @@
 			<UPageCard
 				title="Backup Database"
 				description="Database (soal, siswa, hasil ujian) otomatis dibackup tiap kali aplikasi dibuka. 14 backup terakhir disimpan."
-				icon="i-lucide-database-backup"
-			>
+				icon="i-lucide-database-backup">
 				<p v-if="latestBackup" class="text-xs text-muted mt-2">
-					Backup terakhir: {{ formatDate(latestBackup.createdAt) }} ({{ formatSize(latestBackup.sizeBytes) }}) — {{ backups.length }} backup tersimpan
+					Backup terakhir: {{ formatDate(latestBackup.createdAt) }} ({{ formatSize(latestBackup.sizeBytes) }}), {{ backups.length }} backup tersimpan
 				</p>
 				<UButton
 					icon="lucide:database-backup"

@@ -25,6 +25,9 @@
 		token: string
 		randomizePg: boolean
 		randomizeEssay: boolean
+		randomizeOptions?: boolean
+		requirePin?: boolean
+		pgWeight?: number
 	}
 
 	const props = defineProps<{
@@ -56,8 +59,6 @@
 		return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 	};
 
-	// 4 huruf acak — cukup pendek buat diketik siswa, tetap bisa diganti manual kalau guru mau
-	// token yang lebih gampang diingat (mis. "UTS2026").
 	const TOKEN_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 	const generateToken = () => Array.from({ length: 4 }, () => TOKEN_LETTERS[Math.floor(Math.random() * TOKEN_LETTERS.length)]).join("");
 
@@ -72,13 +73,14 @@
 		duration: 60,
 		token: generateToken(),
 		randomizePg: true,
-		randomizeEssay: true
+		randomizeEssay: true,
+		randomizeOptions: true,
+		requirePin: false,
+		pgWeight: 70
 	});
 
 	const form = reactive(emptyForm());
 
-	// Kelas & mata pelajaran yang bisa dipilih dibatasi ke yang sudah punya soal di Bank
-	// Soal — gak masuk akal bikin ujian buat kombinasi yang soalnya masih kosong.
 	const classesWithQuestions = computed(() => [...new Set(props.questions.map((q) => q.class).filter((c): c is string => !!c))].sort());
 
 	const subjectItemsForClass = computed(() => {
@@ -87,8 +89,6 @@
 		return props.subjects.filter((s) => names.has(s.name)).map((s) => ({ label: s.code || s.name, value: s.id }));
 	});
 
-	// Jenis soal (paket soal) yang sudah ada buat kombinasi kelas + mata pelajaran ini —
-	// dipilih, bukan diketik manual, biar ujian baru gak perlu ganti soal yang sudah ada.
 	const jenisItemsForClassAndSubject = computed(() => {
 		if (!form.class || !form.subject) return [];
 		const subjectName = props.subjects.find((s) => s.id === form.subject!.value)?.name;
@@ -128,7 +128,10 @@
 				duration: exam.duration,
 				token: exam.token,
 				randomizePg: exam.randomizePg,
-				randomizeEssay: exam.randomizeEssay
+				randomizeEssay: exam.randomizeEssay,
+				randomizeOptions: exam.randomizeOptions ?? true,
+				requirePin: exam.requirePin ?? false,
+				pgWeight: exam.pgWeight ?? 70
 			});
 		},
 		{ immediate: true }
@@ -172,7 +175,10 @@
 				windowEnd,
 				token: form.token,
 				randomizePg: form.randomizePg,
-				randomizeEssay: form.randomizeEssay
+				randomizeEssay: form.randomizeEssay,
+				randomizeOptions: form.randomizeOptions,
+				requirePin: form.requirePin,
+				pgWeight: form.pgWeight
 			};
 			if (props.editingExam) {
 				await invoke("update_exam", { id: props.editingExam.id, ...payload });
@@ -189,7 +195,7 @@
 </script>
 
 <template>
-	<form class="grid gap-2.5 sm:grid-cols-2" @submit.prevent="submit">
+	<form class="grid gap-3 sm:grid-cols-2" @submit.prevent="submit">
 		<UFormField label="Kelas" :description="classesWithQuestions.length ? undefined : 'Belum ada soal di Bank Soal.'">
 			<USelectMenu
 				v-model="form.class"
@@ -201,31 +207,27 @@
 
 		<UFormField
 			label="Mata Pelajaran"
-			:description="form.class && subjectItemsForClass.length === 0 ? 'Belum ada soal untuk kelas ini.' : undefined"
-		>
+			:description="form.class && subjectItemsForClass.length === 0 ? 'Belum ada soal untuk kelas ini.' : undefined">
 			<USelectMenu
 				v-model="form.subject"
 				:items="subjectItemsForClass"
 				:disabled="!form.class"
 				placeholder="Pilih mata pelajaran"
 				class="w-full"
-				@update:model-value="form.jenis = undefined"
-			/>
+				@update:model-value="form.jenis = undefined" />
 		</UFormField>
 
 		<UFormField
 			label="Jenis Soal"
 			class="sm:col-span-2"
-			:description="form.subject && jenisItemsForClassAndSubject.length === 0 ? 'Belum ada jenis soal — buat dulu di Bank Soal.' : undefined"
-		>
+			:description="form.subject && jenisItemsForClassAndSubject.length === 0 ? 'Belum ada jenis soal, buat dulu di Bank Soal.' : undefined">
 			<USelectMenu
 				:model-value="form.jenis"
 				:items="jenisItemsForClassAndSubject"
 				:disabled="!form.subject"
 				placeholder="Pilih jenis soal"
 				class="w-full"
-				@update:model-value="onJenisSelected"
-			/>
+				@update:model-value="onJenisSelected" />
 		</UFormField>
 
 		<UFormField label="Tanggal Ujian">
@@ -233,7 +235,7 @@
 		</UFormField>
 
 		<UFormField label="Token Masuk" description="Terisi otomatis, bisa diganti bebas.">
-			<UInput v-model="form.token" placeholder="Contoh: UTS2026" class="w-full">
+			<UInput v-model="form.token" placeholder="Contoh: UTS2026" class="w-full font-mono uppercase">
 				<template #trailing>
 					<UButton
 						size="2xs"
@@ -254,18 +256,34 @@
 			<UInput v-model="form.endTime" type="time" class="w-full" />
 		</UFormField>
 
-		<UFormField label="Durasi (menit)" class="sm:col-span-2">
-			<UInputNumber v-model="form.duration" :min="1" class="w-full sm:w-40" />
+		<UFormField label="Durasi (menit)">
+			<UInputNumber v-model="form.duration" :min="1" class="w-full" />
 		</UFormField>
 
-		<div class="sm:col-span-2 flex items-center gap-6 py-1">
+		<UFormField label="Bobot Nilai PG (%)" :description="`Esai otomatis ${Math.max(0, 100 - (form.pgWeight || 0))}% bila ada soal esai.`">
+			<UInputNumber
+				v-model="form.pgWeight"
+				:min="0"
+				:max="100"
+				class="w-full" />
+		</UFormField>
+
+		<div class="sm:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-3 rounded-lg border border-default p-3 bg-elevated/40">
 			<label class="flex items-center gap-2 cursor-pointer">
 				<USwitch v-model="form.randomizePg" size="sm" />
-				<span class="text-sm">Acak Soal PG</span>
+				<span class="text-xs font-medium">Acak Soal PG</span>
+			</label>
+			<label class="flex items-center gap-2 cursor-pointer">
+				<USwitch v-model="form.randomizeOptions" size="sm" />
+				<span class="text-xs font-medium">Acak Opsi A-D</span>
 			</label>
 			<label class="flex items-center gap-2 cursor-pointer">
 				<USwitch v-model="form.randomizeEssay" size="sm" />
-				<span class="text-sm">Acak Soal Esai</span>
+				<span class="text-xs font-medium">Acak Soal Esai</span>
+			</label>
+			<label class="flex items-center gap-2 cursor-pointer">
+				<USwitch v-model="form.requirePin" size="sm" />
+				<span class="text-xs font-medium">Wajib PIN Kartu</span>
 			</label>
 		</div>
 
@@ -276,7 +294,7 @@
 			class="sm:col-span-2"
 			:title="formError" />
 
-		<div class="sm:col-span-2 flex gap-2">
+		<div class="sm:col-span-2 flex gap-2 pt-1">
 			<UButton type="submit" :loading="saving">
 				{{ editingExam ? "Simpan Perubahan" : "Simpan Ujian" }}
 			</UButton>

@@ -1,4 +1,4 @@
-use crate::db::Db;
+use crate::db::{self, Db};
 use crate::import::{find_column, read_rows, CLASS_COLS};
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
@@ -13,19 +13,33 @@ pub struct StudentImportSummary {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct StudentRecord {
 	pub id: i64,
 	pub nisn: String,
 	pub name: String,
 	pub class: Option<String>,
-	pub school: Option<String>
+	pub school: Option<String>,
+	pub pin: String
 }
 
 pub fn list_students(db: &Db) -> Result<Vec<StudentRecord>, String> {
 	let conn = db.lock().unwrap();
-	let mut stmt = conn.prepare("SELECT id, nisn, name, class, school FROM students ORDER BY class, name").map_err(|e| e.to_string())?;
+	let mut stmt = conn
+		.prepare("SELECT id, nisn, name, class, school, COALESCE(pin, '') FROM students ORDER BY class, name")
+		.map_err(|e| e.to_string())?;
 	let rows = stmt
-		.query_map([], |r| Ok(StudentRecord { id: r.get(0)?, nisn: r.get(1)?, name: r.get(2)?, class: r.get(3)?, school: r.get(4)? }))
+		.query_map([], |r| {
+			let id: i64 = r.get(0)?;
+			let nisn: String = r.get(1)?;
+			let raw_pin: String = r.get(5)?;
+			let pin = if raw_pin.trim().is_empty() {
+				db::generate_pin_from_seed(id, &nisn)
+			} else {
+				raw_pin
+			};
+			Ok(StudentRecord { id, nisn, name: r.get(2)?, class: r.get(3)?, school: r.get(4)?, pin })
+		})
 		.map_err(|e| e.to_string())?;
 	rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
 }
@@ -44,10 +58,20 @@ pub fn list_schools(db: &Db) -> Result<Vec<String>, String> {
 pub fn students_by_school(db: &Db, school: &str) -> Result<Vec<StudentRecord>, String> {
 	let conn = db.lock().unwrap();
 	let mut stmt = conn
-		.prepare("SELECT id, nisn, name, class, school FROM students WHERE school = ?1 COLLATE NOCASE ORDER BY class, name")
+		.prepare("SELECT id, nisn, name, class, school, COALESCE(pin, '') FROM students WHERE school = ?1 COLLATE NOCASE ORDER BY class, name")
 		.map_err(|e| e.to_string())?;
 	let rows = stmt
-		.query_map(params![school], |r| Ok(StudentRecord { id: r.get(0)?, nisn: r.get(1)?, name: r.get(2)?, class: r.get(3)?, school: r.get(4)? }))
+		.query_map(params![school], |r| {
+			let id: i64 = r.get(0)?;
+			let nisn: String = r.get(1)?;
+			let raw_pin: String = r.get(5)?;
+			let pin = if raw_pin.trim().is_empty() {
+				db::generate_pin_from_seed(id, &nisn)
+			} else {
+				raw_pin
+			};
+			Ok(StudentRecord { id, nisn, name: r.get(2)?, class: r.get(3)?, school: r.get(4)?, pin })
+		})
 		.map_err(|e| e.to_string())?;
 	rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
 }
@@ -73,11 +97,13 @@ fn upsert_students(db: &Db, records: &[TarikSiswaRow]) -> Result<usize, String> 
 	let tx = conn.transaction().map_err(|e| e.to_string())?;
 
 	let mut count = 0usize;
-	for r in records {
+	for (i, r) in records.iter().enumerate() {
+		let pin = db::generate_random_pin(i as u64 + 1);
 		tx.execute(
-			"INSERT INTO students (nisn, name, class, school) VALUES (?1, ?2, ?3, ?4)
-			 ON CONFLICT(nisn) DO UPDATE SET name = excluded.name, class = excluded.class, school = excluded.school",
-			params![r.nisn.trim(), r.name.trim(), r.class.trim(), r.school.trim()]
+			"INSERT INTO students (nisn, name, class, school, pin) VALUES (?1, ?2, ?3, ?4, ?5)
+			 ON CONFLICT(nisn) DO UPDATE SET name = excluded.name, class = excluded.class, school = excluded.school,
+			 pin = COALESCE(NULLIF(TRIM(students.pin), ''), excluded.pin)",
+			params![r.nisn.trim(), r.name.trim(), r.class.trim(), r.school.trim(), pin]
 		)
 		.map_err(|e| e.to_string())?;
 		count += 1;
@@ -134,16 +160,17 @@ pub async fn tarik_data_siswa(db: &Db, csv_url: &str, school: &str) -> Result<us
 // so Bank Soal, Kelola Ujian, Siswa, and Hasil Ujian all pick "kelas" from the same list.
 pub fn list_classes(db: &Db) -> Result<Vec<String>, String> {
 	let conn = db.lock().unwrap();
-	let mut stmt = conn.prepare("SELECT title FROM classes ORDER BY id").map_err(|e| e.to_string())?;
+	let mut stmt = conn.prepare("SELECT title FROM classes ORDER BY sort_order, id").map_err(|e| e.to_string())?;
 	let rows = stmt.query_map([], |r| r.get::<_, String>(0)).map_err(|e| e.to_string())?;
 	rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
 }
 
 pub fn create_student(db: &Db, nisn: String, name: String, class: Option<String>) -> Result<i64, String> {
 	let conn = db.lock().unwrap();
+	let pin = db::generate_random_pin(1);
 	conn.execute(
-		"INSERT INTO students (nisn, name, class) VALUES (?1, ?2, ?3)",
-		params![nisn.trim(), name.trim(), class]
+		"INSERT INTO students (nisn, name, class, pin) VALUES (?1, ?2, ?3, ?4)",
+		params![nisn.trim(), name.trim(), class, pin]
 	)
 	.map_err(|e| e.to_string())?;
 	Ok(conn.last_insert_rowid())
@@ -163,6 +190,27 @@ pub fn update_student(db: &Db, id: i64, nisn: String, name: String, class: Optio
 pub fn delete_student(db: &Db, id: i64) -> Result<(), String> {
 	db.lock().unwrap().execute("DELETE FROM students WHERE id = ?1", params![id]).map_err(|e| e.to_string())?;
 	Ok(())
+}
+
+pub fn regenerate_student_pins(db: &Db, class: Option<String>) -> Result<usize, String> {
+	let mut conn = db.lock().unwrap();
+	let tx = conn.transaction().map_err(|e| e.to_string())?;
+
+	let ids: Vec<i64> = {
+		let mut stmt = tx
+			.prepare("SELECT id FROM students WHERE (?1 IS NULL OR class = ?1)")
+			.map_err(|e| e.to_string())?;
+		let mapped = stmt.query_map(params![class], |r| r.get(0)).map_err(|e| e.to_string())?;
+		mapped.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())?
+	};
+
+	for (idx, id) in ids.iter().enumerate() {
+		let pin = db::generate_random_pin((idx as u64).wrapping_add(*id as u64));
+		tx.execute("UPDATE students SET pin = ?1 WHERE id = ?2", params![pin, id]).map_err(|e| e.to_string())?;
+	}
+
+	tx.commit().map_err(|e| e.to_string())?;
+	Ok(ids.len())
 }
 
 // Baris hasil parsing file CSV/Excel siswa, buat ditampilkan sebagai preview yang bisa
@@ -201,18 +249,20 @@ pub fn import_students_rows(db: &Db, rows: Vec<StudentImportRow>) -> Result<Stud
 	let tx = conn.transaction().map_err(|e| e.to_string())?;
 
 	let mut students_imported = 0usize;
-	for row in &rows {
+	for (i, row) in rows.iter().enumerate() {
 		let nisn = row.nisn.trim();
 		let name = row.name.trim();
 		if nisn.is_empty() || name.is_empty() {
 			continue;
 		}
 		let class = row.class.as_deref().map(str::trim).filter(|c| !c.is_empty());
+		let pin = db::generate_random_pin(i as u64 + 10);
 
 		tx.execute(
-			"INSERT INTO students (nisn, name, class) VALUES (?1, ?2, ?3)
-			 ON CONFLICT(nisn) DO UPDATE SET name = excluded.name, class = excluded.class",
-			params![nisn, name, class]
+			"INSERT INTO students (nisn, name, class, pin) VALUES (?1, ?2, ?3, ?4)
+			 ON CONFLICT(nisn) DO UPDATE SET name = excluded.name, class = excluded.class,
+			 pin = COALESCE(NULLIF(TRIM(students.pin), ''), excluded.pin)",
+			params![nisn, name, class, pin]
 		)
 		.map_err(|e| e.to_string())?;
 		students_imported += 1;
@@ -228,7 +278,7 @@ mod tests {
 	use std::io::Write;
 
 	#[test]
-	fn imports_students_from_csv() {
+	fn imports_students_from_csv_and_generates_pins() {
 		let dir = std::env::temp_dir().join(format!("nuxtor_cbt_students_test_{}", std::process::id()));
 		let db = crate::db::open(&dir);
 
@@ -244,9 +294,12 @@ mod tests {
 		let summary = import_students_rows(&db, rows).unwrap();
 		assert_eq!(summary.students_imported, 2);
 
-		let name: String =
-			db.lock().unwrap().query_row("SELECT name FROM students WHERE nisn = '1111111111'", [], |r| r.get(0)).unwrap();
-		assert_eq!(name, "Rina Wati");
+		let list = list_students(&db).unwrap();
+		assert_eq!(list.len(), 2);
+		assert_eq!(list[0].pin.len(), 6);
+
+		let regenerated = regenerate_student_pins(&db, Some("4".to_string())).unwrap();
+		assert_eq!(regenerated, 2);
 
 		let classes = list_classes(&db).unwrap();
 		assert_eq!(classes, vec!["4".to_string(), "5".to_string(), "6".to_string()]);

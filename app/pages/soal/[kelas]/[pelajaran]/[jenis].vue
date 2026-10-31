@@ -106,7 +106,7 @@
 <template>
 	<UDashboardPanel id="soal-detail">
 		<template #header>
-			<UDashboardNavbar :title="`Kelas ${kelas} — ${subjectLabel} — ${jenis}`">
+			<UDashboardNavbar :title="`Kelas ${kelas} · ${subjectLabel} · ${jenis}`">
 				<template #leading>
 					<UDashboardSidebarCollapse />
 					<UButton icon="lucide:arrow-left" variant="ghost" :to="`/soal/${kelas}/${encodeURIComponent(pelajaran)}`" />

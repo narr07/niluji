@@ -21,8 +21,73 @@ pub fn find_student(db: &Db, nisn: &str, name: &str) -> Option<String> {
 		.ok()
 }
 
+// Deterministic 6-digit PIN derived from student ID and NISN when a student has no PIN yet.
+pub fn generate_pin_from_seed(id: i64, nisn: &str) -> String {
+	let mut hash: u64 = (id as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15).wrapping_add(0xBF58_476D_1CE4_E5B9);
+	for b in nisn.bytes() {
+		hash = hash.wrapping_mul(31).wrapping_add(b as u64);
+	}
+	hash ^= hash >> 30;
+	hash = hash.wrapping_mul(0xBF58_476D_1CE4_E5B9);
+	hash ^= hash >> 27;
+	let num = 100_000 + (hash % 900_000);
+	num.to_string()
+}
+
+// Random 6-digit PIN for new students or manual PIN regeneration.
+pub fn generate_random_pin(seed_offset: u64) -> String {
+	let nanos = std::time::SystemTime::now()
+		.duration_since(std::time::UNIX_EPOCH)
+		.map(|d| d.as_nanos() as u64)
+		.unwrap_or(123456);
+	let mut x = nanos.wrapping_add(seed_offset.wrapping_mul(0x9E37_79B9_7F4A_7C15));
+	x ^= x >> 30;
+	x = x.wrapping_mul(0xBF58_476D_1CE4_E5B9);
+	x ^= x >> 27;
+	x = x.wrapping_mul(0x94D0_49BB_1331_11EB);
+	x ^= x >> 31;
+	let num = 100_000 + (x % 900_000);
+	num.to_string()
+}
+
+// Migrate data from the legacy template directory (`com.nicolaspadari.nuxtor`) if `cbt.sqlite`
+// does not exist yet in the new `com.narr07.niluji` directory, preserving existing user data.
+fn migrate_legacy_data_dir(data_dir: &Path) {
+	if data_dir.join("cbt.sqlite").exists() {
+		return;
+	}
+	let Some(parent) = data_dir.parent() else {
+		return;
+	};
+	let legacy_dir = parent.join("com.nicolaspadari.nuxtor");
+	if !legacy_dir.join("cbt.sqlite").exists() {
+		return;
+	}
+	let _ = std::fs::create_dir_all(data_dir);
+	for file in &["cbt.sqlite", "cbt.sqlite-wal", "cbt.sqlite-shm"] {
+		let src = legacy_dir.join(file);
+		if src.exists() {
+			let _ = std::fs::copy(&src, data_dir.join(file));
+		}
+	}
+	let legacy_uploads = legacy_dir.join("uploads");
+	if legacy_uploads.is_dir() {
+		let target_uploads = data_dir.join("uploads");
+		let _ = std::fs::create_dir_all(&target_uploads);
+		if let Ok(entries) = std::fs::read_dir(&legacy_uploads) {
+			for entry in entries.flatten() {
+				let dest = target_uploads.join(entry.file_name());
+				if !dest.exists() {
+					let _ = std::fs::copy(entry.path(), dest);
+				}
+			}
+		}
+	}
+}
+
 pub fn open(data_dir: &Path) -> Db {
 	std::fs::create_dir_all(data_dir).expect("failed to create app data dir");
+	migrate_legacy_data_dir(data_dir);
 	let conn = Connection::open(data_dir.join("cbt.sqlite")).expect("failed to open sqlite db");
 	migrate(&conn).expect("failed to run sqlite migrations");
 	Arc::new(Mutex::new(conn))
@@ -121,16 +186,6 @@ fn migrate(conn: &Connection) -> rusqlite::Result<()> {
 		",
 	)?;
 
-	// ponytail: dummy roster so the student login page has something to test against
-	// before real import (CSV/Dapodik) exists. Remove once that ships.
-	conn.execute_batch(
-		"
-		INSERT OR IGNORE INTO students (nisn, name) VALUES ('0012345678', 'Ahmad Fauzi');
-		INSERT OR IGNORE INTO students (nisn, name) VALUES ('0012345679', 'Siti Aminah');
-		INSERT OR IGNORE INTO students (nisn, name) VALUES ('0012345680', 'Budi Santoso');
-		",
-	)?;
-
 	// Standard Kurikulum Merdeka SD subjects, seeded so they're pickable right away
 	// without needing an import first.
 	conn.execute_batch(
@@ -164,6 +219,7 @@ fn migrate(conn: &Connection) -> rusqlite::Result<()> {
 	ensure_column(conn, "exams", "scheduled_at", "INTEGER")?;
 	ensure_column(conn, "students", "class", "TEXT")?;
 	ensure_column(conn, "students", "school", "TEXT")?;
+	ensure_column(conn, "students", "pin", "TEXT")?;
 	ensure_column(conn, "classes", "sort_order", "INTEGER")?;
 	ensure_column(conn, "subjects", "code", "TEXT")?;
 	ensure_column(conn, "questions", "jenis", "TEXT")?;
@@ -176,8 +232,14 @@ fn migrate(conn: &Connection) -> rusqlite::Result<()> {
 	// Set once the student submits the PG portion — after that, PG answers are locked and
 	// the student moves on to the essay portion (if any) as a separate step.
 	ensure_column(conn, "exam_sessions", "pg_submitted_at", "INTEGER")?;
-	// Teacher-assigned points for one essay answer; never rolled into the automatic score.
+	// Extra minutes granted by the proctor for this specific session.
+	ensure_column(conn, "exam_sessions", "extra_minutes", "INTEGER DEFAULT 0")?;
+	// Single-device lock token so a student cannot open the same active session on two devices simultaneously.
+	ensure_column(conn, "exam_sessions", "device_token", "TEXT")?;
+	// Teacher-assigned points for one essay answer; never rolled into the automatic PG score.
 	ensure_column(conn, "exam_answers", "essay_score", "REAL")?;
+	// Flag "ragu-ragu" (doubtful/bookmarked) set by the student while taking the exam.
+	ensure_column(conn, "exam_answers", "is_doubtful", "INTEGER DEFAULT 0")?;
 	// PIN buat gerbang fitur Export soal — supaya tidak sembarang guru di komputer yang sama bisa
 	// mengekspor bank soal ke file. Default "1234" biar tidak langsung terkunci di instalasi baru;
 	// admin sekolah ganti sendiri lewat Pengaturan > Data Sekolah.
@@ -189,8 +251,29 @@ fn migrate(conn: &Connection) -> rusqlite::Result<()> {
 	ensure_column(conn, "exams", "randomize", "INTEGER")?;
 	ensure_column(conn, "exams", "randomize_pg", "INTEGER")?;
 	ensure_column(conn, "exams", "randomize_essay", "INTEGER")?;
+	ensure_column(conn, "exams", "randomize_options", "INTEGER DEFAULT 1")?;
+	ensure_column(conn, "exams", "require_pin", "INTEGER DEFAULT 0")?;
+	ensure_column(conn, "exams", "pg_weight", "REAL DEFAULT 100.0")?;
 	conn.execute("UPDATE exams SET randomize_pg = COALESCE(randomize, 1) WHERE randomize_pg IS NULL", [])?;
 	conn.execute("UPDATE exams SET randomize_essay = COALESCE(randomize, 1) WHERE randomize_essay IS NULL", [])?;
+	conn.execute("UPDATE exams SET randomize_options = 1 WHERE randomize_options IS NULL", [])?;
+	conn.execute("UPDATE exams SET require_pin = 0 WHERE require_pin IS NULL", [])?;
+	conn.execute("UPDATE exams SET pg_weight = 100.0 WHERE pg_weight IS NULL", [])?;
+	conn.execute("UPDATE exam_sessions SET extra_minutes = 0 WHERE extra_minutes IS NULL", [])?;
+	conn.execute("UPDATE exam_answers SET is_doubtful = 0 WHERE is_doubtful IS NULL", [])?;
+
+	// Backfill PIN for any existing student row that does not have one yet.
+	{
+		let mut stmt = conn.prepare("SELECT id, nisn FROM students WHERE pin IS NULL OR TRIM(pin) = ''")?;
+		let missing: Vec<(i64, String)> = stmt
+			.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?
+			.filter_map(Result::ok)
+			.collect();
+		for (id, nisn) in missing {
+			let pin = generate_pin_from_seed(id, &nisn);
+			conn.execute("UPDATE students SET pin = ?1 WHERE id = ?2", rusqlite::params![pin, id])?;
+		}
+	}
 
 	relax_question_types_uniqueness(conn)?;
 

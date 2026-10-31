@@ -4,7 +4,7 @@
 	definePageMeta({
 		name: "Kelola Ujian",
 		icon: "lucide:calendar-clock",
-		category: "cbt",
+		top: true,
 		order: 3,
 		description: "Kelola sesi ujian: kelas, mata pelajaran, jadwal, dan token"
 	});
@@ -33,6 +33,9 @@
 		token: string
 		randomizePg: boolean
 		randomizeEssay: boolean
+		randomizeOptions?: boolean
+		requirePin?: boolean
+		pgWeight?: number
 	}
 
 	const subjects = ref<Subject[]>([]);

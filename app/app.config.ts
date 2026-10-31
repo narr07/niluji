@@ -2,8 +2,8 @@ export default defineAppConfig({
 	app: {
 		name: "NILUJI",
 		shortName: "NILUJI",
-		description: "Platform CBT dan e-Rapor terintegrasi untuk sekolah",
-		tagline: "Ujian dan Rapor dalam Satu Sistem",
+		description: "Platform CBT offline untuk sekolah",
+		tagline: "Platform Ujian Sekolah Offline Cepat dan Andal",
 		author: "narr07",
 		repo: "https://github.com/narr07/niluji",
 		tauriSite: "https://tauri.app",

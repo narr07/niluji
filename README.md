@@ -1,109 +1,103 @@
 <p align="center">
-  <img width="150" src="./public/logo.png" alt="NILUJI Logo">
+  <img width="128" src="./public/logo.svg" alt="NILUJI Logo">
 </p>
 
 <h1 align="center">NILUJI</h1>
 
 <p align="center">
-  Platform CBT (Computer-Based Test) offline untuk sekolah dasar, dibangun dengan
-  <a href="https://nuxt.com">Nuxt 4</a> dan <a href="https://v2.tauri.app">Tauri 2</a>.
+  <strong>Platform Ujian Berbasis Komputer (CBT) 100% Offline untuk Sekolah</strong>
   <br />
-  Satu aplikasi desktop untuk guru/admin, satu halaman ujian yang bisa dibuka siswa
-  dari browser mana pun di jaringan lokal (WiFi/hotspot) yang sama — sepenuhnya
-  tanpa internet.
+  Dibangun dengan <a href="https://nuxt.com">Nuxt 4</a>, <a href="https://ui.nuxt.com">Nuxt UI v4</a>, dan <a href="https://v2.tauri.app">Tauri 2 (Rust + Axum + SQLite)</a>.
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/github/package-json/v/narr07/niluji" />
-  <img src="https://img.shields.io/github/license/narr07/niluji" />
+  <a href="https://narr07.github.io/niluji/"><strong>📘 Dokumentasi Resmi</strong></a> ·
+  <a href="https://narr07.github.io/niluji/rilis"><strong>⬇️ Unduh Installer</strong></a> ·
+  <a href="https://permadi.dev/id/projek/niluji"><strong>🌐 Studi Kasus (permadi.dev)</strong></a> ·
+  <a href="https://github.com/narr07/niluji/issues"><strong>🐛 Laporkan Masalah</strong></a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/github/package-json/v/narr07/niluji" alt="Version" />
+  <img src="https://img.shields.io/github/license/narr07/niluji" alt="License" />
 </p>
 
 ---
 
-## Arsitektur Singkat
+## Ringkasan Arsitektur
 
-- Aplikasi Tauri (guru/admin) menjalankan server HTTP (axum) tertanam di dalamnya.
-- Server itu melayani dashboard admin sekaligus halaman ujian siswa lewat IP lokal
-  (mis. `http://192.168.x.x`), jadi siswa cukup buka browser di HP/laptop mereka —
-  tidak perlu install apa pun.
-- Data (soal, siswa, hasil ujian) disimpan di SQLite lokal, tidak ada dependensi
-  cloud untuk menjalankan ujian.
+- **Satu Laptop Proktor = Server Ujian Lengkap**: Aplikasi desktop Tauri menjalankan server HTTP tertanam (`axum`) di jaringan lokal (`http://IP-LOKAL/cbt`).
+- **Tanpa Internet & Tanpa Instalasi di HP Siswa**: Siswa cukup terhubung ke WiFi/hotspot lokal yang sama dan membuka alamat ujian melalui browser HP atau laptop.
+- **Database SQLite Lokal Tahan Gangguan**: Seluruh data siswa, bank soal, gambar, sesi ujian, dan nilai disimpan di SQLite lokal dengan mode `WAL`, `busy_timeout`, serta **Auto-Backup 14 Hari**.
 
 ## Fitur Utama
 
-- Bank Soal: kelola soal per kelas, mata pelajaran, dan "jenis" (paket soal, mis.
-  UTS/UAS/Latihan) — pilihan ganda dan esai.
-- **Tarik Soal Online**: opsional, mengambil template soal `.xlsx` dari repo GitHub
-  publik (lewat `raw.githubusercontent.com`) untuk diperiksa & diimpor ke bank soal
-  lokal — tetap berjalan sepenuhnya offline setelah diimpor.
-- Kelola Ujian: jadwalkan ujian per kelas/mata pelajaran, atur jendela akses dan
-  durasi pengerjaan per siswa secara terpisah.
-- Sesi ujian PG dan Esai terpisah: siswa menyelesaikan Pilihan Ganda dulu, lalu
-  esai; nilai esai digrading manual oleh guru dan tidak masuk kalkulasi otomatis.
-- Hasil Ujian: progres real-time per siswa, grading esai inline, serta dashboard
-  analitik (tingkat kesulitan soal & peringkat siswa) dengan grafik.
-- Login siswa via QR code, cocok untuk perangkat siswa yang berbeda-beda.
-
-## Tech Stack
-
-- Nuxt v4 + Nuxt UI v4 + Tailwind CSS v4
-- Tauri v2 (Rust) + SQLite (`rusqlite`) + axum (server HTTP tertanam)
-- TypeScript, ESLint
-- Auto imports (termasuk Tauri API)
+- **Keamanan Ujian Berlapis**:
+  - **PIN Peserta 6 Digit** otomatis untuk setiap siswa.
+  - **Token Ujian Dinamis** yang dapat diputar pengawas kapan saja.
+  - **Kunci Perangkat (*Single-Device Lock*)** mencegah satu akun dibuka di dua HP bersamaan.
+  - **Server-Side Timer** memastikan sisa waktu ujian dihitung dari server dan tidak bisa dimanipulasi dari jam HP siswa.
+- **Kontrol Pengawas Real-Time**:
+  - Pantau status pengerjaan PG dan Esai tiap siswa secara langsung.
+  - **Buka Kunci Perangkat** (*Unlock Device*) bila HP siswa kehabisan baterai.
+  - **Tambah Waktu (`+10 Menit`)** atau **Paksa Kumpul** langsung dari layar proktor.
+- **Bank Soal Multi-Format & Bergambar**:
+  - Impor soal dari **Microsoft Word (`.docx`)**, **Excel (`.xlsx`)**, **CSV**, maupun **Bundel Markdown (`.zip`)** lengkap dengan gambar di tengah soal dan gambar pada opsi jawaban A–E.
+  - **Tarik & Bagikan Bank Soal Online** terproteksi PIN lewat repositori GitHub.
+- **Cetak Kartu Peserta QR + PIN**:
+  - Cetak kartu peserta ujian satu kelas sekaligus siap gunting lengkap dengan QR Code server lokal.
+- **Portal CBT Siswa Ergonomis**:
+  - Penanda soal **Ragu-ragu** (*Bookmark*), pengatur ukuran huruf (`A-` / `A` / `A+`), pintasan keyboard `A–D`, bilah navigasi bawah khusus HP, dan antrean simpan ulang otomatis (*Offline Retry Queue*).
+- **Bobot Nilai & Analisis Butir Soal**:
+  - Pengaturan bobot persentase Pilihan Ganda vs Esai (mis. `70% PG + 30% Esai`), grafik tingkat kesulitan soal, dan **Analisis Pengecoh** (distribusi pemilih opsi A/B/C/D/Kosong).
 
 ---
 
-## Setup
+## Dokumentasi Lengkap
 
-> 🚀 Bun adalah package manager utama proyek ini.
+Panduan lengkap untuk Guru, Pengawas/Proktor, dan Siswa tersedia di situs dokumentasi resmi:
+
+👉 **[https://narr07.github.io/niluji/](https://narr07.github.io/niluji/)**
+
+- [Panduan Instalasi (Windows, Linux, macOS)](https://narr07.github.io/niluji/memulai/instalasi)
+- [Persiapan Jaringan WiFi Lokal](https://narr07.github.io/niluji/memulai/persiapan-jaringan)
+- [Impor & Ekspor Soal (Word, Excel, Markdown ZIP)](https://narr07.github.io/niluji/panduan-guru/impor-dan-ekspor-soal)
+- [Meja Pantau Pengawas & Aksi Sesi](https://narr07.github.io/niluji/panduan-pengawas/pantauan-dan-aksi)
+- [Troubleshooting Ruang Ujian](https://narr07.github.io/niluji/referensi/troubleshooting)
+
+---
+
+## Pengembangan Lokal
+
+> Bun digunakan sebagai package manager utama proyek ini.
 
 ```sh
+# Instal dependensi aplikasi utama
 bun install
 
-# Mode pengembangan (Nuxt + Tauri sekaligus)
+# Jalankan mode pengembangan (Nuxt + Tauri)
 bun run tauri:dev
+
+# Jalankan situs dokumentasi (http://localhost:3005/niluji/)
+cd docs
+bun install
+bun run dev
 ```
 
-> ⚠️ Nuxt SSR dimatikan (`ssr: false`) karena Tauri berperan sebagai backend.
-> Routing, layout, middleware, dan composable Nuxt lain tetap berfungsi normal.
-
----
-
-## Build
+### Build Produksi & Rilis Otomatis
 
 ```sh
+# Build aplikasi desktop lokal
 bun run tauri:build
+
+# Rilis versi baru otomatis ke GitHub Releases & GitHub Pages
+bun run release
 ```
-
-Output ada di `src-tauri/target/release/bundle/`.
-
-### Debug Build
-
-```sh
-bun run tauri:build:debug
-```
-
-Mengaktifkan akses console di dalam aplikasi yang sudah di-bundle.
 
 ---
 
-## Catatan Data
+## Lisensi & Kredit
 
-Database SQLite dan file upload TIDAK ikut ter-bundle ke dalam installer/exe.
-Lokasinya ada di `%APPDATA%\<identifier>\` (Windows) — perlu disalin manual kalau
-memindahkan instalasi ke perangkat lain.
+Dirancang dan dikembangkan oleh **[Dinar Permadi Yusup (permadi.dev)](https://permadi.dev)** — baca studi kasus lengkapnya di **[permadi.dev/id/projek/niluji](https://permadi.dev/id/projek/niluji)**.
 
-## Catatan Pengembangan
-
-- Permission Tauri harus dideklarasikan di `src-tauri/capabilities/main.json`.
-- Tauri API di-auto-import lewat `app/modules/tauri.ts`; menambah plugin Tauri baru
-  perlu update modul ini.
-- Progres pengembangan fitur dicatat di `PROGRESS.md`.
-
----
-
-## License
-
-MIT © 2026–Present [narr07](https://github.com/narr07)
-
-<sub>Berbasis starter template <a href="https://github.com/NicolaSpadari/nuxtor">Nuxtor</a> oleh Nicola Spadari.</sub>
+Lisensi MIT © 2026–Sekarang [narr07](https://github.com/narr07).

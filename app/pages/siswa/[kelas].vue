@@ -10,6 +10,7 @@
 		nisn: string
 		name: string
 		class: string | null
+		pin?: string
 	}
 
 	const route = useRoute();
@@ -24,6 +25,7 @@
 	const students = computed(() => allStudents.value.filter((s) => s.class === kelas.value));
 
 	const formOpen = ref(false);
+	const kartuOpen = ref(false);
 	const editingStudent = ref<StudentRecord | null>(null);
 
 	const loadStudents = async () => {
@@ -65,6 +67,13 @@
 				</template>
 
 				<template #right>
+					<UButton
+						icon="lucide:id-card"
+						variant="subtle"
+						color="neutral"
+						@click="kartuOpen = true">
+						Kartu Peserta
+					</UButton>
 					<UButton icon="lucide:plus" @click="openCreate">
 						Tambah Siswa
 					</UButton>
@@ -87,4 +96,10 @@
 		:kelas="kelas"
 		:student="editingStudent"
 		@saved="loadStudents" />
+
+	<SiswaKartuPesertaModal
+		v-model:open="kartuOpen"
+		:students="students"
+		:default-class="kelas"
+		@regenerated="loadStudents" />
 </template>

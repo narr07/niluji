@@ -1,0 +1,14 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+@import "@fontsource-variable/tiktok-sans";
+
+@source "../../../content/**/*";
+
+@theme static {
+	--container-8xl: 90rem;
+	--font-sans: "TikTok Sans Variable", sans-serif;
+}
+
+:root {
+	--ui-container: var(--container-8xl);
+}

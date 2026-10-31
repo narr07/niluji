@@ -19,6 +19,9 @@ export default defineNuxtConfig({
 			meta: [
 				{ name: "format-detection", content: "no" },
 				{ name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1" }
+			],
+			script: [
+				{ src: "/compat.js" }
 			]
 		}
 	},
@@ -82,6 +85,14 @@ export default defineNuxtConfig({
 	},
 	devtools: {
 		enabled: false
+	},
+	icon: {
+		provider: "none",
+		fallbackToApi: false,
+		clientBundle: {
+			scan: true,
+			sizeLimitKb: 512
+		}
 	},
 	experimental: {
 		typedPages: true

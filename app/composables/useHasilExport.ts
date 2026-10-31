@@ -16,6 +16,8 @@ export interface HasilSessionRow {
 	pgAnswered: number
 	submittedAt: number | null
 	score: number | null
+	essayScore?: number | null
+	finalScore?: number | null
 }
 
 const statusText = (s: HasilSessionRow) => {
@@ -25,7 +27,7 @@ const statusText = (s: HasilSessionRow) => {
 	return "Sedang mengerjakan";
 };
 
-const headerRow = ["Nama", "NISN", "Mata Pelajaran", "Jenis Ujian", "Ujian", "Progress", "Status", "Nilai"];
+const headerRow = ["Nama", "NISN", "Mata Pelajaran", "Jenis Ujian", "Ujian", "Progress", "Status", "Nilai PG", "Nilai Esai", "Nilai Akhir"];
 
 const toRow = (s: HasilSessionRow) => [
 	s.studentName,
@@ -35,7 +37,9 @@ const toRow = (s: HasilSessionRow) => [
 	s.examTitle,
 	`${s.answeredCount}/${s.totalQuestions}`,
 	statusText(s),
-	s.score === null ? "-" : s.score.toFixed(0)
+	s.score === null || s.score === undefined ? "-" : s.score.toFixed(0),
+	s.essayScore === null || s.essayScore === undefined ? "-" : s.essayScore.toFixed(0),
+	(s.finalScore ?? s.score) === null || (s.finalScore ?? s.score) === undefined ? "-" : (s.finalScore ?? s.score)!.toFixed(0)
 ];
 
 const sheetBytes = (rows: (string | number)[][]): Uint8Array => {
@@ -54,8 +58,6 @@ export const useHasilExport = () => {
 		toast.add({ title: "Export gagal", description: message, icon: "lucide:x", color: "error" });
 	};
 
-	// Satu file .xlsx — dipakai untuk "Export Semua" (satu jenis ujian) dan "Export per Siswa"
-	// (satu siswa terpilih).
 	const exportOneXlsx = async (defaultFilename: string, sessions: HasilSessionRow[]) => {
 		if (!sessions.length) {
 			toast.add({ title: "Tidak ada data untuk diekspor", color: "warning", icon: "lucide:alert-triangle" });
@@ -74,9 +76,6 @@ export const useHasilExport = () => {
 		}
 	};
 
-	// Banyak file .xlsx dibundel jadi satu .zip — dipakai untuk export per siswa SEMUA siswa
-	// sekaligus (satu file per siswa), dan untuk export tingkat kelas (satu file per
-	// mapel+jenis, atau per siswa lintas mapel).
 	const exportZipOfXlsx = async (defaultFilename: string, files: { name: string, sessions: HasilSessionRow[] }[]) => {
 		if (!files.length) {
 			toast.add({ title: "Tidak ada data untuk diekspor", color: "warning", icon: "lucide:alert-triangle" });
@@ -104,13 +103,7 @@ export const useHasilExport = () => {
 		}
 	};
 
-	// Nama file yang aman dipakai di sistem file Windows — spasi/simbol aneh pada nama siswa
-	// atau mapel diganti strip supaya tidak bikin path error.
 	const safeName = (s: string) => s.trim().replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, "-");
-
-	// ---------- Export DETAIL per soal (bukan cuma ringkasan 1 baris per ujian) ----------
-	// Dipakai khusus untuk "Export per Siswa" — nilainya baru beda dari "Export Semua" kalau
-	// isinya sampai ke tingkat jawaban tiap soal, bukan cuma skor akhir.
 
 	interface AnswerDetail {
 		questionId: number
@@ -139,9 +132,6 @@ export const useHasilExport = () => {
 		return item.isCorrect ? "Benar" : "Salah";
 	};
 
-	// Satu sesi ujian jadi beberapa baris (satu baris per soal), diambil dari backend yang
-	// sudah mengurutkan soal sesuai urutan input guru di Bank Soal (bukan urutan acak yang
-	// dilihat siswa saat mengerjakan).
 	const fetchSessionDetailRows = async (sessionId: number, jenis: string | null): Promise<(string | number)[][]> => {
 		const detail = await invoke<SessionDetail>("get_exam_session_detail", { sessionId });
 		return detail.items.map((item, i) => [
@@ -157,8 +147,6 @@ export const useHasilExport = () => {
 		]);
 	};
 
-	// Satu file .xlsx berisi rincian per soal — untuk satu siswa (bisa lebih dari satu sesi,
-	// mis. beberapa mata pelajaran/jenis ujian digabung dalam satu file).
 	const exportStudentDetailXlsx = async (
 		defaultFilename: string,
 		sessions: { sessionId: number, jenis: string | null }[]
@@ -181,7 +169,6 @@ export const useHasilExport = () => {
 		}
 	};
 
-	// Banyak file .xlsx (rincian per soal, satu file per siswa) dibundel jadi satu .zip.
 	const exportStudentDetailZip = async (
 		defaultFilename: string,
 		students: { name: string, sessions: { sessionId: number, jenis: string | null }[] }[]

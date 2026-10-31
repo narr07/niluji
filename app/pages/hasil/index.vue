@@ -4,7 +4,7 @@
 	definePageMeta({
 		name: "Hasil Ujian",
 		icon: "lucide:bar-chart-3",
-		category: "cbt",
+		top: true,
 		order: 4,
 		description: "Hasil ujian per kelas dan mata pelajaran"
 	});

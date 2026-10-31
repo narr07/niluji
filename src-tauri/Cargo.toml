@@ -1,7 +1,7 @@
 [package]
 name = "niluji"
 version = "1.0.1"
-description = "NILUJI - Platform CBT dan e-Rapor terintegrasi untuk sekolah"
+description = "NILUJI - Platform CBT offline untuk sekolah"
 authors = [ "narr07" ]
 license = "MIT"
 repository = "https://github.com/narr07/niluji"

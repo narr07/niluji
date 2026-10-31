@@ -7,6 +7,7 @@
 		nisn: string
 		name: string
 		class: string | null
+		pin?: string
 	}
 
 	const props = defineProps<{
@@ -20,6 +21,7 @@
 	}>();
 
 	const UButton = resolveComponent("UButton");
+	const UBadge = resolveComponent("UBadge");
 
 	const selected = ref<number[]>([]);
 
@@ -45,7 +47,6 @@
 		selected.value = [];
 	};
 
-	// state sorting, default sort by "name" ascending
 	const sorting = ref([{ id: "name", desc: false }]);
 
 	const columns: TableColumn<StudentRecord>[] = [
@@ -68,6 +69,16 @@
 			}
 		},
 		{ accessorKey: "nisn", header: "NISN" },
+		{
+			accessorKey: "pin",
+			header: "PIN Kartu",
+			cell: ({ row }: { row: { original: StudentRecord } }) =>
+				h(
+					UBadge,
+					{ color: "neutral", variant: "subtle", class: "font-mono tracking-wider" },
+					() => row.original.pin || "-"
+				)
+		},
 		{
 			id: "actions",
 			header: "Aksi",
@@ -92,14 +103,11 @@
 			enter-from-class="opacity-0 translate-y-3"
 			enter-to-class="opacity-100 translate-y-0"
 			leave-active-class="transition duration-150 ease-in"
-			leave-to-class="opacity-0 translate-y-3"
-		>
+			leave-to-class="opacity-0 translate-y-3">
 			<UCard
 				v-if="selected.length"
-				 
 				class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 shadow-lg"
-				:ui="{ body: 'flex items-center gap-3 py-2 px-4 sm:p-2' }"
-			>
+				:ui="{ body: 'flex items-center gap-3 py-2 px-4 sm:p-2' }">
 				<UBadge>{{ selected.length }}</UBadge>
 				<span>Siswa dipilih</span>
 				<USeparator orientation="vertical" class="h-4" />
@@ -111,8 +119,7 @@
 						variant="subtle"
 						color="error"
 						icon="lucide:trash-2"
-						@click="confirmDeleteMany"
-					>
+						@click="confirmDeleteMany">
 						Hapus
 					</UButton>
 				</div>

@@ -1,7 +1,9 @@
 <script lang="ts" setup>
+	import type { TableColumn } from "@nuxt/ui";
 	import { invoke } from "@tauri-apps/api/core";
 	import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 	import {
+		CDN_BASE,
 		checkBankSoalConnection,
 		fetchBankSoalMarkdown,
 		listJenisFiles,
@@ -47,9 +49,6 @@
 	const importError = ref("");
 	const importedIds = ref(new Set<string>());
 
-	// nama_file_gambar di Excel kadang cuma nama dasarnya (mis. "gambar11", tanpa ".jpg")
-	// sementara file aslinya di repo tetap punya ekstensi — jadi ekstensi ditebak dengan
-	// coba beberapa kandidat kalau kolomnya sendiri tidak menyebutkan ekstensi.
 	const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp"];
 	const hasKnownExtension = (name: string) => /\.(jpg|jpeg|png|gif|webp)$/i.test(name);
 
@@ -57,7 +56,7 @@
 	const selectedSubjectId = computed(() => subjects.value.find((s) => subjectFolderCode(s) === selectedSubject.value)?.id);
 
 	const subjectItems = computed(() => subjects.value.map((subject) => ({
-		label: subject.code ? `${subject.code} — ${subject.name}` : subject.name,
+		label: subject.code ? `${subject.code} - ${subject.name}` : subject.name,
 		value: subjectFolderCode(subject)
 	})));
 	const jenisFileItems = computed(() => jenisFiles.value.map((j) => ({ label: j.label, value: j.fileName })));
@@ -66,6 +65,15 @@
 	);
 	const validCount = computed(() => rows.value.filter((row) => row.valid).length);
 	const selectedCount = computed(() => selectedRows.value.size);
+
+	const columns: TableColumn<BankSoalOnlineRow>[] = [
+		{ id: "select", header: "Pilih" },
+		{ accessorKey: "rowNumber", header: "Baris" },
+		{ id: "tipe", header: "Tipe" },
+		{ id: "soal", header: "Soal" },
+		{ id: "status", header: "Status" },
+		{ id: "gambar", header: "Gambar" }
+	];
 
 	const loadSubjects = async () => {
 		loadingSubjects.value = true;
@@ -158,8 +166,6 @@
 		selectedRows.value = next;
 	};
 
-	// Beberapa baris bisa merujuk nama_file_gambar yang sama (disengaja, bukan duplikat) — gambar
-	// hanya diunduh & disimpan sekali per pathRelatifGambar, baris lain memakai ulang hasilnya.
 	const importSelected = async () => {
 		importError.value = "";
 		if (!jenisSoal.value.trim()) {
@@ -176,9 +182,6 @@
 
 		importing.value = true;
 
-		// Daftarkan jenisnya dulu ke registry (biar muncul sebagai kartu di Bank Soal, bukan
-		// cuma nempel sebagai teks di tiap soal) — kalau jenis+scope yang sama sudah ada,
-		// itu tidak masalah, lanjut saja pakai yang sudah ada.
 		try {
 			await invoke("create_question_type", {
 				name: jenisSoal.value.trim(),
@@ -187,42 +190,51 @@
 				subjectId: (scope.value === "narrow" || scope.value === "subject") ? selectedSubjectId.value : null
 			});
 		} catch {
-			// Sudah ada — tidak masalah.
+			// Sudah ada
 		}
 
 		const imageCache = new Map<string, string>();
 		const newlyImported: string[] = [];
 		const failed: string[] = [];
 
+		const downloadRemoteImage = async (fileName: string): Promise<string> => {
+			const relPath = `${sourceFolder.value}/gambar/${fileName}`;
+			const cached = imageCache.get(relPath);
+			if (cached) return cached;
+
+			const baseUrl = `${CDN_BASE}/${relPath.split("/").map(encodeURIComponent).join("/")}`;
+			const candidates = hasKnownExtension(fileName)
+				? [{ url: baseUrl, ext: fileName.split(".").pop()! }]
+				: IMAGE_EXTENSIONS.map((ext) => ({ url: `${baseUrl}.${ext}`, ext }));
+
+			let found: { bytes: number[], ext: string } | undefined;
+			for (const candidate of candidates) {
+				const response = await tauriFetch(candidate.url);
+				if (response.ok) {
+					found = { bytes: Array.from(new Uint8Array(await response.arrayBuffer())), ext: candidate.ext };
+					break;
+				}
+			}
+			if (!found) {
+				throw new Error(`Gagal mengunduh gambar ${fileName} (sudah dicoba ${candidates.length} kemungkinan ekstensi)`);
+			}
+
+			const saved = await invoke<{ path: string }>("save_question_image_bytes", {
+				fileName: hasKnownExtension(fileName) ? fileName : `${fileName}.${found.ext}`,
+				bytes: found.bytes
+			});
+			imageCache.set(relPath, saved.path);
+			return saved.path;
+		};
+
 		try {
 			for (const row of selected) {
 				try {
-					let imagePath: string | undefined;
-					if (row.pathRelatifGambar && row.urlGambar) {
-						imagePath = imageCache.get(row.pathRelatifGambar);
-						if (!imagePath) {
-							const candidates = hasKnownExtension(row.nama_file_gambar)
-								? [{ url: row.urlGambar, ext: row.nama_file_gambar.split(".").pop()! }]
-								: IMAGE_EXTENSIONS.map((ext) => ({ url: `${row.urlGambar}.${ext}`, ext }));
-
-							let found: { bytes: number[], ext: string } | undefined;
-							for (const candidate of candidates) {
-								const response = await tauriFetch(candidate.url);
-								if (response.ok) {
-									found = { bytes: Array.from(new Uint8Array(await response.arrayBuffer())), ext: candidate.ext };
-									break;
-								}
-							}
-							if (!found) throw new Error(`Gagal mengunduh gambar ${row.nama_file_gambar} (sudah dicoba ${candidates.length} kemungkinan ekstensi)`);
-
-							const saved = await invoke<{ path: string }>("save_question_image_bytes", {
-								fileName: hasKnownExtension(row.nama_file_gambar) ? row.nama_file_gambar : `${row.nama_file_gambar}.${found.ext}`,
-								bytes: found.bytes
-							});
-							imagePath = saved.path;
-							imageCache.set(row.pathRelatifGambar, imagePath);
-						}
-					}
+					const imagePath = row.nama_file_gambar ? await downloadRemoteImage(row.nama_file_gambar) : undefined;
+					const optionAImage = row.pilihan_a_gambar ? await downloadRemoteImage(row.pilihan_a_gambar) : undefined;
+					const optionBImage = row.pilihan_b_gambar ? await downloadRemoteImage(row.pilihan_b_gambar) : undefined;
+					const optionCImage = row.pilihan_c_gambar ? await downloadRemoteImage(row.pilihan_c_gambar) : undefined;
+					const optionDImage = row.pilihan_d_gambar ? await downloadRemoteImage(row.pilihan_d_gambar) : undefined;
 
 					await invoke("create_question", {
 						input: {
@@ -238,6 +250,10 @@
 							optionC: row.tipe === "pg" ? (row.pilihan_c || undefined) : undefined,
 							optionD: row.tipe === "pg" ? (row.pilihan_d || undefined) : undefined,
 							optionE: undefined,
+							optionAImage,
+							optionBImage,
+							optionCImage,
+							optionDImage,
 							correctOption: row.tipe === "pg" ? row.kunci_jawaban.trim().toUpperCase() : ""
 						}
 					});
@@ -254,9 +270,6 @@
 		if (newlyImported.length) {
 			importedIds.value = new Set([...importedIds.value, ...newlyImported]);
 			emit("selected", rows.value.filter((row) => newlyImported.includes(row.id)));
-		}
-
-		if (newlyImported.length) {
 			toast.add({
 				title: "Impor selesai",
 				description: `${newlyImported.length} soal berhasil ditambahkan ke Bank Soal${failed.length ? `, ${failed.length} gagal` : ""}.`,
@@ -379,57 +392,42 @@
 				:description="importError" />
 
 			<div class="overflow-x-auto rounded-lg border border-default">
-				<table class="w-full text-sm">
-					<thead class="bg-elevated text-left">
-						<tr>
-							<th class="p-3 w-12">Pilih</th>
-							<th class="p-3 w-16">Baris</th>
-							<th class="p-3 w-20">Tipe</th>
-							<th class="p-3 min-w-80">Soal</th>
-							<th class="p-3 min-w-64">Status</th>
-							<th class="p-3 min-w-48">Gambar</th>
-						</tr>
-					</thead>
-					<tbody class="divide-y divide-default">
-						<tr v-for="row in rows" :key="row.id" :class="row.valid ? '' : 'bg-error/5'">
-							<td class="p-3 align-top">
-								<UCheckbox
-									:model-value="isSelected(row)"
-									:disabled="!row.valid || importedIds.has(row.id)"
-									@update:model-value="(value) => toggleRow(row, value)" />
-							</td>
-							<td class="p-3 align-top text-muted">{{ row.rowNumber }}</td>
-							<td class="p-3 align-top">
-								<UBadge :color="row.tipe === 'pg' ? 'info' : 'neutral'" variant="subtle">
-									{{ row.tipe === 'pg' ? 'PG' : 'Esai' }}
-								</UBadge>
-							</td>
-							<td class="p-3 align-top max-w-xl">
-								<div class="line-clamp-3">{{ row.soal || "(kosong)" }}</div>
-							</td>
-							<td class="p-3 align-top">
-								<UBadge :color="row.valid ? 'success' : 'error'" variant="subtle">
-									{{ row.valid ? "✓ Valid" : "✕ Invalid" }}
-								</UBadge>
-								<UBadge
-									v-if="importedIds.has(row.id)"
-									color="info"
-									variant="subtle"
-									class="ml-1">
-									Diimpor
-								</UBadge>
-								<p v-if="row.alasan_invalid" class="mt-1 text-xs text-error">{{ row.alasan_invalid }}</p>
-							</td>
-							<td class="p-3 align-top">
-								<div v-if="row.nama_file_gambar" class="flex items-start gap-2">
-									<UIcon name="lucide:image" class="size-4 mt-0.5 shrink-0" />
-									<span class="break-all">{{ row.nama_file_gambar }}</span>
-								</div>
-								<span v-else class="text-muted">—</span>
-							</td>
-						</tr>
-					</tbody>
-				</table>
+				<UTable :data="rows" :columns="columns">
+					<template #select-cell="{ row }">
+						<UCheckbox
+							:model-value="isSelected(row.original)"
+							:disabled="!row.original.valid || importedIds.has(row.original.id)"
+							@update:model-value="(value) => toggleRow(row.original, value)" />
+					</template>
+					<template #tipe-cell="{ row }">
+						<UBadge :color="row.original.tipe === 'pg' ? 'info' : 'neutral'" variant="subtle">
+							{{ row.original.tipe === 'pg' ? 'PG' : 'Esai' }}
+						</UBadge>
+					</template>
+					<template #soal-cell="{ row }">
+						<div class="line-clamp-3 max-w-xl whitespace-normal">{{ row.original.soal || "(kosong)" }}</div>
+					</template>
+					<template #status-cell="{ row }">
+						<UBadge :color="row.original.valid ? 'success' : 'error'" variant="subtle">
+							{{ row.original.valid ? "Valid" : "Invalid" }}
+						</UBadge>
+						<UBadge
+							v-if="importedIds.has(row.original.id)"
+							color="info"
+							variant="subtle"
+							class="ml-1">
+							Diimpor
+						</UBadge>
+						<p v-if="row.original.alasan_invalid" class="mt-1 text-xs text-error">{{ row.original.alasan_invalid }}</p>
+					</template>
+					<template #gambar-cell="{ row }">
+						<div v-if="row.original.nama_file_gambar" class="flex items-start gap-2">
+							<UIcon name="lucide:image" class="size-4 mt-0.5 shrink-0" />
+							<span class="break-all">{{ row.original.nama_file_gambar }}</span>
+						</div>
+						<span v-else class="text-muted">-</span>
+					</template>
+				</UTable>
 			</div>
 		</div>
 

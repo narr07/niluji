@@ -67,6 +67,7 @@ pub fn export_jenis_soal(
 			))
 		})
 		.map_err(|e| e.to_string())?;
+	#[allow(clippy::type_complexity)]
 	let question_rows: Vec<(i64, String, String, Option<String>, f64, Option<String>)> =
 		rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())?;
 	drop(stmt);
@@ -116,17 +117,32 @@ pub fn export_jenis_soal(
 
 		if question_type != "essay" {
 			let mut opt_stmt = conn
-				.prepare("SELECT option_key, option_text FROM question_options WHERE question_id = ?1 ORDER BY option_key")
+				.prepare("SELECT option_key, option_text, image FROM question_options WHERE question_id = ?1 ORDER BY option_key")
 				.map_err(|e| e.to_string())?;
-			let opts: Vec<(String, String)> = opt_stmt
-				.query_map(params![qid], |r| Ok((r.get(0)?, r.get(1)?)))
+			let opts: Vec<(String, String, Option<String>)> = opt_stmt
+				.query_map(params![qid], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))
 				.map_err(|e| e.to_string())?
 				.collect::<Result<_, _>>()
 				.map_err(|e| e.to_string())?;
 			drop(opt_stmt);
 
-			for (key, text) in &opts {
-				md.push_str(&format!("- {key}. {text}\n"));
+			for (key, text, opt_img) in &opts {
+				let mut opt_img_tag = String::new();
+				if let Some(img) = opt_img {
+					let filename = img.strip_prefix("uploads/").unwrap_or(img);
+					let source = uploads_dir.join(filename);
+					if source.exists() {
+						std::fs::create_dir_all(&image_dir).map_err(|e| format!("Gagal membuat folder gambar: {e}"))?;
+						let ext = Path::new(filename).extension().and_then(|e| e.to_str()).unwrap_or("jpg");
+						let key_lower = key.to_lowercase();
+						let dest_name = format!("soal-{qid}-opsi-{key_lower}.{ext}");
+						std::fs::copy(&source, image_dir.join(&dest_name))
+							.map_err(|e| format!("Gagal menyalin gambar opsi {key} soal #{num}: {e}"))?;
+						opt_img_tag = format!(" ![opsi-{key}](gambar/{dest_name})");
+						images_exported += 1;
+					}
+				}
+				md.push_str(&format!("- {key}. {}{opt_img_tag}\n", text.trim()));
 			}
 			md.push('\n');
 			if let Some(key) = answer_key {

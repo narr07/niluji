@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 	const props = defineProps<{
-		joinUrl: string;
+		joinUrl: string
+		label?: string
 	}>();
 
 	const isOpen = ref(false);
@@ -14,7 +15,7 @@
 		const QRCode = await import("qrcode");
 		await QRCode.toCanvas(qrCanvasModal.value, props.joinUrl, {
 			width: Math.floor(size),
-			margin: 2,
+			margin: 2
 		});
 	}
 
@@ -61,18 +62,22 @@
 </script>
 
 <template>
-
-
 	<UModal
 		v-model:open="isOpen"
 		title="Scan QR untuk Akses Ujian"
 		description="Siswa scan QR ini pakai kamera HP (harus 1 WiFi/hotspot yang sama)"
 		:ui="{
 			content: 'max-w-lg h-[min(90vh,600px)]',
-			body: 'flex-1 min-h-0 overflow-hidden flex',
-		}"
-	>
-		<UButton icon="i-lucide-qr-code"    />
+			body: 'flex-1 min-h-0 overflow-hidden flex'
+		}">
+		<UButton
+			size="sm"
+			color="success"
+			variant="soft"
+			icon="i-lucide-qr-code"
+			class="font-mono shrink-0 whitespace-nowrap">
+			{{ label || "QR Akses Ujian" }}
+		</UButton>
 
 		<template #footer>
 			<UButton
@@ -80,8 +85,7 @@
 				variant="ghost"
 				:icon="copied ? 'i-lucide-check' : 'i-lucide-copy'"
 				class="w-full justify-center text-lg font-mono font-semibold break-all"
-				@click="handleCopyJoinUrl"
-			>
+				@click="handleCopyJoinUrl">
 				{{ joinUrl || "-" }}
 			</UButton>
 		</template>
@@ -92,6 +96,4 @@
 			</div>
 		</template>
 	</UModal>
-
-
 </template>

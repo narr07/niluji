@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+	import type { TableColumn } from "@nuxt/ui";
 	import { invoke } from "@tauri-apps/api/core";
 	import { open as openDialog } from "@tauri-apps/plugin-dialog";
 
@@ -36,6 +37,15 @@
 	const isValid = (row: ImportRow) => Boolean(row.nisn.trim() && row.name.trim());
 	const validCount = computed(() => rows.value.filter(isValid).length);
 	const selectedCount = computed(() => selectedIds.value.size);
+
+	const columns: TableColumn<ImportRow>[] = [
+		{ id: "select", header: "Pilih" },
+		{ id: "nisn", header: "NISN" },
+		{ id: "name", header: "Nama" },
+		{ id: "class", header: "Kelas" },
+		{ id: "status", header: "Status" },
+		{ id: "aksi", header: "Aksi" }
+	];
 
 	watch(
 		() => props.open,
@@ -89,9 +99,6 @@
 		selectedIds.value = next;
 	};
 
-	// ---------- Edit satu baris (buat benerin hasil baca file yang salah/kosong, atau isi
-	// baris yang ditambah manual) — pola sama seperti Import dari Word di Bank Soal ----------
-
 	const editRowOpen = ref(false);
 	const editRowId = ref<number | null>(null);
 	const editForm = reactive({ nisn: "", name: "", class: "" });
@@ -120,8 +127,6 @@
 		selectedIds.value = new Set([...selectedIds.value, row.id]);
 		editRowOpen.value = false;
 	};
-
-	// ---------- Tambah baris manual ----------
 
 	const addManualRow = () => {
 		const row: ImportRow = { id: rows.value.length ? Math.max(...rows.value.map((r) => r.id)) + 1 : 1, nisn: "", name: "", class: "" };
@@ -206,63 +211,37 @@
 					</div>
 
 					<div class="overflow-x-auto rounded-lg border border-default max-h-[24rem] overflow-y-auto">
-						<table class="w-full text-sm">
-							<thead class="bg-elevated text-left sticky top-0">
-								<tr>
-									<th class="p-2 w-10">
-										Pilih
-									</th>
-									<th class="p-2 min-w-32">
-										NISN
-									</th>
-									<th class="p-2 min-w-48">
-										Nama
-									</th>
-									<th class="p-2 min-w-24">
-										Kelas
-									</th>
-									<th class="p-2 min-w-32">
-										Status
-									</th>
-									<th class="p-2 w-16">
-										Aksi
-									</th>
-								</tr>
-							</thead>
-							<tbody class="divide-y divide-default">
-								<tr v-for="row in rows" :key="row.id" :class="isValid(row) ? '' : 'bg-error/5'">
-									<td class="p-2 align-top">
-										<UCheckbox
-											:model-value="isSelected(row)"
-											:disabled="!isValid(row)"
-											@update:model-value="(v) => toggleRow(row, v)" />
-									</td>
-									<td class="p-2 align-top">
-										{{ row.nisn || "(kosong)" }}
-									</td>
-									<td class="p-2 align-top">
-										{{ row.name || "(kosong)" }}
-									</td>
-									<td class="p-2 align-top">
-										{{ row.class || "-" }}
-									</td>
-									<td class="p-2 align-top">
-										<UBadge :color="isValid(row) ? 'success' : 'error'" variant="subtle">
-											{{ isValid(row) ? "Valid" : "Cek manual" }}
-										</UBadge>
-									</td>
-									<td class="p-2 align-top">
-										<UButton
-											size="xs"
-											variant="soft"
-											icon="lucide:pencil"
-											@click="openEditRow(row)">
-											Edit
-										</UButton>
-									</td>
-								</tr>
-							</tbody>
-						</table>
+						<UTable :data="rows" :columns="columns">
+							<template #select-cell="{ row }">
+								<UCheckbox
+									:model-value="isSelected(row.original)"
+									:disabled="!isValid(row.original)"
+									@update:model-value="(v) => toggleRow(row.original, v)" />
+							</template>
+							<template #nisn-cell="{ row }">
+								{{ row.original.nisn || "(kosong)" }}
+							</template>
+							<template #name-cell="{ row }">
+								{{ row.original.name || "(kosong)" }}
+							</template>
+							<template #class-cell="{ row }">
+								{{ row.original.class || "-" }}
+							</template>
+							<template #status-cell="{ row }">
+								<UBadge :color="isValid(row.original) ? 'success' : 'error'" variant="subtle">
+									{{ isValid(row.original) ? "Valid" : "Cek manual" }}
+								</UBadge>
+							</template>
+							<template #aksi-cell="{ row }">
+								<UButton
+									size="xs"
+									variant="soft"
+									icon="lucide:pencil"
+									@click="openEditRow(row.original)">
+									Edit
+								</UButton>
+							</template>
+						</UTable>
 					</div>
 				</div>
 			</div>

@@ -1,33 +1,47 @@
 <script lang="ts" setup>
 	interface ChangelogEntry {
-		title: string;
-		date: string;
-		badge: string;
-		badgeColor?: "primary" | "neutral" | "success";
-		perubahan: string[];
+		title: string
+		date: string
+		badge: string
+		badgeColor?: "primary" | "neutral" | "success"
+		perubahan: string[]
 	}
 
 	const riwayat: ChangelogEntry[] = [
+		{
+			title: "Keamanan Sesi, Kartu Peserta & Peningkatan UI CBT",
+			date: "2026-10-31",
+			badge: "v1.1.0",
+			badgeColor: "success",
+			perubahan: [
+				"Kartu Peserta Ujian & PIN 6 Digit: setiap siswa otomatis memiliki PIN unik dan dapat dicetak bersama QR Code akses lokal.",
+				"Kunci Perangkat (Single-Device Lock): mencegah satu akun siswa dikerjakan dari 2 perangkat sekaligus, dilengkapi tombol Buka Kunci Perangkat bagi pengawas.",
+				"Aksi Pengawas Real-Time: tambah waktu ujian (+10 menit) dan paksa kumpulkan (Force Submit) langsung dari tabel Hasil Ujian.",
+				"Acak Opsi Jawaban PG (A-D) secara deterministik per sesi siswa dan penggabungan otomatis Nilai PG + Nilai Esai sesuai bobot persentase.",
+				"Portal CBT Siswa diperbarui: tombol Ragu-ragu (bookmark), pengatur ukuran teks (A-/A/A+), indikator status simpan real-time, pintasan keyboard (A-D, R, Panah), dan bilah navigasi bawah khusus HP.",
+				"Analisis Pengecoh (Distractor Analysis) per butir soal dan fitur Akses Cepat Paket Soal di halaman Bank Soal."
+			]
+		},
 		{
 			title: "Perbaikan & Fitur Tambahan",
 			date: "2026-09-22",
 			badge: "v1.0.1",
 			badgeColor: "neutral",
 			perubahan: [
-				"Perbaikan bug kritis: soal yang sudah dihapus dari Bank Soal tapi masih dirujuk sesi ujian lama sebelumnya bisa bikin daftar Hasil Ujian, export, bahkan halaman ujian siswa gagal total — sekarang soal yang hilang dilewati saja, tidak lagi menggagalkan semuanya.",
+				"Perbaikan bug kritis: soal yang sudah dihapus dari Bank Soal tapi masih dirujuk sesi ujian lama sebelumnya bisa bikin daftar Hasil Ujian, export, bahkan halaman ujian siswa gagal total. Sekarang soal yang hilang dilewati saja, tidak lagi menggagalkan semuanya.",
 				"Jawaban siswa sekarang otomatis dicoba simpan ulang kalau koneksi ke server sempat putus (mis. listrik padam sebentar), dengan peringatan di layar dan tombol Selesai dikunci sampai semua jawaban benar-benar tersimpan.",
 				"Gambar soal sekarang bisa ditaruh di posisi mana pun di tengah teks pertanyaan (tombol \"Sisipkan Gambar\" di editor), tidak cuma selalu di bawah semua teks.",
 				"Tiap pilihan jawaban (A-E) sekarang bisa punya gambar sendiri, cocok untuk soal yang jawabannya berupa gambar.",
 				"Opsi acak soal saat membuat ujian dipisah jadi dua: acak untuk soal Pilihan Ganda dan acak untuk soal Esai, bisa diatur sendiri-sendiri.",
 				"Urutan soal di laporan Hasil Ujian (detail per siswa) sekarang selalu mengikuti urutan input guru di Bank Soal, bukan urutan acak yang dilihat siswa saat ujian.",
 				"Export Hasil Ujian dirombak: \"Export per Siswa\" sekarang berisi rincian jawaban per soal (bukan cuma skor akhir), ada mode borongan semua siswa sekaligus jadi satu file .zip, dan tambahan level export untuk satu kelas penuh (semua mata pelajaran & jenis ujian).",
-				"Import Soal sekarang satu tombol dengan tiga pilihan format: Naskah Word, CSV/Excel, dan file Markdown lokal (baru) — plus contoh template Word & Markdown yang sudah diuji bisa langsung diimpor.",
+				"Import Soal sekarang satu tombol dengan tiga pilihan format: Naskah Word, CSV/Excel, dan file Markdown lokal (baru), plus contoh template Word & Markdown yang sudah diuji bisa langsung diimpor.",
 				"Semua modal import (Word, CSV/Excel, Markdown, Import Siswa) sekarang mendukung seret-lepas (drag-and-drop) file, tidak cuma klik pilih file.",
 				"Import Siswa sekarang menampilkan preview dulu (bisa diedit per baris) sebelum benar-benar disimpan, sama seperti alur Import dari Word.",
-				"Backup database otomatis tiap aplikasi dibuka, plus tombol backup manual — 14 backup terakhir disimpan di folder data aplikasi.",
+				"Backup database otomatis tiap aplikasi dibuka, plus tombol backup manual. 14 backup terakhir disimpan di folder data aplikasi.",
 				"Semua tombol hapus di aplikasi sekarang pakai dialog konfirmasi yang seragam (bukan popup browser bawaan), dan Bank Soal dapat fitur pilih beberapa soal lalu hapus sekaligus.",
-				"Validasi tambahan: soal pilihan ganda yang diimpor wajib minimal 2 opsi dan kunci jawaban yang cocok (baris bermasalah dilewati, bukan bikin import gagal total), jadwal ujian wajib durasi lebih dari 0 dan jam selesai setelah jam mulai, dan ukuran gambar dibatasi maksimal 10 MB.",
-			],
+				"Validasi tambahan: soal pilihan ganda yang diimpor wajib minimal 2 opsi dan kunci jawaban yang cocok (baris bermasalah dilewati, bukan bikin import gagal total), jadwal ujian wajib durasi lebih dari 0 dan jam selesai setelah jam mulai, dan ukuran gambar dibatasi maksimal 10 MB."
+			]
 		},
 		{
 			title: "Rilis Awal Niluji",
@@ -50,9 +64,9 @@
 				"Tombol \"Lihat Hasil\" langsung dari Kelola Ujian ke halaman Hasil Ujian yang sesuai.",
 				"Kartu-kartu kelas/pelajaran/jenis dirapikan jadi lebih lebar dan konsisten di seluruh aplikasi.",
 				"Halaman login CBT siswa dibuat lebih kontras (warna, ukuran teks, placeholder) supaya lebih gampang dibaca.",
-				"Menu E-Rapor ditambahkan (belum aktif, masih \"Coming Soon\").",
-			],
-		},
+				"Menu E-Rapor ditambahkan (belum aktif, masih \"Coming Soon\")."
+			]
+		}
 	];
 </script>
 

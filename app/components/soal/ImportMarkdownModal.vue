@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+	import type { TableColumn } from "@nuxt/ui";
 	import { invoke } from "@tauri-apps/api/core";
 	import { open as openDialog } from "@tauri-apps/plugin-dialog";
 	import { parseSoalMarkdown, type BankSoalOnlineRow } from "~/composables/useBankSoalOnline";
@@ -35,6 +36,14 @@
 
 	const validCount = computed(() => rows.value.filter((r) => r.valid).length);
 	const selectedCount = computed(() => selectedIds.value.size);
+
+	const columns: TableColumn<BankSoalOnlineRow>[] = [
+		{ id: "select", header: "Pilih" },
+		{ accessorKey: "rowNumber", header: "No" },
+		{ id: "tipe", header: "Tipe" },
+		{ id: "soal", header: "Soal" },
+		{ id: "status", header: "Status" }
+	];
 
 	watch(
 		() => props.open,
@@ -124,10 +133,11 @@
 		try {
 			for (const row of selected) {
 				try {
-					let imagePath: string | undefined;
-					if (row.nama_file_gambar) {
-						imagePath = await resolveOptionImage(row.nama_file_gambar);
-					}
+					const imagePath = row.nama_file_gambar ? await resolveOptionImage(row.nama_file_gambar) : undefined;
+					const optionAImage = row.pilihan_a_gambar ? await resolveOptionImage(row.pilihan_a_gambar) : undefined;
+					const optionBImage = row.pilihan_b_gambar ? await resolveOptionImage(row.pilihan_b_gambar) : undefined;
+					const optionCImage = row.pilihan_c_gambar ? await resolveOptionImage(row.pilihan_c_gambar) : undefined;
+					const optionDImage = row.pilihan_d_gambar ? await resolveOptionImage(row.pilihan_d_gambar) : undefined;
 
 					await invoke("create_question", {
 						input: {
@@ -143,6 +153,10 @@
 							optionC: row.tipe === "pg" ? (row.pilihan_c || undefined) : undefined,
 							optionD: row.tipe === "pg" ? (row.pilihan_d || undefined) : undefined,
 							optionE: undefined,
+							optionAImage,
+							optionBImage,
+							optionCImage,
+							optionDImage,
 							correctOption: row.tipe === "pg" ? row.kunci_jawaban.trim().toUpperCase() : ""
 						}
 					});
@@ -176,9 +190,9 @@
 		<template #body>
 			<div class="space-y-4">
 				<p class="text-sm text-muted">
-					Pilih file <code>.md</code> lokal — format persis seperti hasil Export Bank Soal (kalau ada gambar,
-					pastikan folder <code>gambar/</code> ada di sebelah file ini). Cocok buat file yang sudah pernah
-					diekspor sendiri atau dikirim guru lain lewat USB/chat, tanpa perlu lewat GitHub.
+					Pilih file <code>.md</code> lokal dengan format yang sama seperti hasil Export Bank Soal (jika ada gambar,
+					pastikan folder <code>gambar/</code> ada di sebelah file ini). Cocok untuk file yang sudah pernah
+					diekspor sendiri atau dikirim guru lain lewat USB/chat tanpa perlu lewat GitHub.
 				</p>
 
 				<div
@@ -225,66 +239,43 @@
 					</div>
 
 					<div class="overflow-x-auto rounded-lg border border-default max-h-[28rem] overflow-y-auto">
-						<table class="w-full text-sm">
-							<thead class="bg-elevated text-left sticky top-0">
-								<tr>
-									<th class="p-2 w-10">
-										Pilih
-									</th>
-									<th class="p-2 w-12">
-										No
-									</th>
-									<th class="p-2 w-16">
-										Tipe
-									</th>
-									<th class="p-2 min-w-64">
-										Soal
-									</th>
-									<th class="p-2 min-w-32">
-										Status
-									</th>
-								</tr>
-							</thead>
-							<tbody class="divide-y divide-default">
-								<tr v-for="row in rows" :key="row.id" :class="row.valid ? '' : 'bg-error/5'">
-									<td class="p-2 align-top">
-										<UCheckbox
-											:model-value="isSelected(row)"
-											:disabled="!row.valid || importedIds.has(row.id)"
-											@update:model-value="(v) => toggleRow(row, v)" />
-									</td>
-									<td class="p-2 align-top text-muted">
-										{{ row.rowNumber }}
-									</td>
-									<td class="p-2 align-top">
-										<UBadge :color="row.tipe === 'pg' ? 'info' : 'neutral'" variant="subtle">
-											{{ row.tipe === "pg" ? "PG" : "Esai" }}
-										</UBadge>
-										<UIcon v-if="row.nama_file_gambar" name="lucide:image" class="ml-1 size-3.5 inline" />
-									</td>
-									<td class="p-2 align-top max-w-sm">
-										<div class="line-clamp-3">
-											{{ row.soal || "(kosong)" }}
-										</div>
-									</td>
-									<td class="p-2 align-top">
-										<UBadge :color="row.valid ? 'success' : 'error'" variant="subtle">
-											{{ row.valid ? "Valid" : "Cek manual" }}
-										</UBadge>
-										<UBadge
-											v-if="importedIds.has(row.id)"
-											color="info"
-											variant="subtle"
-											class="ml-1">
-											Diimpor
-										</UBadge>
-										<p v-if="row.alasan_invalid" class="text-xs text-error mt-1">
-											{{ row.alasan_invalid }}
-										</p>
-									</td>
-								</tr>
-							</tbody>
-						</table>
+						<UTable :data="rows" :columns="columns">
+							<template #select-cell="{ row }">
+								<UCheckbox
+									:model-value="isSelected(row.original)"
+									:disabled="!row.original.valid || importedIds.has(row.original.id)"
+									@update:model-value="(v) => toggleRow(row.original, v)" />
+							</template>
+							<template #tipe-cell="{ row }">
+								<UBadge :color="row.original.tipe === 'pg' ? 'info' : 'neutral'" variant="subtle">
+									{{ row.original.tipe === "pg" ? "PG" : "Esai" }}
+								</UBadge>
+								<UIcon
+									v-if="row.original.nama_file_gambar || row.original.pilihan_a_gambar || row.original.pilihan_b_gambar || row.original.pilihan_c_gambar || row.original.pilihan_d_gambar"
+									name="lucide:image"
+									class="ml-1 size-3.5 inline" />
+							</template>
+							<template #soal-cell="{ row }">
+								<div class="line-clamp-3 max-w-sm whitespace-normal">
+									{{ row.original.soal || "(kosong)" }}
+								</div>
+							</template>
+							<template #status-cell="{ row }">
+								<UBadge :color="row.original.valid ? 'success' : 'error'" variant="subtle">
+									{{ row.original.valid ? "Valid" : "Cek manual" }}
+								</UBadge>
+								<UBadge
+									v-if="importedIds.has(row.original.id)"
+									color="info"
+									variant="subtle"
+									class="ml-1">
+									Diimpor
+								</UBadge>
+								<p v-if="row.original.alasan_invalid" class="text-xs text-error mt-1">
+									{{ row.original.alasan_invalid }}
+								</p>
+							</template>
+						</UTable>
 					</div>
 				</div>
 			</div>

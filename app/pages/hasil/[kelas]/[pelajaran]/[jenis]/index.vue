@@ -6,9 +6,14 @@
 		hideFromNav: true
 	});
 
-	type SessionProgress = HasilSessionRow & { sessionId: number };
+	type SessionProgress = HasilSessionRow & {
+		sessionId: number
+		extraMinutes?: number
+		deviceLocked?: boolean
+	};
 
 	const route = useRoute();
+	const toast = useToast();
 	const kelas = computed(() => route.params.kelas as string);
 	const pelajaran = computed(() => decodeURIComponent(route.params.pelajaran as string));
 	const jenis = computed(() => decodeURIComponent(route.params.jenis as string));
@@ -28,8 +33,6 @@
 		await exportOneXlsx(`hasil-kelas-${kelas.value}-${pelajaran.value}-${jenis.value}.xlsx`, sessions.value);
 	};
 
-	// ---------- Export per siswa (satu siswa terpilih) — rincian per soal, bukan cuma skor akhir ----------
-
 	const studentExportOpen = ref(false);
 	const studentOptions = computed(() => [...new Set(sessions.value.map((s) => s.studentName))].sort());
 	const studentToExport = ref("");
@@ -43,8 +46,6 @@
 		);
 		studentExportOpen.value = false;
 	};
-
-	// ---------- Export per siswa, semua siswa sekaligus (rincian per soal, satu file .xlsx per siswa, dibundel .zip) ----------
 
 	const exportAllStudents = async () => {
 		const byStudent = new Map<string, SessionProgress[]>();
@@ -76,6 +77,45 @@
 		await refresh();
 	};
 
+	const unlockDevice = async (sessionId: number, studentName: string) => {
+		await invoke("unlock_exam_session_device", { sessionId });
+		toast.add({
+			title: "Perangkat dibuka",
+			description: `${studentName} kini dapat melanjutkan ujian dari perangkat baru.`,
+			icon: "lucide:smartphone",
+			color: "success"
+		});
+		await refresh();
+	};
+
+	const addTime = async (sessionId: number, studentName: string, minutes: number) => {
+		const totalExtra = await invoke<number>("add_exam_session_time", { sessionId, minutes });
+		toast.add({
+			title: "Waktu ditambahkan",
+			description: `${studentName} mendapat tambahan +${minutes} menit (total +${totalExtra} menit).`,
+			icon: "lucide:clock-plus",
+			color: "info"
+		});
+		await refresh();
+	};
+
+	const forceSubmit = async (sessionId: number, studentName: string) => {
+		const ok = await confirmDelete({
+			title: `Paksa kumpulkan ujian ${studentName}?`,
+			description: "Sesi siswa ini akan langsung dikunci dan dinilai sesuai jawaban yang sudah masuk.",
+			confirmLabel: "Paksa Selesai"
+		});
+		if (!ok) return;
+		await invoke("force_submit_exam_session", { sessionId });
+		toast.add({
+			title: "Ujian dikumpulkan",
+			description: `Sesi ujian ${studentName} telah diselesaikan oleh pengawas.`,
+			icon: "lucide:check-circle",
+			color: "success"
+		});
+		await refresh();
+	};
+
 	let timer: ReturnType<typeof setInterval>;
 
 	onMounted(() => {
@@ -103,7 +143,10 @@
 		<HasilTable
 			:sessions="sessions"
 			@detail="(id) => navigateTo(`/hasil/sesi/${id}`)"
-			@reset="resetSession" />
+			@reset="resetSession"
+			@unlock-device="unlockDevice"
+			@add-time="addTime"
+			@force-submit="forceSubmit" />
 	</div>
 
 	<UModal v-model:open="studentExportOpen" title="Export per Siswa">

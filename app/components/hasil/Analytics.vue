@@ -2,23 +2,25 @@
 	import { invoke } from "@tauri-apps/api/core";
 
 	const props = defineProps<{
-		kelas: string;
-		subjectId: number | undefined;
-		jenis: string;
+		kelas: string
+		subjectId: number | undefined
+		jenis: string
 	}>();
 
 	interface QuestionStat {
-		id: number;
-		questionText: string;
-		correctCount: number;
-		incorrectCount: number;
+		id: number
+		questionText: string
+		correctOption: string
+		correctCount: number
+		incorrectCount: number
+		optionCounts?: Record<string, number>
 	}
 
 	interface StudentStat {
-		sessionId: number;
-		name: string;
-		correctCount: number;
-		incorrectCount: number;
+		sessionId: number
+		name: string
+		correctCount: number
+		incorrectCount: number
 	}
 
 	const questionStats = ref<QuestionStat[]>([]);
@@ -29,10 +31,10 @@
 		if (!props.subjectId) return;
 		loading.value = true;
 		try {
-			const result = await invoke<{ questionStats: QuestionStat[]; studentStats: StudentStat[] }>("get_exam_analytics", {
+			const result = await invoke<{ questionStats: QuestionStat[], studentStats: StudentStat[] }>("get_exam_analytics", {
 				class: props.kelas,
 				subjectId: props.subjectId,
-				jenis: props.jenis,
+				jenis: props.jenis
 			});
 			questionStats.value = result.questionStats;
 			studentStats.value = result.studentStats;
@@ -45,7 +47,7 @@
 
 	const categories = {
 		benar: { name: "Benar", color: "#22c55e" },
-		salah: { name: "Salah", color: "#ef4444" },
+		salah: { name: "Salah", color: "#ef4444" }
 	};
 
 	const numberedQuestions = computed(() =>
@@ -76,6 +78,8 @@
 	const hardestQuestions = computed(() => questionDifficultyData.value.slice(0, 5));
 	const topStudents = computed(() => studentRankingData.value.slice(0, 5));
 	const bottomStudents = computed(() => studentRankingData.value.slice(-5).reverse());
+
+	const optionKeys = ["A", "B", "C", "D"];
 </script>
 
 <template>
@@ -95,11 +99,62 @@
 				:stacked="true"
 				orientation="horizontal"
 				x-axis="label"
-				:y-axis="['benar', 'salah']"
-			/>
+				:y-axis="['benar', 'salah']" />
 			<div v-else class="flex flex-col items-center gap-2 py-10 text-muted">
 				<UIcon name="i-lucide-bar-chart-3" class="size-6" />
 				<span>Belum ada siswa yang menyelesaikan sesi Pilihan Ganda.</span>
+			</div>
+		</UCard>
+
+		<!-- Distractor Analysis per Question -->
+		<UCard v-if="numberedQuestions.length">
+			<template #header>
+				<div class="flex items-center justify-between flex-wrap gap-2">
+					<div class="flex items-center gap-2">
+						<UIcon name="i-lucide-pie-chart" class="size-4 text-muted" />
+						<span class="font-semibold">Analisis Pengecoh (Distractor Analysis) &amp; Pratinjau Butir Soal</span>
+					</div>
+					<span class="text-xs text-muted">
+						Memantau sebaran jawaban A/B/C/D dan mendeteksi soal yang mengecoh
+					</span>
+				</div>
+			</template>
+
+			<div class="divide-y divide-default max-h-[28rem] overflow-y-auto pr-1">
+				<div v-for="q in numberedQuestions" :key="q.id" class="py-3 first:pt-0 last:pb-0 space-y-2">
+					<div class="flex items-start justify-between gap-3">
+						<div class="min-w-0 flex-1">
+							<span class="font-semibold text-sm text-highlighted">Soal {{ q.nomor }}. </span>
+							<span class="text-sm text-default line-clamp-2">{{ q.questionText }}</span>
+						</div>
+						<UBadge
+							:color="pct(q.correctCount, q.incorrectCount) >= 60 ? 'success' : 'warning'"
+							variant="subtle"
+							size="sm"
+							class="shrink-0">
+							{{ pct(q.correctCount, q.incorrectCount) }}% Benar
+						</UBadge>
+					</div>
+
+					<div class="flex flex-wrap items-center gap-2 text-xs">
+						<span
+							v-for="k in optionKeys"
+							:key="k"
+							class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded border"
+							:class="q.correctOption?.toUpperCase() === k
+								? 'border-success/60 bg-success/10 text-success font-semibold'
+								: 'border-default bg-elevated/40 text-default'">
+							<span>Opsi {{ k }}{{ q.correctOption?.toUpperCase() === k ? " (Kunci)" : "" }}:</span>
+							<span class="font-mono font-bold">{{ q.optionCounts?.[k] ?? 0 }}</span>
+						</span>
+						<span
+							v-if="(q.optionCounts?.KOSONG ?? 0) > 0"
+							class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded border border-default bg-elevated/40 text-muted">
+							<span>Kosong:</span>
+							<span class="font-mono font-bold">{{ q.optionCounts?.KOSONG ?? 0 }}</span>
+						</span>
+					</div>
+				</div>
 			</div>
 		</UCard>
 
@@ -118,8 +173,7 @@
 				:stacked="true"
 				orientation="horizontal"
 				x-axis="label"
-				:y-axis="['benar', 'salah']"
-			/>
+				:y-axis="['benar', 'salah']" />
 			<div v-else class="flex flex-col items-center gap-2 py-10 text-muted">
 				<UIcon name="i-lucide-trophy" class="size-6" />
 				<span>Belum ada siswa yang menyelesaikan sesi Pilihan Ganda.</span>
@@ -135,7 +189,7 @@
 					</div>
 				</template>
 				<ul class="space-y-3 text-sm">
-					<li v-for="(q, i) in easiestQuestions" :key="q.label">
+					<li v-for="q in easiestQuestions" :key="q.label">
 						<div class="flex items-center justify-between mb-1">
 							<span class="font-medium">{{ q.label }}</span>
 							<span class="text-xs text-muted">{{ pct(q.benar, q.salah) }}% benar</span>

@@ -6,6 +6,9 @@ import { getDefaultAttributes } from "eslint-plugin-better-tailwindcss/api/defau
 
 export default withNuxt(
 	{
+		ignores: ["docs/**"]
+	},
+	{
 		plugins: { style: stylistic },
 		rules: {
 			"vue/no-multiple-template-root": "off",

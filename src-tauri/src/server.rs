@@ -8,7 +8,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::HashMap;
-use std::net::{SocketAddr, UdpSocket};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr, ToSocketAddrs, UdpSocket};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -87,16 +87,27 @@ async fn logout(State(state): State<AppState>, Json(payload): Json<LogoutPayload
 struct JoinPayload {
 	token: String,
 	nisn: String,
-	name: String
+	name: String,
+	#[serde(default)]
+	pin: Option<String>,
+	#[serde(default)]
+	device_token: Option<String>
 }
 
 async fn exam_join(
 	State(state): State<AppState>,
 	Json(payload): Json<JoinPayload>
 ) -> Result<Json<crate::exam_session::JoinResponse>, (StatusCode, String)> {
-	crate::exam_session::join(&state.db, &payload.token, &payload.nisn, &payload.name)
-		.map(Json)
-		.map_err(|e| (StatusCode::BAD_REQUEST, e))
+	crate::exam_session::join(
+		&state.db,
+		&payload.token,
+		&payload.nisn,
+		&payload.name,
+		payload.pin.as_deref(),
+		payload.device_token.as_deref()
+	)
+	.map(Json)
+	.map_err(|e| (StatusCode::BAD_REQUEST, e))
 }
 
 #[derive(Deserialize)]
@@ -104,13 +115,24 @@ async fn exam_join(
 struct AnswerPayload {
 	session_id: i64,
 	question_id: i64,
-	option_key: String
+	option_key: String,
+	#[serde(default)]
+	is_doubtful: Option<bool>
 }
 
-async fn exam_answer(State(state): State<AppState>, Json(payload): Json<AnswerPayload>) -> Result<StatusCode, (StatusCode, String)> {
-	crate::exam_session::answer(&state.db, payload.session_id, payload.question_id, &payload.option_key)
-		.map(|_| StatusCode::OK)
-		.map_err(|e| (StatusCode::BAD_REQUEST, e))
+async fn exam_answer(
+	State(state): State<AppState>,
+	Json(payload): Json<AnswerPayload>
+) -> Result<Json<crate::exam_session::AnswerResponse>, (StatusCode, String)> {
+	crate::exam_session::answer(
+		&state.db,
+		payload.session_id,
+		payload.question_id,
+		&payload.option_key,
+		payload.is_doubtful
+	)
+	.map(Json)
+	.map_err(|e| (StatusCode::BAD_REQUEST, e))
 }
 
 #[derive(Deserialize)]
@@ -134,12 +156,69 @@ async fn exam_submit_pg(State(state): State<AppState>, Json(payload): Json<Submi
 		.map_err(|e| (StatusCode::BAD_REQUEST, e))
 }
 
-// ponytail: picks the interface used to reach 8.8.8.8 (no packet actually sent);
-// wrong on multi-NIC machines that route the exam LAN through a different interface.
+fn is_valid_lan_ipv4(ip: &Ipv4Addr) -> bool {
+	if ip.is_loopback() || ip.is_unspecified() || ip.is_broadcast() {
+		return false;
+	}
+	let octets = ip.octets();
+	// Exclude APIPA link-local 169.254.x.x
+	if octets[0] == 169 && octets[1] == 254 {
+		return false;
+	}
+	true
+}
+
+fn ipv4_priority(ip: &Ipv4Addr) -> u8 {
+	let o = ip.octets();
+	if o[0] == 192 && o[1] == 168 {
+		0
+	} else if o[0] == 10 {
+		1
+	} else if o[0] == 172 && (16..=31).contains(&o[1]) {
+		2
+	} else {
+		3
+	}
+}
+
+pub fn local_lan_ips() -> Vec<String> {
+	let mut candidates: Vec<Ipv4Addr> = Vec::new();
+	let mut push_ip = |ip: Ipv4Addr| {
+		if is_valid_lan_ipv4(&ip) && !candidates.contains(&ip) {
+			candidates.push(ip);
+		}
+	};
+
+	// 1. Probe common routes via UDP (works even offline when a local gateway or subnet exists)
+	for target in ["8.8.8.8:80", "192.168.1.1:80", "192.168.0.1:80", "10.0.0.1:80", "172.16.0.1:80"] {
+		if let Ok(socket) = UdpSocket::bind("0.0.0.0:0") {
+			if socket.connect(target).is_ok() {
+				if let Ok(addr) = socket.local_addr() {
+					if let IpAddr::V4(v4) = addr.ip() {
+						push_ip(v4);
+					}
+				}
+			}
+		}
+	}
+
+	// 2. Resolve local hostname addresses (enumerates all active NIC IPv4s on Windows/macOS/Linux)
+	if let Ok(host) = std::env::var("COMPUTERNAME").or_else(|_| std::env::var("HOSTNAME")) {
+		if let Ok(addrs) = (host.as_str(), 0u16).to_socket_addrs() {
+			for sock in addrs {
+				if let IpAddr::V4(v4) = sock.ip() {
+					push_ip(v4);
+				}
+			}
+		}
+	}
+
+	candidates.sort_by_key(ipv4_priority);
+	candidates.into_iter().map(|ip| ip.to_string()).collect()
+}
+
 pub fn local_lan_ip() -> Option<String> {
-	let socket = UdpSocket::bind("0.0.0.0:0").ok()?;
-	socket.connect("8.8.8.8:80").ok()?;
-	socket.local_addr().ok().map(|addr| addr.ip().to_string())
+	local_lan_ips().into_iter().next()
 }
 
 async fn bind_first_available(preferred: u16) -> Option<(tokio::net::TcpListener, u16)> {

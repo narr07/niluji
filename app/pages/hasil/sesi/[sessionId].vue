@@ -22,6 +22,9 @@
 		class: string | null
 		subject: string
 		score: number | null
+		essayScore?: number | null
+		finalScore?: number | null
+		pgWeight?: number
 		pgSubmittedAt: number | null
 		submittedAt: number | null
 		items: AnswerDetail[]
@@ -62,8 +65,6 @@
 		}
 	};
 
-	// Local editable draft per essay answer, seeded from the saved essayScore (or empty if
-	// not graded yet) so typing doesn't fight with the fetched value.
 	const drafts = reactive<Record<number, number | undefined>>({});
 	watch(essayItems, (items) => {
 		for (const item of items) {
@@ -152,9 +153,32 @@
 							<p class="text-muted text-sm">
 								{{ detail.examTitle }}
 							</p>
-							<p class="text-2xl font-bold">
-								Nilai PG: {{ detail.score?.toFixed(0) ?? "-" }}
-							</p>
+							<div class="flex flex-wrap items-baseline gap-6 mt-2">
+								<div>
+									<p class="text-xs text-muted uppercase">
+										Nilai PG
+									</p>
+									<p class="text-2xl font-bold text-default">
+										{{ detail.score?.toFixed(0) ?? "-" }}
+									</p>
+								</div>
+								<div v-if="essayItems.length">
+									<p class="text-xs text-muted uppercase">
+										Nilai Esai
+									</p>
+									<p class="text-2xl font-bold text-default">
+										{{ detail.essayScore !== null && detail.essayScore !== undefined ? detail.essayScore.toFixed(0) : "-" }}
+									</p>
+								</div>
+								<div>
+									<p class="text-xs text-muted uppercase">
+										Nilai Akhir ({{ detail.pgWeight ?? 100 }}% PG)
+									</p>
+									<p class="text-2xl font-bold text-primary">
+										{{ (detail.finalScore ?? detail.score)?.toFixed(0) ?? "-" }}
+									</p>
+								</div>
+							</div>
 						</div>
 						<div class="flex gap-2">
 							<UBadge v-if="detail.pgSubmittedAt" color="success" variant="subtle">
@@ -168,9 +192,6 @@
 							</UBadge>
 						</div>
 					</div>
-					<p class="text-sm text-muted mt-2">
-						Nilai esai dinilai manual di bawah dan tidak ikut masuk ke "Nilai PG" di atas.
-					</p>
 				</UCard>
 
 				<UTabs v-model="activeTab" :items="tabs">
@@ -180,8 +201,7 @@
 								v-for="(item, i) in pgItems"
 								:key="item.questionId"
 								class="p-3 rounded-md border"
-								:class="item.isCorrect ? 'border-success/50 bg-success/5' : 'border-error/50 bg-error/5'"
-							>
+								:class="item.isCorrect ? 'border-success/50 bg-success/5' : 'border-error/50 bg-error/5'">
 								<p class="font-medium">
 									{{ i + 1 }}. <span v-html="renderSoalMarkdown(item.questionText)" />
 								</p>

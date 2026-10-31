@@ -17,7 +17,7 @@
 <template>
 	<UDashboardPanel id="soal-pelajaran">
 		<template #header>
-			<UDashboardNavbar :title="`Kelas ${kelas} — ${pelajaran}`">
+			<UDashboardNavbar :title="`Kelas ${kelas} · ${pelajaran}`">
 				<template #leading>
 					<UDashboardSidebarCollapse />
 					<UButton icon="lucide:arrow-left" variant="ghost" :to="`/soal/${kelas}`" />

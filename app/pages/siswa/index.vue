@@ -4,9 +4,9 @@
 	definePageMeta({
 		name: "Siswa",
 		icon: "lucide:users",
-		category: "cbt",
+		top: true,
 		order: 1,
-		description: "Data siswa per kelas: tambah, edit, hapus, import, dan live status login"
+		description: "Data siswa per kelas: tambah, edit, hapus, import, kartu peserta, dan status login"
 	});
 
 	interface StudentRecord {
@@ -14,6 +14,7 @@
 		nisn: string
 		name: string
 		class: string | null
+		pin?: string
 	}
 
 	interface OnlineStudent {
@@ -22,8 +23,6 @@
 		loggedInAt: number
 	}
 
-	// Lets this page render with mock data when opened in a plain browser (e.g. `bun run dev`)
-	// instead of inside the Tauri desktop shell, where `invoke()` has nothing to talk to.
 	const isTauri = () => typeof window !== "undefined" && !!(window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;
 
 	const toast = useToast();
@@ -59,9 +58,8 @@
 	const students = ref<StudentRecord[]>([]);
 	const online = ref<OnlineStudent[]>([]);
 	const classes = ref<string[]>([]);
+	const kartuOpen = ref(false);
 
-	// Every fixed class (4/5/6) always shows up, even with zero students, so admin can
-	// drill into an empty class and add students to it.
 	const classGroups = computed(() => {
 		const counts = new Map<string, number>();
 		for (const c of classes.value) counts.set(c, 0);
@@ -74,11 +72,11 @@
 	const loadData = async () => {
 		if (!isTauri()) {
 			students.value = [
-				{ id: 1, nisn: "1001", name: "Ahmad Rizky", class: "9A" },
-				{ id: 2, nisn: "1002", name: "Siti Nurhaliza", class: "9A" },
-				{ id: 3, nisn: "1003", name: "Budi Santoso", class: "9B" }
+				{ id: 1, nisn: "1001", name: "Ahmad Rizky", class: "6", pin: "482910" },
+				{ id: 2, nisn: "1002", name: "Siti Nurhaliza", class: "6", pin: "739104" },
+				{ id: 3, nisn: "1003", name: "Budi Santoso", class: "5", pin: "194827" }
 			];
-			classes.value = ["9A", "9B", "9C"];
+			classes.value = ["4", "5", "6"];
 			return;
 		}
 		[students.value, classes.value] = await Promise.all([
@@ -133,12 +131,19 @@
 						{{ online.length }} online
 					</UBadge>
 
+					<UButton
+						icon="lucide:id-card"
+						variant="subtle"
+						color="neutral"
+						@click="kartuOpen = true">
+						Kartu Peserta
+					</UButton>
+
 					<UDropdownMenu v-model:open="templateMenuOpen" :items="templateItems">
 						<UButton
 							icon="lucide:file-down"
 							variant="subtle"
-							:trailing-icon="templateMenuOpen ? 'lucide:chevron-up' : 'lucide:chevron-down'"
-						>
+							:trailing-icon="templateMenuOpen ? 'lucide:chevron-up' : 'lucide:chevron-down'">
 							Template
 						</UButton>
 					</UDropdownMenu>
@@ -163,4 +168,8 @@
 	</UDashboardPanel>
 
 	<SiswaImportModal v-model:open="importOpen" @imported="loadData" />
+	<SiswaKartuPesertaModal
+		v-model:open="kartuOpen"
+		:students="students"
+		@regenerated="loadData" />
 </template>

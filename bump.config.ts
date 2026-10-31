@@ -8,6 +8,8 @@ export default defineConfig({
 	files: [
 		"package.json",
 		"src-tauri/tauri.conf.json",
-		"src-tauri/Cargo.toml"
+		"src-tauri/Cargo.toml",
+		"docs/package.json",
+		"docs/app/app.config.ts"
 	]
 });

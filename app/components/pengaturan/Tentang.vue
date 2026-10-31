@@ -8,7 +8,7 @@
 		try {
 			[appName.value, appVersion.value] = await Promise.all([getName(), getVersion()]);
 		} catch {
-		// Tidak fatal — tampilkan nilai default kalau API Tauri tidak tersedia (mis. preview browser).
+			// Tidak fatal
 		}
 	});
 
@@ -18,7 +18,7 @@
 		{ label: "Tailwind CSS 4", icon: "i-simple-icons-tailwindcss" },
 		{ label: "Tauri 2 (Rust)", icon: "i-simple-icons-tauri" },
 		{ label: "SQLite", icon: "i-simple-icons-sqlite" },
-		{ label: "axum (Rust)", icon: "i-lucide-server" },
+		{ label: "axum (Rust)", icon: "i-lucide-server" }
 	];
 </script>
 
@@ -37,13 +37,13 @@
 						</UBadge>
 					</div>
 					<p class="text-sm text-muted mt-0.5">
-						Platform CBT & e-Rapor offline untuk sekolah dasar
+						Platform CBT offline untuk sekolah
 					</p>
 				</div>
 			</div>
 			<p class="text-sm text-toned leading-relaxed mt-4">
 				Guru mengelola bank soal, ujian, dan hasil dari satu aplikasi desktop; siswa
-				mengerjakan ujian lewat browser di jaringan lokal yang sama — tanpa internet.
+				mengerjakan ujian lewat browser di jaringan lokal yang sama tanpa internet.
 			</p>
 		</UCard>
 
@@ -77,8 +77,7 @@
 					description="Pembuat & pengelola Niluji"
 					:avatar="{ src: 'https://github.com/narr07.png' }"
 					to="https://github.com/narr07"
-					target="_blank"
-				/>
+					target="_blank" />
 				<UButton
 					to="https://github.com/narr07/niluji"
 					target="_blank"

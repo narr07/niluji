@@ -21,10 +21,12 @@
 			"../dist": "dist"
 		},
 		"externalBin": [],
-		"copyright": "",
+		"copyright": "Copyright © 2026 Dinar Permadi Yusup (permadi.dev)",
+		"publisher": "Dinar Permadi Yusup (permadi.dev)",
+		"homepage": "https://narr07.github.io/niluji/",
 		"category": "Education",
-		"shortDescription": "CBT offline untuk sekolah",
-		"longDescription": "NILUJI - Platform CBT dan e-Rapor offline untuk sekolah dasar.",
+		"shortDescription": "Platform CBT Offline untuk Sekolah",
+		"longDescription": "NILUJI — Platform ujian berbasis komputer (CBT) 100% offline untuk sekolah oleh Dinar Permadi Yusup (permadi.dev).",
 		"macOS": {},
 		"linux": {
 			"deb": {}
@@ -38,7 +40,7 @@
 	},
 	"productName": "Niluji",
 	"version": "1.0.1",
-	"identifier": "com.nicolaspadari.nuxtor",
+	"identifier": "com.narr07.niluji",
 	"plugins": {},
 	"app": {
 		"windows": [
@@ -54,7 +56,14 @@
 			}
 		],
 		"security": {
-			"csp": null
+			"csp": {
+				"default-src": "'self' ipc: http://ipc.localhost",
+				"connect-src": "'self' ipc: http://ipc.localhost https://raw.githubusercontent.com https://api.github.com https://docs.google.com https://*.googleusercontent.com",
+				"img-src": "'self' data: blob: https://raw.githubusercontent.com",
+				"style-src": "'self' 'unsafe-inline'",
+				"font-src": "'self' data:",
+				"script-src": "'self' 'unsafe-inline'"
+			}
 		}
 	}
 }

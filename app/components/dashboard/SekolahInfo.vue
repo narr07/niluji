@@ -1,25 +1,25 @@
 <script lang="ts" setup>
-interface SchoolInfo {
-	name: string;
-	npsn: string;
-	address: string;
-	principal: string;
-}
+	interface SchoolInfo {
+		name: string;
+		npsn: string;
+		address: string;
+		principal: string;
+	}
 
-const props = defineProps<{
-	school: SchoolInfo | null;
-}>();
+	const props = defineProps<{
+		school: SchoolInfo | null;
+	}>();
 
-const rows = computed(() =>
-	props.school
-		? [
+	const rows = computed(() =>
+		props.school
+			? [
 				{ label: "Nama Sekolah", value: props.school.name, icon: "i-lucide-school" },
 				{ label: "NPSN", value: props.school.npsn, icon: "i-lucide-hash" },
 				{ label: "Alamat", value: props.school.address, icon: "i-lucide-map-pin" },
 				{ label: "Kepala Sekolah", value: props.school.principal, icon: "i-lucide-user" },
 			]
-		: []
-);
+			: []
+	);
 </script>
 
 <template>
