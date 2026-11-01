@@ -1,0 +1,315 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background-color: #0b1120;
+      background-image: radial-gradient(rgba(148, 163, 184, 0.14) 1px, transparent 1px);
+      background-size: 28px 28px;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #f8fafc;
+    }
+
+    .top-bar {
+      position: absolute;
+      top: 56px;
+      left: 192px;
+      right: 192px;
+      height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 20;
+    }
+
+    .step-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      background: #1e293b;
+      border: 2px solid #10b981;
+      border-radius: 999px;
+      padding: 10px 24px;
+      font-size: 22px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+
+    .step-badge {
+      background: #10b981;
+      color: #052e16;
+      font-weight: 800;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 18px;
+    }
+
+    .stage-grid {
+      position: absolute;
+      top: 144px;
+      left: 192px;
+      width: 1536px;
+      height: 700px;
+      display: grid;
+      grid-template-columns: 540px 966px;
+      gap: 30px;
+    }
+
+    .login-card {
+      background: #0f172a;
+      border: 2px solid #334155;
+      border-radius: 20px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .login-shot {
+      height: 360px;
+      overflow: hidden;
+      border-bottom: 1px solid #334155;
+    }
+
+    .login-shot img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center top;
+    }
+
+    .login-meta {
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex: 1;
+      justify-content: space-between;
+    }
+
+    .cred-row {
+      display: flex;
+      justify-content: space-between;
+      background: #1e293b;
+      border: 1px solid #475569;
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 18px;
+    }
+
+    .cbt-work {
+      background: #0f172a;
+      border: 2px solid #10b981;
+      border-radius: 20px;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .cbt-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #334155;
+      padding-bottom: 14px;
+    }
+
+    .timer-pill {
+      background: #064e3b;
+      color: #6ee7b7;
+      border: 1px solid #10b981;
+      font-family: Consolas, monospace;
+      font-size: 22px;
+      font-weight: 800;
+      padding: 6px 18px;
+      border-radius: 999px;
+    }
+
+    .cbt-option {
+      background: #1e293b;
+      border: 2px solid #10b981;
+      border-radius: 12px;
+      padding: 16px 20px;
+      font-size: 20px;
+      font-weight: 800;
+      color: #ffffff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .essay-box {
+      background: #1e293b;
+      border: 2px solid #3b82f6;
+      border-radius: 14px;
+      padding: 18px 20px;
+    }
+
+    .cbt-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .btn-ragu {
+      background: #f59e0b;
+      color: #451a03;
+      font-size: 18px;
+      font-weight: 800;
+      padding: 12px 20px;
+      border-radius: 12px;
+    }
+
+    .btn-submit {
+      background: #10b981;
+      color: #052e16;
+      font-size: 20px;
+      font-weight: 900;
+      padding: 14px 28px;
+      border-radius: 12px;
+    }
+
+    .cursor-ptr {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 42px;
+      height: 42px;
+      z-index: 40;
+      pointer-events: none;
+    }
+
+    .caption-bar {
+      position: absolute;
+      bottom: 58px;
+      left: 192px;
+      right: 192px;
+      background: #0f172a;
+      border: 2px solid #334155;
+      border-left: 8px solid #10b981;
+      border-radius: 16px;
+      padding: 18px 28px;
+      font-size: 25px;
+      font-weight: 600;
+      color: #f8fafc;
+      line-height: 1.38;
+      z-index: 30;
+    }
+
+    .hl { color: #34d399; font-weight: 800; }
+  </style>
+
+  <div
+    id="root"
+    data-composition-id="scene-05"
+    data-start="0"
+    data-duration="21.66"
+    data-width="1920"
+    data-height="1080"
+  >
+    <div class="top-bar" id="s5-topbar">
+      <div class="step-pill">
+        <span class="step-badge">LANGKAH 5 / 8</span>
+        <span>Simulasi Pengerjaan Siswa di Portal CBT (/cbt)</span>
+      </div>
+      <div class="step-pill" style="border-color: #10b981;">
+        <span>Peserta Aktif:</span>
+        <span style="color: #34d399; font-weight: 800;">Budi Santoso (0123456789)</span>
+      </div>
+    </div>
+
+    <div class="stage-grid">
+      <div class="login-card" id="s5-login">
+        <div class="login-shot">
+          <img src="assets/images/cbt_verified.png" alt="Portal CBT" />
+        </div>
+        <div class="login-meta">
+          <div style="font-size: 21px; font-weight: 800;">1. Login Peserta Tanpa Kuota</div>
+          <div class="cred-row">
+            <span style="color: #94a3b8;">NISN Peserta</span>
+            <span style="font-family: Consolas, monospace; font-weight: 800;">0123456789</span>
+          </div>
+          <div class="cred-row">
+            <span style="color: #94a3b8;">PIN 6 Digit</span>
+            <span style="font-family: Consolas, monospace; font-weight: 800; color: #34d399;">482915</span>
+          </div>
+          <div class="cred-row">
+            <span style="color: #94a3b8;">Token Ujian</span>
+            <span style="font-family: Consolas, monospace; font-weight: 800; color: #fbbf24;">X7K9P2</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cbt-work" id="s5-work">
+        <div class="cbt-header">
+          <div>
+            <div style="font-size: 24px; font-weight: 800;">2. Lembar Kerja Pilihan Ganda &amp; Esai</div>
+            <div style="font-size: 16px; color: #6ee7b7; font-weight: 700; margin-top: 2px;">
+              ✓ Auto-Save Real-Time ke Server Lokal • Ukuran Font: A / A+ / A++
+            </div>
+          </div>
+          <div class="timer-pill">⏱ 48:15 Tersisa</div>
+        </div>
+
+        <div>
+          <div style="font-size: 18px; color: #94a3b8; font-weight: 700; margin-bottom: 8px;">
+            Sesi Pilihan Ganda (20/20 Terjawab):
+          </div>
+          <div class="cbt-option" id="s5-pg-ans">
+            <span>Soal #1: B. Jaringan Palisade (Kloroplas)</span>
+            <span style="background: #10b981; color: #052e16; padding: 4px 12px; border-radius: 6px; font-size: 16px;">TERSIMPAN ✓</span>
+          </div>
+        </div>
+
+        <div class="essay-box" id="s5-essay-ans">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+            <span style="font-size: 18px; font-weight: 800; color: #93c5fd;">Jawaban Esai Budi Santoso (Soal #21):</span>
+            <span style="font-size: 15px; color: #6ee7b7; font-weight: 700;">✓ Tersimpan Otomatis</span>
+          </div>
+          <div style="font-size: 19px; color: #f8fafc; line-height: 1.45;">
+            "Faktor utama yang memengaruhi laju fotosintesis adalah intensitas cahaya matahari, ketersediaan karbon dioksida (CO2) serta air, dan suhu lingkungan yang optimal bagi klorofil."
+          </div>
+        </div>
+
+        <div class="cbt-actions">
+          <div class="btn-ragu" id="s5-btn-ragu">⚑ Tandai Ragu-ragu</div>
+          <div style="font-size: 18px; color: #cbd5e1; font-weight: 700;">Progres: 20 PG + 5 Esai Selesai</div>
+          <div class="btn-submit" id="s5-btn-submit">🚀 Kumpulkan Ujian</div>
+        </div>
+      </div>
+    </div>
+
+    <svg class="cursor-ptr" data-layout-ignore id="s5-cursor" viewBox="0 0 36 36" fill="none">
+      <circle cx="14" cy="14" r="12" fill="rgba(16, 185, 129, 0.28)" />
+      <path d="M8 6L28 15L18 19L14 29L8 6Z" fill="#10B981" stroke="#052E16" stroke-width="2.5" />
+    </svg>
+
+    <div class="caption-bar" data-layout-allow-caption-zone id="s5-caption">
+      Siswa login dengan <span class="hl">NISN, PIN &amp; Token</span>. Jawaban <span class="hl">Pilihan Ganda &amp; Esai</span> tersimpan otomatis sebelum menekan <span class="hl">Kumpulkan Ujian</span>.
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    tl.fromTo("#s5-topbar", { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 0);
+    tl.fromTo("#s5-login", { opacity: 0, x: -35 }, { opacity: 1, x: 0, duration: 0.5, ease: "expo.out" }, 0.15);
+    tl.fromTo("#s5-work", { opacity: 0, x: 35 }, { opacity: 1, x: 0, duration: 0.5, ease: "expo.out" }, 0.3);
+    tl.fromTo("#s5-caption", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 0.2);
+
+    tl.fromTo("#s5-cursor", { x: 420, y: 650, opacity: 0 }, { x: 1180, y: 380, opacity: 1, duration: 0.75, ease: "power2.inOut" }, 5.5);
+    tl.fromTo("#s5-pg-ans", { scale: 0.98 }, { scale: 1, duration: 0.3, ease: "back.out(1.6)" }, 6.3);
+
+    tl.to("#s5-cursor", { x: 1220, y: 580, duration: 0.75, ease: "power2.inOut" }, 11.5);
+    tl.fromTo("#s5-essay-ans", { scale: 0.98 }, { scale: 1, duration: 0.3, ease: "back.out(1.6)" }, 12.3);
+
+    tl.to("#s5-cursor", { x: 1560, y: 780, duration: 0.8, ease: "power2.inOut" }, 16.5);
+    tl.to("#s5-btn-submit", { scale: 0.93, duration: 0.14, yoyo: true, repeat: 1 }, 17.4);
+
+    window.__timelines = window.__timelines || {};
+    window.__timelines["scene-05"] = tl;
+    tl.seek(0);
+  </script>
+</template>

@@ -1,0 +1,343 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background-color: #0b1120;
+      background-image: radial-gradient(rgba(148, 163, 184, 0.14) 1px, transparent 1px);
+      background-size: 28px 28px;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #f8fafc;
+    }
+
+    .top-bar {
+      position: absolute;
+      top: 56px;
+      left: 192px;
+      right: 192px;
+      height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 20;
+    }
+
+    .step-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      background: #1e293b;
+      border: 2px solid #10b981;
+      border-radius: 999px;
+      padding: 10px 24px;
+      font-size: 22px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+
+    .step-badge {
+      background: #10b981;
+      color: #052e16;
+      font-weight: 800;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 18px;
+    }
+
+    .import-bar {
+      display: flex;
+      gap: 12px;
+    }
+
+    .chip-btn {
+      background: #1e293b;
+      border: 1px solid #475569;
+      color: #f8fafc;
+      font-size: 18px;
+      font-weight: 700;
+      padding: 10px 18px;
+      border-radius: 12px;
+    }
+
+    .chip-btn.active {
+      background: #10b981;
+      border-color: #10b981;
+      color: #052e16;
+      font-weight: 800;
+    }
+
+    .stage-grid {
+      position: absolute;
+      top: 144px;
+      left: 192px;
+      width: 1536px;
+      height: 700px;
+      display: grid;
+      grid-template-columns: 790px 716px;
+      gap: 30px;
+    }
+
+    .soal-card {
+      background: #0f172a;
+      border: 2px solid #334155;
+      border-radius: 20px;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .soal-card.highlight {
+      border-color: #10b981;
+    }
+
+    .badge-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #334155;
+      padding-bottom: 14px;
+    }
+
+    .type-pill {
+      background: #064e3b;
+      color: #6ee7b7;
+      border: 1px solid #10b981;
+      padding: 6px 16px;
+      border-radius: 999px;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .type-pill.essay {
+      background: #1e3a8a;
+      color: #93c5fd;
+      border-color: #3b82f6;
+    }
+
+    .q-text {
+      font-size: 22px;
+      font-weight: 700;
+      color: #f8fafc;
+      line-height: 1.4;
+      margin: 14px 0;
+    }
+
+    .diagram-box {
+      background: #1e293b;
+      border: 1px solid #475569;
+      border-radius: 14px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 14px;
+    }
+
+    .opt-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .opt-item {
+      background: #1e293b;
+      border: 1px solid #475569;
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 18px;
+      font-weight: 600;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .opt-item.correct {
+      background: #064e3b;
+      border: 2px solid #10b981;
+      color: #ffffff;
+      font-weight: 800;
+    }
+
+    .key-tag {
+      background: #10b981;
+      color: #052e16;
+      font-size: 15px;
+      font-weight: 900;
+      padding: 3px 10px;
+      border-radius: 6px;
+    }
+
+    .rubric-box {
+      background: #1e293b;
+      border: 1px solid #475569;
+      border-left: 6px solid #3b82f6;
+      border-radius: 12px;
+      padding: 18px;
+      font-size: 18px;
+      color: #e2e8f0;
+      line-height: 1.45;
+    }
+
+    .preview-footer {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 14px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .cursor-ptr {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 42px;
+      height: 42px;
+      z-index: 40;
+      pointer-events: none;
+    }
+
+    .caption-bar {
+      position: absolute;
+      bottom: 58px;
+      left: 192px;
+      right: 192px;
+      background: #0f172a;
+      border: 2px solid #334155;
+      border-left: 8px solid #10b981;
+      border-radius: 16px;
+      padding: 18px 28px;
+      font-size: 25px;
+      font-weight: 600;
+      color: #f8fafc;
+      line-height: 1.38;
+      z-index: 30;
+    }
+
+    .hl { color: #34d399; font-weight: 800; }
+  </style>
+
+  <div
+    id="root"
+    data-composition-id="scene-03"
+    data-start="0"
+    data-duration="16.11"
+    data-width="1920"
+    data-height="1080"
+  >
+    <div class="top-bar" id="s3-topbar">
+      <div class="step-pill">
+        <span class="step-badge">LANGKAH 3 / 8</span>
+        <span>Bank Soal &amp; Impor Naskah Bergambar (PG + Esai)</span>
+      </div>
+      <div class="import-bar">
+        <div class="chip-btn" id="s3-btn-word">📄 Impor Word (.docx)</div>
+        <div class="chip-btn active" id="s3-btn-zip">📦 Impor Markdown (.zip)</div>
+        <div class="chip-btn" id="s3-btn-prev">👁️ Pratinjau Soal</div>
+      </div>
+    </div>
+
+    <div class="stage-grid">
+      <div class="soal-card highlight" id="s3-pg-card">
+        <div>
+          <div class="badge-row">
+            <span class="type-pill">SOAL #1 • PILIHAN GANDA BERGAMBAR</span>
+            <span style="font-size: 18px; color: #94a3b8; font-weight: 700;">Kelas 6A • IPA • Paket UAS</span>
+          </div>
+          <div class="q-text">
+            Perhatikan gambar bagian daun berikut! Proses fotosintesis yang menghasilkan glukosa dan oksigen berlangsung pada jaringan...
+          </div>
+          <div class="diagram-box">
+            <div style="width: 84px; height: 84px; border-radius: 12px; background: #064e3b; border: 2px solid #10b981; display: flex; align-items: center; justify-content: center; font-size: 40px;">
+              🌿
+            </div>
+            <div>
+              <div style="font-size: 19px; font-weight: 800; color: #f8fafc;">lampiran-anatomi-daun.png</div>
+              <div style="font-size: 16px; color: #94a3b8; margin-top: 4px;">Gambar Soal &amp; Gambar Opsi A–D otomatis terkompresi lokal</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="opt-grid">
+          <div class="opt-item">
+            <span>A. Epidermis Atas</span>
+            <span style="font-size: 15px; color: #94a3b8;">[Gambar A]</span>
+          </div>
+          <div class="opt-item correct" id="s3-opt-b">
+            <span>B. Jaringan Palisade (Kloroplas)</span>
+            <span class="key-tag">KUNCI ✓</span>
+          </div>
+          <div class="opt-item">
+            <span>C. Pembuluh Xilem</span>
+            <span style="font-size: 15px; color: #94a3b8;">[Gambar C]</span>
+          </div>
+          <div class="opt-item">
+            <span>D. Mulut Daun (Stomata)</span>
+            <span style="font-size: 15px; color: #94a3b8;">[Gambar D]</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="soal-card" id="s3-essay-card">
+        <div>
+          <div class="badge-row">
+            <span class="type-pill essay">SOAL #21 • ESAI / URAIAN</span>
+            <span style="font-size: 18px; color: #93c5fd; font-weight: 700;">Penilaian Guru Manual</span>
+          </div>
+          <div class="q-text">
+            Jelaskan 3 faktor utama yang memengaruhi laju fotosintesis pada tumbuhan hijau beserta alasannya!
+          </div>
+          <div class="rubric-box">
+            <div style="font-weight: 800; color: #93c5fd; margin-bottom: 8px;">Pedoman Penskoran Guru (0 – 100 Poin):</div>
+            1. Intensitas cahaya matahari (35 poin)<br />
+            2. Kadar karbon dioksida / CO2 dan kecukupan air (35 poin)<br />
+            3. Suhu optimum &amp; kadar klorofil daun (30 poin)
+          </div>
+        </div>
+
+        <div class="preview-footer" id="s3-summary">
+          <div>
+            <div style="font-size: 16px; color: #94a3b8; font-weight: 600;">Ringkasan Paket Soal UAS IPA</div>
+            <div style="font-size: 22px; font-weight: 800; color: #f8fafc;">20 Pilihan Ganda + 5 Soal Esai Siap Ujian</div>
+          </div>
+          <span class="key-tag" style="padding: 8px 16px; font-size: 17px;">TERVALIDASI ✓</span>
+        </div>
+      </div>
+    </div>
+
+    <svg class="cursor-ptr" data-layout-ignore id="s3-cursor" viewBox="0 0 36 36" fill="none">
+      <circle cx="14" cy="14" r="12" fill="rgba(16, 185, 129, 0.28)" />
+      <path d="M8 6L28 15L18 19L14 29L8 6Z" fill="#10B981" stroke="#052E16" stroke-width="2.5" />
+    </svg>
+
+    <div class="caption-bar" data-layout-allow-caption-zone id="s3-caption">
+      Impor naskah soal dari <span class="hl">Word, Excel, atau ZIP Markdown</span> lengkap dengan gambar pada soal &amp; opsi jawaban A–D serta soal <span class="hl">Esai</span>.
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    tl.fromTo("#s3-topbar", { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 0);
+    tl.fromTo("#s3-pg-card", { opacity: 0, x: -35 }, { opacity: 1, x: 0, duration: 0.5, ease: "expo.out" }, 0.15);
+    tl.fromTo("#s3-essay-card", { opacity: 0, x: 35 }, { opacity: 1, x: 0, duration: 0.5, ease: "expo.out" }, 0.3);
+    tl.fromTo("#s3-caption", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 0.2);
+
+    tl.fromTo("#s3-cursor", { x: 960, y: 500, opacity: 0 }, { x: 1410, y: 92, opacity: 1, duration: 0.65, ease: "power2.inOut" }, 2.0);
+    tl.to("#s3-btn-zip", { scale: 0.94, duration: 0.12, yoyo: true, repeat: 1 }, 2.7);
+
+    tl.to("#s3-cursor", { x: 760, y: 690, duration: 0.8, ease: "power2.inOut" }, 6.2);
+    tl.fromTo("#s3-opt-b", { scale: 1 }, { scale: 1.04, duration: 0.25, yoyo: true, repeat: 1 }, 7.0);
+
+    tl.to("#s3-cursor", { x: 1620, y: 92, duration: 0.8, ease: "power2.inOut" }, 10.5);
+    tl.to("#s3-btn-prev", { scale: 0.94, duration: 0.12, yoyo: true, repeat: 1 }, 11.3);
+
+    window.__timelines = window.__timelines || {};
+    window.__timelines["scene-03"] = tl;
+    tl.seek(0);
+  </script>
+</template>

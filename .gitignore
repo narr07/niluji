@@ -18,3 +18,8 @@ Soal docx/
 *.docx
 # Pengaturan lokal Claude Code, spesifik per komputer/user, jangan ikut repo
 .claude/
+
+# HyperFrames caches
+video-tutorial/node_modules/
+video-tutorial/.hyperframes/
+video-tutorial/renders/snapshots/

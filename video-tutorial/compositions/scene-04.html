@@ -1,0 +1,321 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background-color: #0b1120;
+      background-image: radial-gradient(rgba(148, 163, 184, 0.14) 1px, transparent 1px);
+      background-size: 28px 28px;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #f8fafc;
+    }
+
+    .top-bar {
+      position: absolute;
+      top: 56px;
+      left: 192px;
+      right: 192px;
+      height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 20;
+    }
+
+    .step-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      background: #1e293b;
+      border: 2px solid #10b981;
+      border-radius: 999px;
+      padding: 10px 24px;
+      font-size: 22px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+
+    .step-badge {
+      background: #10b981;
+      color: #052e16;
+      font-weight: 800;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 18px;
+    }
+
+    .stage-grid {
+      position: absolute;
+      top: 144px;
+      left: 192px;
+      width: 1536px;
+      height: 700px;
+      display: grid;
+      grid-template-columns: 880px 626px;
+      gap: 30px;
+    }
+
+    .config-card {
+      background: #0f172a;
+      border: 2px solid #334155;
+      border-radius: 20px;
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-top: 14px;
+    }
+
+    .input-box {
+      background: #1e293b;
+      border: 1px solid #475569;
+      border-radius: 12px;
+      padding: 14px 18px;
+    }
+
+    .input-lbl {
+      font-size: 16px;
+      font-weight: 600;
+      color: #94a3b8;
+    }
+
+    .input-val {
+      font-size: 21px;
+      font-weight: 800;
+      color: #f8fafc;
+      margin-top: 4px;
+    }
+
+    .weight-panel {
+      background: #1e293b;
+      border: 2px solid #10b981;
+      border-radius: 16px;
+      padding: 22px;
+      margin: 16px 0;
+    }
+
+    .weight-bars {
+      display: grid;
+      grid-template-columns: 7fr 3fr;
+      gap: 10px;
+      margin-top: 14px;
+      height: 52px;
+    }
+
+    .w-pg {
+      background: #10b981;
+      color: #052e16;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 900;
+    }
+
+    .w-essay {
+      background: #3b82f6;
+      color: #ffffff;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 900;
+    }
+
+    .toggle-row {
+      display: flex;
+      gap: 16px;
+    }
+
+    .toggle-chip {
+      flex: 1;
+      background: #064e3b;
+      border: 1px solid #10b981;
+      color: #6ee7b7;
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 18px;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .token-card {
+      background: #0f172a;
+      border: 3px solid #10b981;
+      border-radius: 20px;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .token-box {
+      background: #1e293b;
+      border: 2px dashed #10b981;
+      border-radius: 18px;
+      padding: 28px;
+      text-align: center;
+    }
+
+    .token-code {
+      font-family: Consolas, monospace;
+      font-size: 64px;
+      font-weight: 900;
+      color: #34d399;
+      letter-spacing: 0.16em;
+      margin: 10px 0;
+    }
+
+    .formula-box {
+      background: #1e293b;
+      border: 1px solid #475569;
+      border-radius: 14px;
+      padding: 18px 22px;
+      font-family: Consolas, monospace;
+      font-size: 19px;
+      color: #e2e8f0;
+      line-height: 1.5;
+    }
+
+    .cursor-ptr {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 42px;
+      height: 42px;
+      z-index: 40;
+      pointer-events: none;
+    }
+
+    .caption-bar {
+      position: absolute;
+      bottom: 58px;
+      left: 192px;
+      right: 192px;
+      background: #0f172a;
+      border: 2px solid #334155;
+      border-left: 8px solid #10b981;
+      border-radius: 16px;
+      padding: 18px 28px;
+      font-size: 25px;
+      font-weight: 600;
+      color: #f8fafc;
+      line-height: 1.38;
+      z-index: 30;
+    }
+
+    .hl { color: #34d399; font-weight: 800; }
+  </style>
+
+  <div
+    id="root"
+    data-composition-id="scene-04"
+    data-start="0"
+    data-duration="18.27"
+    data-width="1920"
+    data-height="1080"
+  >
+    <div class="top-bar" id="s4-topbar">
+      <div class="step-pill">
+        <span class="step-badge">LANGKAH 4 / 8</span>
+        <span>Jadwal Ujian, Bobot Nilai PG/Esai &amp; Token Keamanan</span>
+      </div>
+      <div class="step-pill" style="border-color: #334155;">
+        <span>Status Jadwal:</span>
+        <span style="color: #34d399; font-weight: 800;">● UJIAN BERLANGSUNG</span>
+      </div>
+    </div>
+
+    <div class="stage-grid">
+      <div class="config-card" id="s4-config">
+        <div>
+          <div style="font-size: 28px; font-weight: 800;">Konfigurasi Sesi Ujian Baru</div>
+          <div class="form-grid">
+            <div class="input-box">
+              <div class="input-lbl">Judul Sesi Ujian</div>
+              <div class="input-val">UAS IPA Kelas 6A</div>
+            </div>
+            <div class="input-box">
+              <div class="input-lbl">Durasi Waktu Pengerjaan</div>
+              <div class="input-val">60 Menit (Hitung Mundur Server)</div>
+            </div>
+          </div>
+
+          <div class="weight-panel" id="s4-weight">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 21px; font-weight: 800;">Komposisi Bobot Nilai Akhir (Total 100%)</span>
+              <span style="font-size: 18px; color: #34d399; font-weight: 700;">Otomatis + Manual</span>
+            </div>
+            <div class="weight-bars">
+              <div class="w-pg">Pilihan Ganda: 70%</div>
+              <div class="w-essay">Esai: 30%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-chip">✓ Acak Urutan Soal (Fisher-Yates)</div>
+          <div class="toggle-chip">✓ Acak Opsi Jawaban A–D</div>
+          <div class="toggle-chip">✓ Kunci Perangkat (Single-Device)</div>
+        </div>
+      </div>
+
+      <div class="token-card" id="s4-token-card">
+        <div>
+          <div style="font-size: 24px; font-weight: 800; color: #f8fafc;">Token Keamanan Ruang Ujian</div>
+          <div style="font-size: 17px; color: #94a3b8; margin-top: 4px;">
+            Bagikan 6 karakter token ini kepada peserta di kelas
+          </div>
+        </div>
+
+        <div class="token-box" id="s4-token-box">
+          <div style="font-size: 16px; font-weight: 700; color: #6ee7b7;">TOKEN AKTIF SESI UAS IPA</div>
+          <div class="token-code">X7K9P2</div>
+          <div style="font-size: 16px; color: #cbd5e1;">Dapat diputar ulang oleh pengawas kapan saja</div>
+        </div>
+
+        <div class="formula-box">
+          <div style="color: #34d399; font-weight: 800; margin-bottom: 4px;">Rumus Perhitungan Nilai Akhir:</div>
+          Nilai Akhir = (Skor PG × 0.70) + (Skor Esai × 0.30)
+        </div>
+      </div>
+    </div>
+
+    <svg class="cursor-ptr" data-layout-ignore id="s4-cursor" viewBox="0 0 36 36" fill="none">
+      <circle cx="14" cy="14" r="12" fill="rgba(16, 185, 129, 0.28)" />
+      <path d="M8 6L28 15L18 19L14 29L8 6Z" fill="#10B981" stroke="#052E16" stroke-width="2.5" />
+    </svg>
+
+    <div class="caption-bar" data-layout-allow-caption-zone id="s4-caption">
+      Atur durasi 60 menit, tetapkan <span class="hl">Bobot PG 70% &amp; Esai 30%</span>, aktifkan pengacakan soal, lalu bagikan <span class="hl">Token Ujian (X7K9P2)</span>.
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    tl.fromTo("#s4-topbar", { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 0);
+    tl.fromTo("#s4-config", { opacity: 0, x: -35 }, { opacity: 1, x: 0, duration: 0.5, ease: "expo.out" }, 0.15);
+    tl.fromTo("#s4-token-card", { opacity: 0, x: 35 }, { opacity: 1, x: 0, duration: 0.5, ease: "expo.out" }, 0.3);
+    tl.fromTo("#s4-caption", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 0.2);
+
+    tl.fromTo("#s4-cursor", { x: 500, y: 320, opacity: 0 }, { x: 640, y: 540, opacity: 1, duration: 0.7, ease: "power2.inOut" }, 4.5);
+    tl.fromTo("#s4-weight", { scale: 1 }, { scale: 1.02, duration: 0.25, yoyo: true, repeat: 1 }, 5.2);
+
+    tl.to("#s4-cursor", { x: 1410, y: 480, duration: 0.85, ease: "power2.inOut" }, 11.2);
+    tl.fromTo("#s4-token-box", { scale: 0.95 }, { scale: 1, duration: 0.4, ease: "back.out(1.7)" }, 12.0);
+
+    window.__timelines = window.__timelines || {};
+    window.__timelines["scene-04"] = tl;
+    tl.seek(0);
+  </script>
+</template>

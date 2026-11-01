@@ -1,0 +1,313 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background-color: #0b1120;
+      background-image: radial-gradient(rgba(148, 163, 184, 0.14) 1px, transparent 1px);
+      background-size: 28px 28px;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #f8fafc;
+    }
+
+    .top-bar {
+      position: absolute;
+      top: 56px;
+      left: 192px;
+      right: 192px;
+      height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 20;
+    }
+
+    .step-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      background: #1e293b;
+      border: 2px solid #10b981;
+      border-radius: 999px;
+      padding: 10px 24px;
+      font-size: 22px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+
+    .step-badge {
+      background: #10b981;
+      color: #052e16;
+      font-weight: 800;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 18px;
+    }
+
+    .monitor-panel {
+      position: absolute;
+      top: 144px;
+      left: 192px;
+      width: 1536px;
+      height: 700px;
+      background: #0f172a;
+      border: 2px solid #334155;
+      border-radius: 20px;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+    }
+
+    .kpi-box {
+      background: #1e293b;
+      border: 1px solid #475569;
+      border-radius: 14px;
+      padding: 16px 20px;
+    }
+
+    .kpi-lbl {
+      font-size: 16px;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+
+    .kpi-num {
+      font-size: 32px;
+      font-weight: 900;
+      color: #f8fafc;
+      margin-top: 4px;
+    }
+
+    .session-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .s-row {
+      display: grid;
+      grid-template-columns: 270px 180px 210px 260px 1fr;
+      align-items: center;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 14px;
+      padding: 18px 22px;
+      font-size: 19px;
+      font-weight: 700;
+    }
+
+    .s-row.highlight {
+      border: 2px solid #10b981;
+      background: #064e3b;
+    }
+
+    .badge-done {
+      display: inline-block;
+      background: #10b981;
+      color: #052e16;
+      font-size: 16px;
+      font-weight: 900;
+      padding: 6px 14px;
+      border-radius: 999px;
+      width: fit-content;
+    }
+
+    .badge-work {
+      display: inline-block;
+      background: #f59e0b;
+      color: #451a03;
+      font-size: 16px;
+      font-weight: 900;
+      padding: 6px 14px;
+      border-radius: 999px;
+      width: fit-content;
+    }
+
+    .proctor-btns {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .p-btn {
+      background: #0f172a;
+      border: 1px solid #475569;
+      color: #f8fafc;
+      font-size: 16px;
+      font-weight: 700;
+      padding: 9px 14px;
+      border-radius: 10px;
+    }
+
+    .p-btn.emerald {
+      background: #10b981;
+      border-color: #10b981;
+      color: #052e16;
+      font-weight: 900;
+    }
+
+    .p-btn.amber {
+      background: #f59e0b;
+      border-color: #f59e0b;
+      color: #451a03;
+      font-weight: 900;
+    }
+
+    .cursor-ptr {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 42px;
+      height: 42px;
+      z-index: 40;
+      pointer-events: none;
+    }
+
+    .caption-bar {
+      position: absolute;
+      bottom: 58px;
+      left: 192px;
+      right: 192px;
+      background: #0f172a;
+      border: 2px solid #334155;
+      border-left: 8px solid #10b981;
+      border-radius: 16px;
+      padding: 18px 28px;
+      font-size: 25px;
+      font-weight: 600;
+      color: #f8fafc;
+      line-height: 1.38;
+      z-index: 30;
+    }
+
+    .hl { color: #34d399; font-weight: 800; }
+  </style>
+
+  <div
+    id="root"
+    data-composition-id="scene-06"
+    data-start="0"
+    data-duration="18.73"
+    data-width="1920"
+    data-height="1080"
+  >
+    <div class="top-bar" id="s6-topbar">
+      <div class="step-pill">
+        <span class="step-badge">LANGKAH 6 / 8</span>
+        <span>Meja Pantau Pengawas Real-Time (Proctor Controls)</span>
+      </div>
+      <div class="step-pill" style="border-color: #334155;">
+        <span>Pembaruan Otomatis:</span>
+        <span style="color: #34d399; font-weight: 800;">● LIVE TANPA RELOAD</span>
+      </div>
+    </div>
+
+    <div class="monitor-panel" id="s6-panel">
+      <div class="kpi-grid">
+        <div class="kpi-box">
+          <div class="kpi-lbl">Total Peserta Kelas 6A</div>
+          <div class="kpi-num">32 Siswa</div>
+        </div>
+        <div class="kpi-box">
+          <div class="kpi-lbl">Sudah Mengumpulkan</div>
+          <div class="kpi-num" style="color: #34d399;">29 Selesai</div>
+        </div>
+        <div class="kpi-box">
+          <div class="kpi-lbl">Sedang Mengerjakan</div>
+          <div class="kpi-num" style="color: #fbbf24;">3 Aktif</div>
+        </div>
+        <div class="kpi-box">
+          <div class="kpi-lbl">Menunggu Koreksi Esai</div>
+          <div class="kpi-num" style="color: #93c5fd;">1 Sesi</div>
+        </div>
+      </div>
+
+      <div class="session-list">
+        <div class="s-row highlight" id="s6-row-budi">
+          <span>Budi Santoso (6A)</span>
+          <span class="badge-done">SELESAI DIKUMPUL</span>
+          <span>20/20 PG • 5/5 Esai</span>
+          <span style="color: #6ee7b7;">Skor PG: 90,0 (Otomatis)</span>
+          <div class="proctor-btns">
+            <span class="p-btn emerald" id="s6-btn-periksa">📝 Periksa Sesi &amp; Nilai Esai</span>
+          </div>
+        </div>
+
+        <div class="s-row" id="s6-row-siti">
+          <span>Siti Aminah Putri (6A)</span>
+          <span class="badge-work">MENGERJAKAN</span>
+          <span>18/20 PG • 3/5 Esai</span>
+          <span style="color: #fbbf24;">HP Sempat Mati / Ganti HP</span>
+          <div class="proctor-btns">
+            <span class="p-btn amber" id="s6-btn-unlock">🔓 Buka Kunci Perangkat</span>
+            <span class="p-btn" id="s6-btn-time">⏱ +10m Waktu</span>
+            <span class="p-btn">⏹ Paksa Kumpul</span>
+          </div>
+        </div>
+
+        <div class="s-row">
+          <span>Rizky Pratama Wijaya (6A)</span>
+          <span class="badge-done">SELESAI DIKUMPUL</span>
+          <span>20/20 PG • 5/5 Esai</span>
+          <span style="color: #cbd5e1;">Nilai Akhir: 85,0</span>
+          <div class="proctor-btns">
+            <span class="p-btn">📝 Detail Sesi</span>
+          </div>
+        </div>
+
+        <div class="s-row">
+          <span>Nadia Maharani (6A)</span>
+          <span class="badge-done">SELESAI DIKUMPUL</span>
+          <span>20/20 PG • 5/5 Esai</span>
+          <span style="color: #cbd5e1;">Nilai Akhir: 82,5</span>
+          <div class="proctor-btns">
+            <span class="p-btn">📝 Detail Sesi</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid #334155; font-size: 18px; color: #94a3b8;">
+        <span>Kendali penuh di tangan pengawas: Buka kunci perangkat, tambah waktu per siswa, atau paksa kumpul.</span>
+        <span style="color: #34d399; font-weight: 800;">Siap Lanjut ke Pemeriksaan Soal →</span>
+      </div>
+    </div>
+
+    <svg class="cursor-ptr" data-layout-ignore id="s6-cursor" viewBox="0 0 36 36" fill="none">
+      <circle cx="14" cy="14" r="12" fill="rgba(16, 185, 129, 0.28)" />
+      <path d="M8 6L28 15L18 19L14 29L8 6Z" fill="#10B981" stroke="#052E16" stroke-width="2.5" />
+    </svg>
+
+    <div class="caption-bar" data-layout-allow-caption-zone id="s6-caption">
+      Pantau progres tiap siswa secara langsung. Gunakan tombol <span class="hl">Buka Kunci Perangkat</span>, <span class="hl">+10 Menit</span>, atau klik <span class="hl">Periksa Sesi</span>.
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    tl.fromTo("#s6-topbar", { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 0);
+    tl.fromTo("#s6-panel", { opacity: 0, y: 28 }, { opacity: 1, y: 0, duration: 0.5, ease: "expo.out" }, 0.15);
+    tl.fromTo("#s6-caption", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 0.2);
+
+    tl.fromTo("#s6-cursor", { x: 800, y: 500, opacity: 0 }, { x: 1290, y: 505, opacity: 1, duration: 0.75, ease: "power2.inOut" }, 6.8);
+    tl.to("#s6-btn-unlock", { scale: 0.93, duration: 0.14, yoyo: true, repeat: 1 }, 7.6);
+
+    tl.to("#s6-cursor", { x: 1475, y: 505, duration: 0.65, ease: "power2.inOut" }, 11.2);
+    tl.to("#s6-btn-time", { scale: 0.93, duration: 0.14, yoyo: true, repeat: 1 }, 11.9);
+
+    tl.to("#s6-cursor", { x: 1520, y: 405, duration: 0.75, ease: "power2.inOut" }, 14.5);
+    tl.to("#s6-btn-periksa", { scale: 0.93, duration: 0.14, yoyo: true, repeat: 1 }, 15.3);
+
+    window.__timelines = window.__timelines || {};
+    window.__timelines["scene-06"] = tl;
+    tl.seek(0);
+  </script>
+</template>

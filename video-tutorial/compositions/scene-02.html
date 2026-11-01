@@ -1,0 +1,414 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background-color: #0b1120;
+      background-image: radial-gradient(rgba(148, 163, 184, 0.14) 1px, transparent 1px);
+      background-size: 28px 28px;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #f8fafc;
+    }
+
+    .top-bar {
+      position: absolute;
+      top: 56px;
+      left: 192px;
+      right: 192px;
+      height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 20;
+    }
+
+    .step-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      background: #1e293b;
+      border: 2px solid #10b981;
+      border-radius: 999px;
+      padding: 10px 24px;
+      font-size: 22px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+
+    .step-badge {
+      background: #10b981;
+      color: #052e16;
+      font-weight: 800;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 18px;
+    }
+
+    .action-group {
+      display: flex;
+      gap: 14px;
+    }
+
+    .btn-top {
+      padding: 12px 22px;
+      border-radius: 12px;
+      font-size: 19px;
+      font-weight: 700;
+      background: #1e293b;
+      border: 1px solid #475569;
+      color: #f8fafc;
+    }
+
+    .btn-top.primary {
+      background: #10b981;
+      border-color: #10b981;
+      color: #052e16;
+      font-weight: 800;
+    }
+
+    .stage-grid {
+      position: absolute;
+      top: 144px;
+      left: 192px;
+      width: 1536px;
+      height: 700px;
+      display: grid;
+      grid-template-columns: 950px 556px;
+      gap: 30px;
+    }
+
+    .table-panel {
+      background: #0f172a;
+      border: 2px solid #334155;
+      border-radius: 20px;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #334155;
+    }
+
+    .panel-title {
+      font-size: 26px;
+      font-weight: 800;
+      color: #f8fafc;
+    }
+
+    .class-badge {
+      background: #1e293b;
+      border: 1px solid #10b981;
+      color: #6ee7b7;
+      padding: 6px 16px;
+      border-radius: 999px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .student-row {
+      display: grid;
+      grid-template-columns: 60px 230px 310px 160px 110px;
+      align-items: center;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 14px;
+      padding: 16px 20px;
+      font-size: 19px;
+      font-weight: 600;
+      color: #f8fafc;
+    }
+
+    .student-row.active-row {
+      border: 2px solid #10b981;
+      background: #064e3b;
+    }
+
+    .pin-chip {
+      display: inline-block;
+      font-family: Consolas, monospace;
+      font-size: 21px;
+      font-weight: 800;
+      background: #0f172a;
+      color: #34d399;
+      border: 1px solid #10b981;
+      padding: 6px 14px;
+      border-radius: 8px;
+      text-align: center;
+      width: 120px;
+    }
+
+    .card-preview {
+      background: #ffffff;
+      color: #0f172a;
+      border: 4px solid #10b981;
+      border-radius: 22px;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+    }
+
+    .k-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 16px;
+    }
+
+    .k-header img {
+      width: 52px;
+      height: 52px;
+    }
+
+    .k-school {
+      font-size: 21px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .k-sub {
+      font-size: 16px;
+      font-weight: 700;
+      color: #047857;
+    }
+
+    .k-body {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin: 14px 0;
+    }
+
+    .k-item {
+      display: flex;
+      justify-content: space-between;
+      font-size: 19px;
+      padding: 8px 0;
+      border-bottom: 1px dashed #cbd5e1;
+    }
+
+    .k-label {
+      color: #475569;
+      font-weight: 600;
+    }
+
+    .k-val {
+      color: #0f172a;
+      font-weight: 800;
+    }
+
+    .k-pin-box {
+      background: #0f172a;
+      color: #f8fafc;
+      border-radius: 16px;
+      padding: 18px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .k-pin-num {
+      font-family: Consolas, monospace;
+      font-size: 36px;
+      font-weight: 900;
+      color: #34d399;
+      letter-spacing: 0.12em;
+    }
+
+    .qr-sim {
+      width: 96px;
+      height: 96px;
+      background: #ffffff;
+      border: 3px solid #10b981;
+      border-radius: 12px;
+      padding: 8px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+    }
+
+    .qr-b { background: #0f172a; border-radius: 2px; }
+    .qr-w { background: #e2e8f0; border-radius: 2px; }
+
+    .cursor-ptr {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 42px;
+      height: 42px;
+      z-index: 40;
+      pointer-events: none;
+    }
+
+    .caption-bar {
+      position: absolute;
+      bottom: 58px;
+      left: 192px;
+      right: 192px;
+      background: #0f172a;
+      border: 2px solid #334155;
+      border-left: 8px solid #10b981;
+      border-radius: 16px;
+      padding: 18px 28px;
+      font-size: 25px;
+      font-weight: 600;
+      color: #f8fafc;
+      line-height: 1.38;
+      z-index: 30;
+    }
+
+    .hl { color: #34d399; font-weight: 800; }
+  </style>
+
+  <div
+    id="root"
+    data-composition-id="scene-02"
+    data-start="0"
+    data-duration="17.55"
+    data-width="1920"
+    data-height="1080"
+  >
+    <div class="top-bar" id="s2-topbar">
+      <div class="step-pill">
+        <span class="step-badge">LANGKAH 2 / 8</span>
+        <span>Manajemen Siswa, Impor CSV &amp; Kartu Peserta (QR + PIN)</span>
+      </div>
+      <div class="action-group">
+        <div class="btn-top" id="s2-btn-csv">📥 Impor CSV (32 Siswa)</div>
+        <div class="btn-top primary" id="s2-btn-print">🖨️ Cetak Kartu Peserta</div>
+      </div>
+    </div>
+
+    <div class="stage-grid">
+      <div class="table-panel" id="s2-table">
+        <div class="panel-header">
+          <span class="panel-title">Daftar Peserta Ujian • Kelas 6A</span>
+          <span class="class-badge">PIN 6 Digit Dibuat Otomatis</span>
+        </div>
+
+        <div class="student-row active-row" id="s2-row-1">
+          <span>01</span>
+          <span style="font-family: Consolas, monospace;">0123456789</span>
+          <span style="font-weight: 800;">Budi Santoso</span>
+          <span class="pin-chip">482915</span>
+          <span style="color: #6ee7b7; font-weight: 800;">Kelas 6A</span>
+        </div>
+
+        <div class="student-row" id="s2-row-2">
+          <span>02</span>
+          <span style="font-family: Consolas, monospace;">0123456790</span>
+          <span>Siti Aminah Putri</span>
+          <span class="pin-chip">739104</span>
+          <span>Kelas 6A</span>
+        </div>
+
+        <div class="student-row" id="s2-row-3">
+          <span>03</span>
+          <span style="font-family: Consolas, monospace;">0123456791</span>
+          <span>Rizky Pratama Wijaya</span>
+          <span class="pin-chip">591820</span>
+          <span>Kelas 6A</span>
+        </div>
+
+        <div class="student-row" id="s2-row-4">
+          <span>04</span>
+          <span style="font-family: Consolas, monospace;">0123456792</span>
+          <span>Nadia Maharani</span>
+          <span class="pin-chip">840261</span>
+          <span>Kelas 6A</span>
+        </div>
+
+        <div class="student-row" id="s2-row-5">
+          <span>05</span>
+          <span style="font-family: Consolas, monospace;">0123456793</span>
+          <span>Dimas Aditya Saputra</span>
+          <span class="pin-chip">317649</span>
+          <span>Kelas 6A</span>
+        </div>
+      </div>
+
+      <div class="card-preview" id="s2-card">
+        <div>
+          <div class="k-header">
+            <img src="assets/images/niluji-app-icon.svg" alt="Logo" />
+            <div>
+              <div class="k-school">KARTU PESERTA UJIAN CBT</div>
+              <div class="k-sub">SD Negeri Nusantara 01 • UAS Genap</div>
+            </div>
+          </div>
+
+          <div class="k-body">
+            <div class="k-item">
+              <span class="k-label">Nama Peserta</span>
+              <span class="k-val">Budi Santoso</span>
+            </div>
+            <div class="k-item">
+              <span class="k-label">NISN / Username</span>
+              <span class="k-val" style="font-family: Consolas, monospace;">0123456789</span>
+            </div>
+            <div class="k-item">
+              <span class="k-label">Rombongan Belajar</span>
+              <span class="k-val">Kelas 6A</span>
+            </div>
+            <div class="k-item">
+              <span class="k-label">Server Ujian LAN</span>
+              <span class="k-val" style="font-family: Consolas, monospace;">192.168.1.10:3000/cbt</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="k-pin-box">
+          <div>
+            <div style="font-size: 16px; color: #94a3b8; font-weight: 700;">PIN LOGIN 6 DIGIT</div>
+            <div class="k-pin-num">482915</div>
+            <div style="font-size: 15px; color: #cbd5e1; margin-top: 4px;">Pindai QR untuk buka Portal CBT</div>
+          </div>
+          <div class="qr-sim">
+            <span class="qr-b"></span><span class="qr-b"></span><span class="qr-w"></span><span class="qr-b"></span>
+            <span class="qr-b"></span><span class="qr-w"></span><span class="qr-b"></span><span class="qr-b"></span>
+            <span class="qr-w"></span><span class="qr-b"></span><span class="qr-b"></span><span class="qr-w"></span>
+            <span class="qr-b"></span><span class="qr-b"></span><span class="qr-w"></span><span class="qr-b"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <svg class="cursor-ptr" data-layout-ignore id="s2-cursor" viewBox="0 0 36 36" fill="none">
+      <circle cx="14" cy="14" r="12" fill="rgba(16, 185, 129, 0.28)" />
+      <path d="M8 6L28 15L18 19L14 29L8 6Z" fill="#10B981" stroke="#052E16" stroke-width="2.5" />
+    </svg>
+
+    <div class="caption-bar" data-layout-allow-caption-zone id="s2-caption">
+      Impor daftar siswa lewat <span class="hl">CSV</span>. NILUJI otomatis mengacak <span class="hl">PIN 6 Digit</span> unik dan mencetak <span class="hl">Kartu Peserta ber-QR Code</span>.
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    tl.fromTo("#s2-topbar", { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 0);
+    tl.fromTo("#s2-table", { opacity: 0, x: -35 }, { opacity: 1, x: 0, duration: 0.5, ease: "expo.out" }, 0.15);
+    tl.fromTo(["#s2-row-1", "#s2-row-2", "#s2-row-3", "#s2-row-4", "#s2-row-5"], { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.35, stagger: 0.1, ease: "power2.out" }, 0.45);
+    tl.fromTo("#s2-caption", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 0.2);
+
+    tl.fromTo("#s2-cursor", { x: 960, y: 500, opacity: 0 }, { x: 1310, y: 92, opacity: 1, duration: 0.65, ease: "power2.inOut" }, 1.8);
+    tl.to("#s2-btn-csv", { scale: 0.94, duration: 0.12, yoyo: true, repeat: 1 }, 2.5);
+
+    tl.to("#s2-cursor", { x: 1580, y: 92, duration: 0.75, ease: "power2.inOut" }, 6.8);
+    tl.to("#s2-btn-print", { scale: 0.94, duration: 0.12, yoyo: true, repeat: 1 }, 7.6);
+    tl.fromTo("#s2-card", { opacity: 0, scale: 0.9, x: 40 }, { opacity: 1, scale: 1, x: 0, duration: 0.55, ease: "back.out(1.4)" }, 7.7);
+
+    window.__timelines = window.__timelines || {};
+    window.__timelines["scene-02"] = tl;
+    tl.seek(0);
+  </script>
+</template>

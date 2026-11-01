@@ -1,0 +1,387 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background-color: #0b1120;
+      background-image: radial-gradient(rgba(148, 163, 184, 0.14) 1px, transparent 1px);
+      background-size: 28px 28px;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #f8fafc;
+    }
+
+    .top-bar {
+      position: absolute;
+      top: 56px;
+      left: 192px;
+      right: 192px;
+      height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 20;
+    }
+
+    .step-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      background: #1e293b;
+      border: 2px solid #10b981;
+      border-radius: 999px;
+      padding: 10px 24px;
+      font-size: 22px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+
+    .step-badge {
+      background: #10b981;
+      color: #052e16;
+      font-weight: 800;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 18px;
+    }
+
+    .brand-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      padding: 10px 22px;
+      border-radius: 14px;
+      font-size: 20px;
+      font-weight: 700;
+      color: #e2e8f0;
+    }
+
+    .brand-tag img {
+      width: 32px;
+      height: 32px;
+    }
+
+    .stage-Rig {
+      position: absolute;
+      top: 144px;
+      left: 192px;
+      width: 1536px;
+      height: 700px;
+      display: grid;
+      grid-template-columns: 930px 576px;
+      gap: 30px;
+    }
+
+    .browser-frame {
+      background: #0f172a;
+      border: 2px solid #334155;
+      border-radius: 20px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+    }
+
+    .browser-header {
+      height: 48px;
+      background: #1e293b;
+      border-bottom: 1px solid #334155;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 12px;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    .dot-r { background: #ef4444; }
+    .dot-y { background: #f59e0b; }
+    .dot-g { background: #10b981; }
+
+    .browser-title {
+      margin-left: 12px;
+      font-size: 17px;
+      font-weight: 600;
+      color: #cbd5e1;
+      font-family: Consolas, monospace;
+    }
+
+    .browser-body {
+      position: relative;
+      flex: 1;
+      background: #f8fafc;
+      overflow: hidden;
+    }
+
+    .browser-body img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top left;
+    }
+
+    .spotlight-ring {
+      position: absolute;
+      top: 305px;
+      left: 185px;
+      width: 350px;
+      height: 255px;
+      border: 4px solid #10b981;
+      border-radius: 16px;
+      background: rgba(16, 185, 129, 0.08);
+      pointer-events: none;
+    }
+
+    .right-column {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .server-card {
+      background: #0f172a;
+      border: 2px solid #10b981;
+      border-radius: 20px;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .status-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .status-live {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: #064e3b;
+      color: #6ee7b7;
+      border: 1px solid #10b981;
+      padding: 6px 16px;
+      border-radius: 999px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #10b981;
+    }
+
+    .card-h3 {
+      font-size: 28px;
+      font-weight: 800;
+      color: #f8fafc;
+      letter-spacing: -0.01em;
+    }
+
+    .ip-box {
+      background: #1e293b;
+      border: 1px solid #475569;
+      border-radius: 12px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .ip-label {
+      font-size: 16px;
+      font-weight: 600;
+      color: #94a3b8;
+    }
+
+    .ip-url {
+      font-family: Consolas, monospace;
+      font-size: 23px;
+      font-weight: 800;
+      color: #34d399;
+    }
+
+    .school-card {
+      background: #0f172a;
+      border: 2px solid #334155;
+      border-radius: 20px;
+      padding: 26px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .field-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .field-label {
+      font-size: 16px;
+      font-weight: 600;
+      color: #94a3b8;
+    }
+
+    .field-val {
+      background: #1e293b;
+      border: 1px solid #475569;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 20px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+
+    .btn-save {
+      margin-top: 14px;
+      background: #10b981;
+      color: #052e16;
+      font-size: 20px;
+      font-weight: 800;
+      padding: 14px 22px;
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    .cursor-ptr {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 42px;
+      height: 42px;
+      z-index: 40;
+      pointer-events: none;
+    }
+
+    .caption-bar {
+      position: absolute;
+      bottom: 58px;
+      left: 192px;
+      right: 192px;
+      background: #0f172a;
+      border: 2px solid #334155;
+      border-left: 8px solid #10b981;
+      border-radius: 16px;
+      padding: 18px 28px;
+      font-size: 25px;
+      font-weight: 600;
+      color: #f8fafc;
+      line-height: 1.38;
+      z-index: 30;
+    }
+
+    .hl {
+      color: #34d399;
+      font-weight: 800;
+    }
+  </style>
+
+  <div
+    id="root"
+    data-composition-id="scene-01"
+    data-start="0"
+    data-duration="16.26"
+    data-width="1920"
+    data-height="1080"
+  >
+    <div class="top-bar" id="s1-topbar">
+      <div class="step-pill">
+        <span class="step-badge">LANGKAH 1 / 8</span>
+        <span>Persiapan Server Lokal &amp; Identitas Sekolah</span>
+      </div>
+      <div class="brand-tag">
+        <img src="assets/images/niluji-app-icon.svg" alt="NILUJI" />
+        <span>NILUJI Desktop v0.2.0 • 100% Offline LAN</span>
+      </div>
+    </div>
+
+    <div class="stage-Rig">
+      <div class="browser-frame" id="s1-browser">
+        <div class="browser-header">
+          <span class="dot dot-r"></span>
+          <span class="dot dot-y"></span>
+          <span class="dot dot-g"></span>
+          <span class="browser-title">NILUJI — Dashboard Proktor &amp; Status Server Ujian</span>
+        </div>
+        <div class="browser-body">
+          <img id="s1-shot" src="assets/images/dashboard_verified.png" alt="Dashboard NILUJI" />
+          <div class="spotlight-ring" data-layout-ignore id="s1-ring"></div>
+        </div>
+      </div>
+
+      <div class="right-column">
+        <div class="server-card" id="s1-server">
+          <div class="status-header">
+            <span class="card-h3">Akses Ujian Siswa</span>
+            <span class="status-live"><span class="status-dot"></span>SERVER AKTIF</span>
+          </div>
+          <div class="ip-box">
+            <div>
+              <div class="ip-label">Alamat Portal CBT (Wi-Fi LAN)</div>
+              <div class="ip-url">http://192.168.1.10:3000/cbt</div>
+            </div>
+          </div>
+          <div style="font-size: 18px; color: #cbd5e1; line-height: 1.4;">
+            Siswa cukup terhubung ke Wi-Fi ruang ujian tanpa kuota internet dan memindai QR Code.
+          </div>
+        </div>
+
+        <div class="school-card" id="s1-school">
+          <div>
+            <div class="card-h3" style="font-size: 24px;">Pengaturan Identitas Sekolah</div>
+            <div class="field-row">
+              <span class="field-label">Nama Instansi / Sekolah</span>
+              <div class="field-val">SD Negeri Nusantara 01 Jakarta</div>
+            </div>
+            <div class="field-row">
+              <span class="field-label">Tahun Ajaran &amp; Semester</span>
+              <div class="field-val">2026 / 2027 • Semester Genap (UAS)</div>
+            </div>
+          </div>
+          <div class="btn-save" id="s1-save-btn">✓ Identitas Sekolah Tersimpan</div>
+        </div>
+      </div>
+    </div>
+
+    <svg class="cursor-ptr" data-layout-ignore id="s1-cursor" viewBox="0 0 36 36" fill="none">
+      <circle cx="14" cy="14" r="12" fill="rgba(16, 185, 129, 0.28)" />
+      <path d="M8 6L28 15L18 19L14 29L8 6Z" fill="#10B981" stroke="#052E16" stroke-width="2.5" />
+    </svg>
+
+    <div class="caption-bar" data-layout-allow-caption-zone id="s1-caption">
+      Selamat datang di <span class="hl">NILUJI</span>. Pastikan <span class="hl">Server Ujian Aktif (Hijau)</span> pada jaringan Wi-Fi lokal, lalu simpan identitas sekolah di menu <span class="hl">Pengaturan</span>.
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    tl.fromTo("#s1-topbar", { y: -8 }, { y: 0, duration: 0.45, ease: "power3.out" }, 0);
+    tl.fromTo("#s1-browser", { x: -12 }, { x: 0, duration: 0.55, ease: "expo.out" }, 0);
+    tl.fromTo("#s1-server", { opacity: 0, x: 40 }, { opacity: 1, x: 0, duration: 0.55, ease: "expo.out" }, 0.25);
+    tl.fromTo("#s1-school", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.55, ease: "expo.out" }, 0.4);
+    tl.fromTo("#s1-caption", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 0.2);
+
+    tl.fromTo("#s1-ring", { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(1.6)" }, 3.2);
+    tl.fromTo("#s1-shot", { scale: 1, x: 0, y: 0 }, { scale: 1.18, x: 40, y: -35, duration: 0.8, ease: "expo.out" }, 3.2);
+
+    tl.fromTo("#s1-cursor", { x: 520, y: 480, opacity: 0 }, { x: 1420, y: 310, opacity: 1, duration: 0.7, ease: "power2.inOut" }, 5.5);
+    tl.to("#s1-cursor", { x: 1450, y: 785, duration: 0.85, ease: "power2.inOut" }, 9.8);
+    tl.to("#s1-save-btn", { scale: 0.96, duration: 0.12, yoyo: true, repeat: 1 }, 10.7);
+
+    window.__timelines = window.__timelines || {};
+    window.__timelines["scene-01"] = tl;
+    tl.seek(0);
+  </script>
+</template>

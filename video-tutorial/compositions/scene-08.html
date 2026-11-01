@@ -1,0 +1,282 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background-color: #0b1120;
+      background-image: radial-gradient(rgba(148, 163, 184, 0.14) 1px, transparent 1px);
+      background-size: 28px 28px;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #f8fafc;
+    }
+
+    .top-bar {
+      position: absolute;
+      top: 56px;
+      left: 192px;
+      right: 192px;
+      height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 20;
+    }
+
+    .step-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      background: #1e293b;
+      border: 2px solid #10b981;
+      border-radius: 999px;
+      padding: 10px 24px;
+      font-size: 22px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+
+    .step-badge {
+      background: #10b981;
+      color: #052e16;
+      font-weight: 800;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 18px;
+    }
+
+    .btn-excel {
+      background: #10b981;
+      color: #052e16;
+      font-size: 20px;
+      font-weight: 900;
+      padding: 12px 26px;
+      border-radius: 12px;
+    }
+
+    .stage-grid {
+      position: absolute;
+      top: 144px;
+      left: 192px;
+      width: 1536px;
+      height: 700px;
+      display: grid;
+      grid-template-columns: 940px 566px;
+      gap: 30px;
+    }
+
+    .distractor-card {
+      background: #0f172a;
+      border: 2px solid #334155;
+      border-radius: 20px;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .d-row {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 14px;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .d-bars {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+    }
+
+    .d-pill {
+      background: #0f172a;
+      border: 1px solid #475569;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-family: Consolas, monospace;
+      font-size: 16px;
+      font-weight: 700;
+      color: #cbd5e1;
+      text-align: center;
+    }
+
+    .d-pill.key {
+      background: #064e3b;
+      border: 2px solid #10b981;
+      color: #34d399;
+      font-weight: 900;
+    }
+
+    .outro-card {
+      background: #0f172a;
+      border: 3px solid #10b981;
+      border-radius: 20px;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      text-align: center;
+    }
+
+    .outro-card img {
+      width: 96px;
+      height: 96px;
+    }
+
+    .url-box {
+      width: 100%;
+      background: #1e293b;
+      border: 2px solid #10b981;
+      border-radius: 14px;
+      padding: 16px;
+      font-family: Consolas, monospace;
+      font-size: 22px;
+      font-weight: 900;
+      color: #34d399;
+    }
+
+    .cursor-ptr {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 42px;
+      height: 42px;
+      z-index: 40;
+      pointer-events: none;
+    }
+
+    .caption-bar {
+      position: absolute;
+      bottom: 58px;
+      left: 192px;
+      right: 192px;
+      background: #0f172a;
+      border: 2px solid #334155;
+      border-left: 8px solid #10b981;
+      border-radius: 16px;
+      padding: 18px 28px;
+      font-size: 25px;
+      font-weight: 600;
+      color: #f8fafc;
+      line-height: 1.38;
+      z-index: 30;
+    }
+
+    .hl { color: #34d399; font-weight: 800; }
+  </style>
+
+  <div
+    id="root"
+    data-composition-id="scene-08"
+    data-start="0"
+    data-duration="23.24"
+    data-width="1920"
+    data-height="1080"
+  >
+    <div class="top-bar" id="s8-topbar">
+      <div class="step-pill">
+        <span class="step-badge">LANGKAH 8 / 8</span>
+        <span>Analisis Butir Soal (Pengecoh A–D) &amp; Ekspor Nilai (.xlsx)</span>
+      </div>
+      <div class="btn-excel" id="s8-btn-excel">📊 Ekspor Rekap Nilai (.xlsx)</div>
+    </div>
+
+    <div class="stage-grid">
+      <div class="distractor-card" id="s8-distractor">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 24px; font-weight: 800;">Tabel Analisis Pengecoh &amp; Tingkat Kesulitan</span>
+          <span style="font-size: 17px; color: #34d399; font-weight: 700;">Evaluasi Mutu Butir Soal</span>
+        </div>
+
+        <div class="d-row">
+          <div style="display: flex; justify-content: space-between; font-size: 19px; font-weight: 800;">
+            <span>Soal #1: Jaringan Fotosintesis Daun</span>
+            <span style="color: #34d399;">Kategori: MUDAH (87,5% Benar)</span>
+          </div>
+          <div class="d-bars">
+            <div class="d-pill">A: 6,2%</div>
+            <div class="d-pill key">B: 87,5% ✓</div>
+            <div class="d-pill">C: 3,1%</div>
+            <div class="d-pill">D: 3,1%</div>
+            <div class="d-pill">Kosong: 0%</div>
+          </div>
+        </div>
+
+        <div class="d-row">
+          <div style="display: flex; justify-content: space-between; font-size: 19px; font-weight: 800;">
+            <span>Soal #4: Rangkaian Listrik Paralel</span>
+            <span style="color: #fbbf24;">Kategori: SEDANG (62,5% Benar)</span>
+          </div>
+          <div class="d-bars">
+            <div class="d-pill">A: 12,5%</div>
+            <div class="d-pill">B: 18,8%</div>
+            <div class="d-pill key">C: 62,5% ✓</div>
+            <div class="d-pill">D: 6,2%</div>
+            <div class="d-pill">Kosong: 0%</div>
+          </div>
+        </div>
+
+        <div class="d-row">
+          <div style="display: flex; justify-content: space-between; font-size: 19px; font-weight: 800;">
+            <span>Soal #9: Perubahan Energi Kinetik</span>
+            <span style="color: #f87171;">Kategori: SULIT (28,1% Benar)</span>
+          </div>
+          <div class="d-bars">
+            <div class="d-pill">A: 25,0%</div>
+            <div class="d-pill">B: 37,5%</div>
+            <div class="d-pill">C: 6,3%</div>
+            <div class="d-pill key">D: 28,1% ✓</div>
+            <div class="d-pill">Kosong: 3,1%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="outro-card" id="s8-outro">
+        <img src="assets/images/niluji-app-icon.svg" alt="NILUJI" />
+        <div>
+          <div style="font-size: 36px; font-weight: 900; letter-spacing: -0.02em;">NILUJI</div>
+          <div style="font-size: 19px; color: #6ee7b7; font-weight: 700; margin-top: 4px;">
+            Aplikasi Ujian Lokal (Offline-First CBT)
+          </div>
+          <div style="font-size: 17px; color: #cbd5e1; margin-top: 12px; line-height: 1.45;">
+            Gratis &amp; Sumber Terbuka (MIT) untuk Windows, macOS, dan Linux. Karya <strong style="color: #ffffff;">Naratama Permadi</strong>.
+          </div>
+        </div>
+
+        <div style="width: 100%; display: flex; flex-direction: column; gap: 10px;">
+          <div class="url-box">narr07.github.io/niluji</div>
+          <div style="font-size: 17px; font-weight: 700; color: #94a3b8;">permadi.dev/id/projek/niluji</div>
+        </div>
+      </div>
+    </div>
+
+    <svg class="cursor-ptr" data-layout-ignore id="s8-cursor" viewBox="0 0 36 36" fill="none">
+      <circle cx="14" cy="14" r="12" fill="rgba(16, 185, 129, 0.28)" />
+      <path d="M8 6L28 15L18 19L14 29L8 6Z" fill="#10B981" stroke="#052E16" stroke-width="2.5" />
+    </svg>
+
+    <div class="caption-bar" data-layout-allow-caption-zone id="s8-caption">
+      Evaluasi sebaran opsi <span class="hl">A, B, C, D &amp; Kosong</span> pada <span class="hl">Analisis Pengecoh</span>, lalu klik <span class="hl">Ekspor Excel (.xlsx)</span>. Unduh gratis di <span class="hl">narr07.github.io/niluji</span>!
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    tl.fromTo("#s8-topbar", { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 0);
+    tl.fromTo("#s8-distractor", { opacity: 0, x: -35 }, { opacity: 1, x: 0, duration: 0.5, ease: "expo.out" }, 0.15);
+    tl.fromTo("#s8-outro", { opacity: 0, x: 35 }, { opacity: 1, x: 0, duration: 0.5, ease: "expo.out" }, 0.3);
+    tl.fromTo("#s8-caption", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 0.2);
+
+    tl.fromTo("#s8-cursor", { x: 640, y: 420, opacity: 0 }, { x: 1560, y: 92, opacity: 1, duration: 0.85, ease: "power2.inOut" }, 11.2);
+    tl.to("#s8-btn-excel", { scale: 0.93, duration: 0.14, yoyo: true, repeat: 1 }, 12.1);
+
+    window.__timelines = window.__timelines || {};
+    window.__timelines["scene-08"] = tl;
+    tl.seek(0);
+  </script>
+</template>

@@ -61,6 +61,22 @@ Ujian Sekolah [100% Offline]{.text-primary} Tanpa Ribet Server.
 
 ::u-page-section{class="dark:bg-neutral-950"}
 #title
+Tonton Video Tutorial Lengkap (2 Menit 37 Detik)
+
+#description
+Panduan langkah demi langkah bersuara Bahasa Indonesia—mulai dari menyalakan server lokal, mencetak kartu peserta QR + PIN, impor soal bergambar, pengerjaan di Portal CBT, pantauan pengawas real-time, hingga **pemeriksaan soal Pilihan Ganda, koreksi Esai manual, munculnya Nilai Akhir Ujian (`88,5`), dan Analisis Pengecoh**.
+
+#default
+<div class="max-w-5xl mx-auto rounded-2xl overflow-hidden border border-neutral-200 dark:border-neutral-800 shadow-2xl bg-neutral-950">
+  <video controls preload="metadata" poster="/niluji/images/tutorial-poster.png" class="w-full aspect-video">
+    <source src="/niluji/video/niluji-tutorial-lengkap.mp4" type="video/mp4">
+    Browser Anda tidak mendukung pemutar video HTML5.
+  </video>
+</div>
+::
+
+::u-page-section{class="dark:bg-neutral-950"}
+#title
 Dirancang Khusus untuk Kebutuhan Nyata Ruang Ujian Sekolah
 
 #links

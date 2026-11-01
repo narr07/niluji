@@ -1,0 +1,386 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background-color: #0b1120;
+      background-image: radial-gradient(rgba(148, 163, 184, 0.14) 1px, transparent 1px);
+      background-size: 28px 28px;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #f8fafc;
+    }
+
+    .top-bar {
+      position: absolute;
+      top: 56px;
+      left: 192px;
+      right: 192px;
+      height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 20;
+    }
+
+    .step-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      background: #1e293b;
+      border: 2px solid #10b981;
+      border-radius: 999px;
+      padding: 10px 24px;
+      font-size: 22px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+
+    .step-badge {
+      background: #10b981;
+      color: #052e16;
+      font-weight: 800;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 18px;
+    }
+
+    .stage-grid {
+      position: absolute;
+      top: 144px;
+      left: 192px;
+      width: 1536px;
+      height: 700px;
+      display: grid;
+      grid-template-columns: 760px 746px;
+      gap: 30px;
+    }
+
+    .inspect-card {
+      background: #0f172a;
+      border: 2px solid #334155;
+      border-radius: 20px;
+      padding: 26px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .pg-summary {
+      background: #1e293b;
+      border: 1px solid #10b981;
+      border-radius: 14px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .pg-items {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .pg-chip {
+      background: #064e3b;
+      border: 1px solid #10b981;
+      color: #6ee7b7;
+      font-family: Consolas, monospace;
+      font-size: 16px;
+      font-weight: 800;
+      padding: 8px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .pg-chip.wrong {
+      background: #450a0a;
+      border-color: #ef4444;
+      color: #fca5a5;
+    }
+
+    .essay-grade-box {
+      background: #1e293b;
+      border: 2px solid #3b82f6;
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .score-input-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-top: 4px;
+    }
+
+    .score-field {
+      background: #0f172a;
+      border: 2px solid #10b981;
+      border-radius: 12px;
+      padding: 10px 20px;
+      font-family: Consolas, monospace;
+      font-size: 28px;
+      font-weight: 900;
+      color: #34d399;
+    }
+
+    .btn-save-essay {
+      background: #10b981;
+      color: #052e16;
+      font-size: 19px;
+      font-weight: 900;
+      padding: 14px 24px;
+      border-radius: 12px;
+    }
+
+    .result-card {
+      background: #0f172a;
+      border: 3px solid #10b981;
+      border-radius: 20px;
+      padding: 26px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .hero-score-box {
+      background: #064e3b;
+      border: 2px solid #10b981;
+      border-radius: 18px;
+      padding: 22px 26px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .big-score {
+      font-family: Consolas, monospace;
+      font-size: 68px;
+      font-weight: 900;
+      color: #34d399;
+      line-height: 1;
+    }
+
+    .rank-table {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .r-row {
+      display: grid;
+      grid-template-columns: 56px 220px 120px 120px 1fr;
+      align-items: center;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .r-row.top1 {
+      background: #064e3b;
+      border: 2px solid #10b981;
+      color: #ffffff;
+    }
+
+    .final-pill {
+      background: #10b981;
+      color: #052e16;
+      font-family: Consolas, monospace;
+      font-size: 20px;
+      font-weight: 900;
+      padding: 6px 14px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .cursor-ptr {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 42px;
+      height: 42px;
+      z-index: 40;
+      pointer-events: none;
+    }
+
+    .caption-bar {
+      position: absolute;
+      bottom: 58px;
+      left: 192px;
+      right: 192px;
+      background: #0f172a;
+      border: 2px solid #334155;
+      border-left: 8px solid #10b981;
+      border-radius: 16px;
+      padding: 18px 28px;
+      font-size: 25px;
+      font-weight: 600;
+      color: #f8fafc;
+      line-height: 1.38;
+      z-index: 30;
+    }
+
+    .hl { color: #34d399; font-weight: 800; }
+  </style>
+
+  <div
+    id="root"
+    data-composition-id="scene-07"
+    data-start="0"
+    data-duration="25.21"
+    data-width="1920"
+    data-height="1080"
+  >
+    <div class="top-bar" id="s7-topbar">
+      <div class="step-pill">
+        <span class="step-badge">LANGKAH 7 / 8</span>
+        <span>Pemeriksaan Soal, Koreksi Esai &amp; Kemunculan Nilai Ujian</span>
+      </div>
+      <div class="step-pill" style="border-color: #10b981;">
+        <span>Siswa Diperiksa:</span>
+        <span style="color: #34d399; font-weight: 800;">Budi Santoso (Kelas 6A)</span>
+      </div>
+    </div>
+
+    <div class="stage-grid">
+      <div class="inspect-card" id="s7-inspect">
+        <div>
+          <div style="font-size: 23px; font-weight: 800; margin-bottom: 12px;">
+            1. Pemeriksaan Pilihan Ganda (Otomatis)
+          </div>
+          <div class="pg-summary">
+            <div>
+              <div style="font-size: 16px; color: #94a3b8;">Jawaban Benar PG</div>
+              <div style="font-size: 24px; font-weight: 900; color: #f8fafc;">18 / 20 Soal Benar</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-size: 16px; color: #6ee7b7;">Skor Murni PG</div>
+              <div style="font-family: Consolas, monospace; font-size: 30px; font-weight: 900; color: #34d399;">90,0</div>
+            </div>
+          </div>
+
+          <div class="pg-items">
+            <div class="pg-chip">#1 B ✓</div>
+            <div class="pg-chip">#2 A ✓</div>
+            <div class="pg-chip">#3 D ✓</div>
+            <div class="pg-chip wrong">#4 C ✗</div>
+            <div class="pg-chip">#5 B ✓</div>
+            <div class="pg-chip">#6 C ✓</div>
+            <div class="pg-chip">#7 A ✓</div>
+            <div class="pg-chip">#8 D ✓</div>
+            <div class="pg-chip wrong">#9 B ✗</div>
+            <div class="pg-chip">#10 A ✓</div>
+          </div>
+        </div>
+
+        <div class="essay-grade-box" id="s7-essay-box">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 21px; font-weight: 800; color: #93c5fd;">2. Koreksi Jawaban Esai (Manual Guru)</span>
+            <span style="font-size: 15px; background: #1e3a8a; color: #93c5fd; padding: 4px 12px; border-radius: 999px; font-weight: 700;">Bobot 30%</span>
+          </div>
+          <div style="font-size: 17px; color: #e2e8f0; background: #0f172a; padding: 12px 16px; border-radius: 10px; line-height: 1.4;">
+            Jawaban Siswa: "Intensitas cahaya matahari, kadar CO2 &amp; air, serta suhu lingkungan optimum bagi klorofil."
+          </div>
+          <div class="score-input-row">
+            <div>
+              <div style="font-size: 15px; color: #94a3b8; font-weight: 600;">Input Skor Esai (0–100):</div>
+              <div class="score-field" id="s7-score-input">85,0</div>
+            </div>
+            <div class="btn-save-essay" id="s7-btn-save">✓ Simpan Nilai Esai</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="result-card" id="s7-result">
+        <div>
+          <div style="font-size: 23px; font-weight: 800; margin-bottom: 12px;">
+            3. Nilai Akhir Ujian Muncul Seketika!
+          </div>
+
+          <div class="hero-score-box" id="s7-hero-score">
+            <div>
+              <div style="font-size: 17px; font-weight: 800; color: #6ee7b7;">NILAI AKHIR TERTIMBANG (BUDI SANTOSO)</div>
+              <div style="font-family: Consolas, monospace; font-size: 18px; color: #e2e8f0; margin-top: 6px;">
+                (90,0 × 70%) + (85,0 × 30%) = 63,0 + 25,5
+              </div>
+              <div style="margin-top: 10px; display: inline-block; background: #10b981; color: #052e16; font-weight: 900; padding: 4px 14px; border-radius: 999px; font-size: 16px;">
+                ★ LULUS • PERINGKAT #1 KELAS 6A
+              </div>
+            </div>
+            <div class="big-score">88,5</div>
+          </div>
+        </div>
+
+        <div class="rank-table">
+          <div style="font-size: 18px; font-weight: 800; color: #cbd5e1; margin-bottom: 4px;">
+            Tabel Peringkat Nilai Akhir Kelas 6A (Terbaru):
+          </div>
+
+          <div class="r-row top1" id="s7-rank-1">
+            <span>#1</span>
+            <span>Budi Santoso</span>
+            <span>PG: 90,0</span>
+            <span>Esai: 85,0</span>
+            <span class="final-pill">88,5</span>
+          </div>
+
+          <div class="r-row">
+            <span>#2</span>
+            <span>Rizky Pratama W.</span>
+            <span>PG: 85,0</span>
+            <span>Esai: 85,0</span>
+            <span class="final-pill" style="background: #1e293b; color: #34d399; border: 1px solid #10b981;">85,0</span>
+          </div>
+
+          <div class="r-row">
+            <span>#3</span>
+            <span>Nadia Maharani</span>
+            <span>PG: 85,0</span>
+            <span>Esai: 76,7</span>
+            <span class="final-pill" style="background: #1e293b; color: #34d399; border: 1px solid #10b981;">82,5</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <svg class="cursor-ptr" data-layout-ignore id="s7-cursor" viewBox="0 0 36 36" fill="none">
+      <circle cx="14" cy="14" r="12" fill="rgba(16, 185, 129, 0.28)" />
+      <path d="M8 6L28 15L18 19L14 29L8 6Z" fill="#10B981" stroke="#052E16" stroke-width="2.5" />
+    </svg>
+
+    <div class="caption-bar" data-layout-allow-caption-zone id="s7-caption">
+      Periksa rincian <span class="hl">Pilihan Ganda (90,0)</span>, masukkan skor <span class="hl">Esai (85,0)</span>, klik Simpan, dan <span class="hl">Nilai Akhir 88,5</span> langsung muncul!
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    tl.fromTo("#s7-topbar", { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 0);
+    tl.fromTo("#s7-inspect", { opacity: 0, x: -35 }, { opacity: 1, x: 0, duration: 0.5, ease: "expo.out" }, 0.15);
+    tl.fromTo("#s7-result", { opacity: 0, x: 35 }, { opacity: 1, x: 0, duration: 0.5, ease: "expo.out" }, 0.3);
+    tl.fromTo("#s7-caption", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 0.2);
+
+    tl.fromTo("#s7-cursor", { x: 450, y: 310, opacity: 0 }, { x: 450, y: 745, opacity: 1, duration: 0.8, ease: "power2.inOut" }, 9.2);
+    tl.fromTo("#s7-score-input", { scale: 0.92 }, { scale: 1, duration: 0.35, ease: "back.out(1.7)" }, 10.1);
+
+    tl.to("#s7-cursor", { x: 760, y: 745, duration: 0.65, ease: "power2.inOut" }, 13.4);
+    tl.to("#s7-btn-save", { scale: 0.93, duration: 0.14, yoyo: true, repeat: 1 }, 14.1);
+
+    tl.fromTo("#s7-hero-score", { scale: 0.94 }, { scale: 1, duration: 0.5, ease: "back.out(1.8)" }, 14.5);
+    tl.fromTo("#s7-rank-1", { x: 25, opacity: 0.5 }, { x: 0, opacity: 1, duration: 0.45, ease: "expo.out" }, 15.2);
+
+    window.__timelines = window.__timelines || {};
+    window.__timelines["scene-07"] = tl;
+    tl.seek(0);
+  </script>
+</template>

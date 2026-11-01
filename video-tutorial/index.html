@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="id" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Tutorial Lengkap NILUJI — Dari Persiapan Server hingga Nilai Akhir &amp; Analisis Soal</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      :root {
+        --ground: #0b1120;
+        --ink: #f8fafc;
+        --font-display: 'Roboto', sans-serif;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--ground);
+        color: var(--ink);
+        font-family: var(--font-display);
+      }
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--ground);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="157.03"
+      data-width="1920"
+      data-height="1080"
+    >
+      <!-- Sub-Compositions: host id, data-composition-id, scene root, and timeline key all match -->
+      <div
+        id="scene-01"
+        data-composition-id="scene-01"
+        data-composition-src="compositions/scene-01.html"
+        data-start="0"
+        data-duration="16.26"
+        data-track-index="0"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div
+        id="scene-02"
+        data-composition-id="scene-02"
+        data-composition-src="compositions/scene-02.html"
+        data-start="16.26"
+        data-duration="17.55"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div
+        id="scene-03"
+        data-composition-id="scene-03"
+        data-composition-src="compositions/scene-03.html"
+        data-start="33.81"
+        data-duration="16.11"
+        data-track-index="0"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div
+        id="scene-04"
+        data-composition-id="scene-04"
+        data-composition-src="compositions/scene-04.html"
+        data-start="49.92"
+        data-duration="18.27"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div
+        id="scene-05"
+        data-composition-id="scene-05"
+        data-composition-src="compositions/scene-05.html"
+        data-start="68.19"
+        data-duration="21.66"
+        data-track-index="0"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div
+        id="scene-06"
+        data-composition-id="scene-06"
+        data-composition-src="compositions/scene-06.html"
+        data-start="89.85"
+        data-duration="18.73"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div
+        id="scene-07"
+        data-composition-id="scene-07"
+        data-composition-src="compositions/scene-07.html"
+        data-start="108.58"
+        data-duration="25.21"
+        data-track-index="0"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div
+        id="scene-08"
+        data-composition-id="scene-08"
+        data-composition-src="compositions/scene-08.html"
+        data-start="133.79"
+        data-duration="23.24"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+
+      <!-- Voiceover Tracks -->
+      <audio
+        id="vo-scene-01"
+        src="assets/audio/vo-scene-01.wav"
+        data-start="0"
+        data-duration="16.26"
+        data-track-index="2"
+        data-volume="1.0"
+      ></audio>
+      <audio
+        id="vo-scene-02"
+        src="assets/audio/vo-scene-02.wav"
+        data-start="16.26"
+        data-duration="17.55"
+        data-track-index="3"
+        data-volume="1.0"
+      ></audio>
+      <audio
+        id="vo-scene-03"
+        src="assets/audio/vo-scene-03.wav"
+        data-start="33.81"
+        data-duration="16.11"
+        data-track-index="2"
+        data-volume="1.0"
+      ></audio>
+      <audio
+        id="vo-scene-04"
+        src="assets/audio/vo-scene-04.wav"
+        data-start="49.92"
+        data-duration="18.27"
+        data-track-index="3"
+        data-volume="1.0"
+      ></audio>
+      <audio
+        id="vo-scene-05"
+        src="assets/audio/vo-scene-05.wav"
+        data-start="68.19"
+        data-duration="21.66"
+        data-track-index="2"
+        data-volume="1.0"
+      ></audio>
+      <audio
+        id="vo-scene-06"
+        src="assets/audio/vo-scene-06.wav"
+        data-start="89.85"
+        data-duration="18.73"
+        data-track-index="3"
+        data-volume="1.0"
+      ></audio>
+      <audio
+        id="vo-scene-07"
+        src="assets/audio/vo-scene-07.wav"
+        data-start="108.58"
+        data-duration="25.21"
+        data-track-index="2"
+        data-volume="1.0"
+      ></audio>
+      <audio
+        id="vo-scene-08"
+        src="assets/audio/vo-scene-08.wav"
+        data-start="133.79"
+        data-duration="23.24"
+        data-track-index="3"
+        data-volume="1.0"
+      ></audio>
+
+      <!-- Curated UI Sound Effects Tracks -->
+      <audio
+        id="sfx-s1-click"
+        src="assets/sfx/click-soft.mp3"
+        data-start="10.74"
+        data-duration="0.2"
+        data-track-index="4"
+        data-volume="0.25"
+      ></audio>
+      <audio
+        id="sfx-s2-csv"
+        src="assets/sfx/click-soft.mp3"
+        data-start="18.80"
+        data-duration="0.2"
+        data-track-index="4"
+        data-volume="0.25"
+      ></audio>
+      <audio
+        id="sfx-s2-card"
+        src="assets/sfx/pop.mp3"
+        data-start="24.00"
+        data-duration="0.25"
+        data-track-index="4"
+        data-volume="0.28"
+      ></audio>
+      <audio
+        id="sfx-s3-import"
+        src="assets/sfx/click-soft.mp3"
+        data-start="36.55"
+        data-duration="0.2"
+        data-track-index="5"
+        data-volume="0.25"
+      ></audio>
+      <audio
+        id="sfx-s4-token"
+        src="assets/sfx/pop.mp3"
+        data-start="61.96"
+        data-duration="0.25"
+        data-track-index="5"
+        data-volume="0.28"
+      ></audio>
+      <audio
+        id="sfx-s5-submit"
+        src="assets/sfx/notification.mp3"
+        data-start="85.63"
+        data-duration="0.6"
+        data-track-index="5"
+        data-volume="0.28"
+      ></audio>
+      <audio
+        id="sfx-s6-unlock"
+        src="assets/sfx/click-soft.mp3"
+        data-start="97.49"
+        data-duration="0.2"
+        data-track-index="6"
+        data-volume="0.25"
+      ></audio>
+      <audio
+        id="sfx-s7-save"
+        src="assets/sfx/click-soft.mp3"
+        data-start="122.72"
+        data-duration="0.2"
+        data-track-index="6"
+        data-volume="0.25"
+      ></audio>
+      <audio
+        id="sfx-s7-score"
+        src="assets/sfx/chime.mp3"
+        data-start="123.12"
+        data-duration="1.1"
+        data-track-index="6"
+        data-volume="0.32"
+      ></audio>
+      <audio
+        id="sfx-s8-excel"
+        src="assets/sfx/chime.mp3"
+        data-start="145.93"
+        data-duration="1.1"
+        data-track-index="7"
+        data-volume="0.30"
+      ></audio>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = gsap.timeline({ paused: true });
+    </script>
+  </body>
+</html>

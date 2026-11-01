@@ -1,0 +1,94 @@
+{
+  "totalDuration": 157.03,
+  "voiceStudioUrl": "http://localhost:3900",
+  "scenes": [
+    {
+      "id": "scene-01",
+      "sceneNumber": 1,
+      "title": "Persiapan Server Lokal & Identitas Sekolah",
+      "file": "assets/audio/vo-scene-01.wav",
+      "start": 0,
+      "duration": 16.26,
+      "end": 16.26,
+      "engine": "Neural Studio ID (id-ID-ArdiNeural)",
+      "text": "Selamat datang di panduan lengkap NILUJI. Hanya dengan satu laptop pengawas dan jaringan WiFi lokal tanpa internet, Anda siap menyelenggarakan ujian berbasis komputer. Pastikan status Server Ujian menyala hijau, lalu simpan identitas sekolah Anda di menu Pengaturan."
+    },
+    {
+      "id": "scene-02",
+      "sceneNumber": 2,
+      "title": "Data Siswa & Cetak Kartu Peserta (QR + PIN)",
+      "file": "assets/audio/vo-scene-02.wav",
+      "start": 16.26,
+      "duration": 17.55,
+      "end": 33.81,
+      "engine": "Neural Studio ID (id-ID-ArdiNeural)",
+      "text": "Langkah kedua: menyiapkan data peserta. Di menu Siswa, impor daftar siswa sekaligus dari file CSV. NILUJI otomatis membuatkan PIN enam digit unik untuk setiap siswa. Klik Cetak Kartu Peserta untuk mengunduh kartu ujian lengkap dengan QR Code server."
+    },
+    {
+      "id": "scene-03",
+      "sceneNumber": 3,
+      "title": "Bank Soal & Impor Naskah Bergambar",
+      "file": "assets/audio/vo-scene-03.wav",
+      "start": 33.81,
+      "duration": 16.11,
+      "end": 49.92,
+      "engine": "Neural Studio ID (id-ID-ArdiNeural)",
+      "text": "Langkah ketiga: menyusun Bank Soal. Anda dapat mengetik langsung atau mengimpor naskah dari Word, Excel, maupun bundel Markdown bergambar, baik gambar pada soal maupun pada pilihan jawaban A sampai D. Gunakan Pratinjau untuk memeriksa tampilan soal dan kunci jawaban."
+    },
+    {
+      "id": "scene-04",
+      "sceneNumber": 4,
+      "title": "Jadwal Ujian, Bobot Nilai & Token Keamanan",
+      "file": "assets/audio/vo-scene-04.wav",
+      "start": 49.92,
+      "duration": 18.27,
+      "end": 68.19,
+      "engine": "Neural Studio ID (id-ID-ArdiNeural)",
+      "text": "Langkah keempat: menjadwalkan ujian. Di menu Kelola Ujian, pilih kelas dan mata pelajaran, atur durasi enam puluh menit, lalu tentukan bobot nilai Pilihan Ganda tujuh puluh persen dan Esai tiga puluh persen. Aktifkan acak soal, lalu bagikan Token Ujian enam karakter kepada siswa."
+    },
+    {
+      "id": "scene-05",
+      "sceneNumber": 5,
+      "title": "Simulasi Siswa di Portal CBT",
+      "file": "assets/audio/vo-scene-05.wav",
+      "start": 68.19,
+      "duration": 21.66,
+      "end": 89.85,
+      "engine": "Neural Studio ID (id-ID-ArdiNeural)",
+      "text": "Langkah kelima: pengerjaan ujian oleh siswa di Portal CBT. Siswa masuk menggunakan NISN, PIN enam digit, dan Token Ujian. Saat memilih jawaban Pilihan Ganda, progres tersimpan otomatis ke server lokal. Siswa juga dapat menandai soal ragu-ragu, mengisi jawaban uraian Esai, lalu menekan Kumpulkan Ujian."
+    },
+    {
+      "id": "scene-06",
+      "sceneNumber": 6,
+      "title": "Meja Pantau Pengawas Real-Time",
+      "file": "assets/audio/vo-scene-06.wav",
+      "start": 89.85,
+      "duration": 18.73,
+      "end": 108.58,
+      "engine": "Neural Studio ID (id-ID-ArdiNeural)",
+      "text": "Langkah keenam: pemantauan pengawas secara langsung. Di halaman Hasil Ujian, pantau status pengerjaan setiap siswa secara real-time. Jika perangkat siswa terkunci karena berganti HP, klik Buka Kunci Perangkat. Pengawas juga dapat menambah waktu sepuluh menit atau memaksa kumpul sesi."
+    },
+    {
+      "id": "scene-07",
+      "sceneNumber": 7,
+      "title": "Pemeriksaan Soal, Koreksi Esai & Munculnya Nilai Akhir",
+      "file": "assets/audio/vo-scene-07.wav",
+      "start": 108.58,
+      "duration": 25.21,
+      "end": 133.79,
+      "engine": "Neural Studio ID (id-ID-ArdiNeural)",
+      "text": "Langkah ketujuh: pemeriksaan soal dan kemunculan nilai ujian. Klik Periksa Sesi pada nama siswa untuk meninjau rincian jawaban Pilihan Ganda yang dinilai otomatis. Selanjutnya pada bagian Penilaian Esai, baca jawaban uraian siswa, ketik skor delapan puluh lima, lalu klik Simpan Nilai Esai. Seketika itu juga, Nilai Akhir tertimbang sebesar delapan puluh delapan koma lima langsung muncul di tabel peringkat kelas!"
+    },
+    {
+      "id": "scene-08",
+      "sceneNumber": 8,
+      "title": "Analisis Butir Soal (Pengecoh) & Ekspor Excel",
+      "file": "assets/audio/vo-scene-08.wav",
+      "start": 133.79,
+      "duration": 23.24,
+      "end": 157.03,
+      "engine": "Neural Studio ID (id-ID-ArdiNeural)",
+      "text": "Langkah terakhir: evaluasi mutu soal dan ekspor nilai. Buka panel Analisis Pengecoh untuk melihat persentase pemilih opsi A, B, C, D, dan jawaban kosong beserta kategori tingkat kesulitan soal. Klik Ekspor Excel untuk mengunduh rekap nilai lengkap siap masuk rapor. Unduh NILUJI gratis di narr07.github.io garis miring niluji."
+    }
+  ]
+}
