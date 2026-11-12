@@ -43,7 +43,7 @@ jobs:
         working-directory: ./docs
         run: bunx nuxt build --preset github_pages
         env:
-          NUXT_APP_BASE_URL: /${{ github.event.repository.name }}/
+          NUXT_APP_BASE_URL: /
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

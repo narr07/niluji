@@ -11,8 +11,8 @@
 </p>
 
 <p align="center">
-  <a href="https://narr07.github.io/niluji/"><strong>📘 Dokumentasi Resmi</strong></a> ·
-  <a href="https://narr07.github.io/niluji/rilis"><strong>⬇️ Unduh Installer</strong></a> ·
+  <a href="https://niluji.permadi.dev/"><strong>📘 Dokumentasi Resmi</strong></a> ·
+  <a href="https://niluji.permadi.dev/rilis"><strong>⬇️ Unduh Installer</strong></a> ·
   <a href="https://permadi.dev/id/projek/niluji"><strong>🌐 Studi Kasus (permadi.dev)</strong></a> ·
   <a href="https://github.com/narr07/niluji/issues"><strong>🐛 Laporkan Masalah</strong></a>
 </p>
@@ -57,13 +57,13 @@
 
 Panduan lengkap untuk Guru, Pengawas/Proktor, dan Siswa tersedia di situs dokumentasi resmi:
 
-👉 **[https://narr07.github.io/niluji/](https://narr07.github.io/niluji/)**
+👉 **[https://niluji.permadi.dev/](https://niluji.permadi.dev/)**
 
-- [Panduan Instalasi (Windows, Linux, macOS)](https://narr07.github.io/niluji/memulai/instalasi)
-- [Persiapan Jaringan WiFi Lokal](https://narr07.github.io/niluji/memulai/persiapan-jaringan)
-- [Impor & Ekspor Soal (Word, Excel, Markdown ZIP)](https://narr07.github.io/niluji/panduan-guru/impor-dan-ekspor-soal)
-- [Meja Pantau Pengawas & Aksi Sesi](https://narr07.github.io/niluji/panduan-pengawas/pantauan-dan-aksi)
-- [Troubleshooting Ruang Ujian](https://narr07.github.io/niluji/referensi/troubleshooting)
+- [Panduan Instalasi (Windows, Linux, macOS)](https://niluji.permadi.dev/memulai/instalasi)
+- [Persiapan Jaringan WiFi Lokal](https://niluji.permadi.dev/memulai/persiapan-jaringan)
+- [Impor & Ekspor Soal (Word, Excel, Markdown ZIP)](https://niluji.permadi.dev/panduan-guru/impor-dan-ekspor-soal)
+- [Meja Pantau Pengawas & Aksi Sesi](https://niluji.permadi.dev/panduan-pengawas/pantauan-dan-aksi)
+- [Troubleshooting Ruang Ujian](https://niluji.permadi.dev/referensi/troubleshooting)
 
 ---
 

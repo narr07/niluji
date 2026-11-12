@@ -11,7 +11,7 @@ export default defineNuxtConfig({
 	},
 
 	app: {
-		baseURL: process.env.NUXT_APP_BASE_URL || "/niluji/",
+		baseURL: process.env.NUXT_APP_BASE_URL || "/",
 		head: {
 			title: "NILUJI — Platform Ujian CBT Offline untuk Sekolah",
 			meta: [

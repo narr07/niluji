@@ -102,7 +102,7 @@ jobs:
             - **macOS (Apple Silicon / Intel)**: Unduh berkas `.dmg` (jalankan `xattr -cr /Applications/Niluji.app` satu kali di Terminal jika muncul peringatan Gatekeeper)
 
             Panduan lengkap instalasi, persiapan jaringan LAN/WiFi, dan penggunaan aplikasi dapat dibaca di:
-            https://narr07.github.io/niluji/
+            https://niluji.permadi.dev/
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}

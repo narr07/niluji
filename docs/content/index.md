@@ -68,8 +68,8 @@ Panduan langkah demi langkah bersuara Bahasa Indonesia—mulai dari menyalakan s
 
 #default
 <div class="max-w-5xl mx-auto rounded-2xl overflow-hidden border border-neutral-200 dark:border-neutral-800 shadow-2xl bg-neutral-950">
-  <video controls preload="metadata" poster="/niluji/images/tutorial-poster.png" class="w-full aspect-video">
-    <source src="/niluji/video/niluji-tutorial-lengkap.mp4" type="video/mp4">
+  <video controls preload="metadata" poster="/images/tutorial-poster.png" class="w-full aspect-video">
+    <source src="/video/niluji-tutorial-lengkap.mp4" type="video/mp4">
     Browser Anda tidak mendukung pemutar video HTML5.
   </video>
 </div>
