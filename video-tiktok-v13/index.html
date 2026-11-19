@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="id" data-resolution="portrait">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>NILUJI v1.3.0 — TikTok &amp; WhatsApp Status Promo</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: #f1f5f9;
+        color: #0f172a;
+        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      }
+      #root {
+        position: relative;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: #f1f5f9;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="44.65"
+      data-width="1080"
+      data-height="1920"
+    >
+      <div id="beat-01" data-composition-id="beat-01" data-composition-src="compositions/beat-01.html" data-start="0" data-duration="8.58" data-track-index="0" data-track-kind="graphics" data-width="1080" data-height="1920"></div>
+      <div id="beat-02" data-composition-id="beat-02" data-composition-src="compositions/beat-02.html" data-start="8.58" data-duration="7.71" data-track-index="1" data-track-kind="graphics" data-width="1080" data-height="1920"></div>
+      <div id="beat-03" data-composition-id="beat-03" data-composition-src="compositions/beat-03.html" data-start="16.29" data-duration="7.91" data-track-index="0" data-track-kind="graphics" data-width="1080" data-height="1920"></div>
+      <div id="beat-04" data-composition-id="beat-04" data-composition-src="compositions/beat-04.html" data-start="24.20" data-duration="6.51" data-track-index="1" data-track-kind="graphics" data-width="1080" data-height="1920"></div>
+      <div id="beat-05" data-composition-id="beat-05" data-composition-src="compositions/beat-05.html" data-start="30.71" data-duration="6.39" data-track-index="0" data-track-kind="graphics" data-width="1080" data-height="1920"></div>
+      <div id="beat-06" data-composition-id="beat-06" data-composition-src="compositions/beat-06.html" data-start="37.10" data-duration="7.55" data-track-index="1" data-track-kind="graphics" data-width="1080" data-height="1920"></div>
+
+      <!-- Voiceover -->
+      <audio id="ad-01" class="clip" src="assets/audio/ad-01.wav" data-start="0" data-duration="8.58" data-volume="1.0"></audio>
+      <audio id="ad-02" class="clip" src="assets/audio/ad-02.wav" data-start="8.58" data-duration="7.71" data-volume="1.0"></audio>
+      <audio id="ad-03" class="clip" src="assets/audio/ad-03.wav" data-start="16.29" data-duration="7.91" data-volume="1.0"></audio>
+      <audio id="ad-04" class="clip" src="assets/audio/ad-04.wav" data-start="24.20" data-duration="6.51" data-volume="1.0"></audio>
+      <audio id="ad-05" class="clip" src="assets/audio/ad-05.wav" data-start="30.71" data-duration="6.39" data-volume="1.0"></audio>
+      <audio id="ad-06" class="clip" src="assets/audio/ad-06.wav" data-start="37.10" data-duration="7.55" data-volume="1.0"></audio>
+
+      <!-- Punchy SFX -->
+      <audio id="sfx-1" class="clip" src="assets/sfx/pop.mp3" data-start="3.24" data-duration="0.4" data-volume="0.28"></audio>
+      <audio id="sfx-2" class="clip" src="assets/sfx/whoosh-short.mp3" data-start="8.58" data-duration="0.4" data-volume="0.24"></audio>
+      <audio id="sfx-3" class="clip" src="assets/sfx/whoosh-short.mp3" data-start="16.29" data-duration="0.4" data-volume="0.24"></audio>
+      <audio id="sfx-4" class="clip" src="assets/sfx/pop.mp3" data-start="19.83" data-duration="0.4" data-volume="0.28"></audio>
+      <audio id="sfx-5" class="clip" src="assets/sfx/whoosh-short.mp3" data-start="24.20" data-duration="0.4" data-volume="0.24"></audio>
+      <audio id="sfx-6" class="clip" src="assets/sfx/pop.mp3" data-start="30.85" data-duration="0.4" data-volume="0.28"></audio>
+      <audio id="sfx-7" class="clip" src="assets/sfx/chime.mp3" data-start="38.70" data-duration="1.0" data-volume="0.28"></audio>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = gsap.timeline({ paused: true });
+    </script>
+  </body>
+</html>

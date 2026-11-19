@@ -1,0 +1,290 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background-color: #f1f5f9;
+      background-image: radial-gradient(#cbd5e1 1.25px, transparent 1.25px);
+      background-size: 32px 32px;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #0f172a;
+    }
+
+    .top-bar {
+      position: absolute;
+      top: 44px;
+      left: 192px;
+      right: 192px;
+      height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 20;
+    }
+
+    .step-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: #ffffff;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 999px;
+      padding: 8px 22px 8px 10px;
+      font-size: 21px;
+      font-weight: 700;
+      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+    }
+
+    .step-badge {
+      background: #10b981;
+      color: #ffffff;
+      font-weight: 800;
+      padding: 4px 14px;
+      border-radius: 999px;
+      font-size: 17px;
+    }
+
+    .stage {
+      position: absolute;
+      top: 116px;
+      left: 192px;
+      width: 1536px;
+      height: 806px;
+    }
+
+    .app-shell {
+      position: absolute;
+      inset: 0;
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+      display: grid;
+      grid-template-columns: 270px 1fr;
+    }
+
+    .sidebar {
+      background: #f8fafc;
+      border-right: 1px solid #e2e8f0;
+      padding: 26px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 4px 10px 22px;
+      font-size: 24px;
+      font-weight: 800;
+    }
+
+    .nav-item {
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 18px;
+      font-weight: 600;
+      color: #475569;
+    }
+
+    .nav-item.active {
+      background: #ecfdf5;
+      color: #059669;
+      font-weight: 700;
+    }
+
+    .main-area {
+      padding: 32px 44px;
+      position: relative;
+    }
+
+    .active-exam-card {
+      background: #f8fafc;
+      border: 2px solid #10b981;
+      border-radius: 16px;
+      padding: 26px 30px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 18px;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 14px;
+    }
+
+    .btn-token {
+      background: #f59e0b;
+      color: #ffffff;
+      font-size: 19px;
+      font-weight: 800;
+      padding: 12px 24px;
+      border-radius: 12px;
+    }
+
+    .btn-qr {
+      background: #0f172a;
+      color: #ffffff;
+      font-size: 19px;
+      font-weight: 800;
+      padding: 12px 24px;
+      border-radius: 12px;
+    }
+
+    /* Projector Token Overlay */
+    .modal-big {
+      position: absolute;
+      left: 360px;
+      top: 180px;
+      width: 780px;
+      background: #ffffff;
+      border: 3px solid #0f172a;
+      border-radius: 22px;
+      padding: 42px;
+      text-align: center;
+      box-shadow: 0 32px 72px rgba(15, 23, 42, 0.28);
+      z-index: 18;
+    }
+
+    .big-token {
+      font-family: 'Consolas', monospace;
+      font-size: 92px;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      color: #0f172a;
+      background: #fffbeb;
+      border: 3px solid #f59e0b;
+      border-radius: 18px;
+      padding: 20px 36px;
+      margin: 22px 0 12px;
+      display: inline-block;
+    }
+
+    .cursor-wrap {
+      position: absolute;
+      left: 0;
+      top: 0;
+      z-index: 25;
+      pointer-events: none;
+    }
+
+    .subtitle-wrap {
+      position: absolute;
+      left: 192px;
+      right: 192px;
+      bottom: 36px;
+      display: flex;
+      justify-content: center;
+      z-index: 30;
+    }
+
+    .subtitle-box {
+      background: rgba(15, 23, 42, 0.92);
+      color: #f8fafc;
+      padding: 14px 28px;
+      border-radius: 14px;
+      font-size: 24px;
+      font-weight: 600;
+      line-height: 1.38;
+      text-align: center;
+      max-width: 1320px;
+    }
+  </style>
+
+  <div id="root" data-composition-id="scene-09" data-width="1920" data-height="1080">
+    <div id="top-bar" class="top-bar clip" data-start="0" data-duration="21.35">
+      <div class="step-pill">
+        <span class="step-badge">Adegan 9 / 13</span>
+        <span>Hari Ujian — Sisi Pengawas (Token &amp; QR)</span>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div id="app-shell" class="app-shell clip" data-start="0" data-duration="21.35">
+        <div class="sidebar">
+          <div class="brand-row">
+            <img src="assets/images/niluji-app-icon.svg" width="32" height="32" alt="NILUJI" />
+            <span>NILUJI</span>
+          </div>
+          <div class="nav-item active">Dashboard</div>
+          <div class="nav-item">Siswa</div>
+          <div class="nav-item">Bank Soal</div>
+          <div class="nav-item">Kelola Ujian</div>
+          <div class="nav-item">Hasil Ujian</div>
+          <div class="nav-item">Pengaturan</div>
+        </div>
+
+        <div class="main-area">
+          <div style="font-size:28px;font-weight:800">Pantauan Ujian Aktif &amp; Token</div>
+          <div class="active-exam-card">
+            <div>
+              <div style="font-size:15px;font-weight:800;color:#059669">SEDANG BERLANGSUNG</div>
+              <div style="font-size:26px;font-weight:800;margin-top:4px">IPA · Kelas 6A · Sumatif Akhir Semester</div>
+              <div style="font-size:17px;color:#475569;margin-top:4px">08:00 – 09:30 · Durasi 60 Menit · Server 192.168.1.10</div>
+            </div>
+            <div class="btn-row">
+              <div class="btn-token">Token: X7K9P2</div>
+              <div class="btn-qr">QR Akses Ujian</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Big Token Modal -->
+      <div id="modal-token" class="modal-big clip" data-start="6.8" data-duration="6.6" data-layout-allow-overlap>
+        <div style="font-size:22px;font-weight:800;color:#475569">TOKEN UJIAN HARI INI (TAMPILAN PROYEKTOR)</div>
+        <div class="big-token">X7K9P2</div>
+        <div style="font-size:18px;color:#64748b">IPA · Kelas 6A · Sumatif Akhir Semester</div>
+      </div>
+
+      <!-- Big QR Modal -->
+      <div id="modal-qr" class="modal-big clip" data-start="14.2" data-duration="7.15" data-layout-allow-overlap>
+        <div style="font-size:22px;font-weight:800;color:#0f172a;margin-bottom:18px">QR AKSES UJIAN (PINDAI DARI HP SISWA)</div>
+        <svg viewBox="0 0 100 100" width="220" height="220" style="border:2px solid #cbd5e1;border-radius:14px;padding:12px">
+          <rect x="4" y="4" width="28" height="28" fill="none" stroke="#0F172A" stroke-width="6"/>
+          <rect x="12" y="12" width="12" height="12" fill="#0F172A"/>
+          <rect x="68" y="4" width="28" height="28" fill="none" stroke="#0F172A" stroke-width="6"/>
+          <rect x="76" y="12" width="12" height="12" fill="#0F172A"/>
+          <rect x="4" y="68" width="28" height="28" fill="none" stroke="#0F172A" stroke-width="6"/>
+          <rect x="12" y="76" width="12" height="12" fill="#0F172A"/>
+          <rect x="42" y="14" width="12" height="12" fill="#0F172A"/>
+          <rect x="42" y="38" width="16" height="16" fill="#10B981"/>
+          <rect x="68" y="42" width="12" height="12" fill="#0F172A"/>
+          <rect x="42" y="68" width="14" height="14" fill="#0F172A"/>
+          <rect x="68" y="68" width="22" height="22" fill="#0F172A"/>
+        </svg>
+        <div style="font-family:Consolas,monospace;font-size:22px;font-weight:800;color:#059669;margin-top:14px">http://192.168.1.10:3000/cbt</div>
+      </div>
+
+      <div id="cursor" class="cursor-wrap clip" data-start="1.0" data-duration="19.5" data-layout-allow-overlap>
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
+          <path d="M4 2L20 11L12.5 13.5L10 21L4 2Z" fill="#0F172A" stroke="#FFFFFF" stroke-width="2" />
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#app-shell", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.45, ease: "expo.out" }, 0);
+    tl.fromTo("#cursor", { x: 400, y: 300, opacity: 0 }, { x: 1180, y: 135, opacity: 1, duration: 0.8, ease: "power2.inOut" }, 5.4);
+    tl.to("#cursor", { scale: 0.84, duration: 0.12 }, 6.4);
+    tl.to("#cursor", { scale: 1, duration: 0.12 }, 6.52);
+
+    tl.fromTo("#modal-token", { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(1.4)" }, 6.8);
+    tl.to("#modal-token", { opacity: 0, scale: 0.95, duration: 0.3 }, 13.1);
+
+    tl.to("#cursor", { x: 1370, y: 135, duration: 0.7, ease: "power2.inOut" }, 13.3);
+    tl.to("#cursor", { scale: 0.84, duration: 0.12 }, 14.0);
+    tl.to("#cursor", { scale: 1, duration: 0.12 }, 14.12);
+    tl.fromTo("#modal-qr", { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(1.4)" }, 14.2);
+
+
+    window.__timelines["scene-09"] = tl;
+  </script>
+</template>

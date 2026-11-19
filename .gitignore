@@ -23,3 +23,6 @@ Soal docx/
 video-tutorial/node_modules/
 video-tutorial/.hyperframes/
 video-tutorial/renders/snapshots/
+video-*/node_modules/
+video-*/.hyperframes/
+video-*/assets/images/images/

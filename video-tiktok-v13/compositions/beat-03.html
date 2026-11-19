@@ -1,0 +1,134 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background-color: #f1f5f9;
+      background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
+      background-size: 32px 32px;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #0f172a;
+    }
+
+    .safe-band {
+      position: absolute;
+      top: 190px;
+      left: 72px;
+      width: 888px;
+      height: 1100px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .headline {
+      font-size: 56px;
+      font-weight: 900;
+      line-height: 1.1;
+      text-align: center;
+    }
+
+    .phone-frame {
+      width: 520px;
+      height: 780px;
+      background: #0f172a;
+      border-radius: 48px;
+      padding: 18px;
+      box-shadow: 0 28px 64px rgba(15, 23, 42, 0.24);
+    }
+
+    .phone-screen {
+      width: 100%;
+      height: 100%;
+      background: #ffffff;
+      border-radius: 34px;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .saved-pill {
+      background: #d1fae5;
+      color: #065f46;
+      font-size: 20px;
+      font-weight: 800;
+      padding: 6px 16px;
+      border-radius: 999px;
+    }
+
+    .opt {
+      border: 2px solid #cbd5e1;
+      border-radius: 14px;
+      padding: 16px 20px;
+      font-size: 24px;
+      font-weight: 700;
+      margin-top: 12px;
+    }
+
+    .opt.sel {
+      background: #ecfdf5;
+      border-color: #10b981;
+      color: #065f46;
+    }
+
+    .btn-submit {
+      background: #10b981;
+      color: #ffffff;
+      text-align: center;
+      font-size: 26px;
+      font-weight: 800;
+      padding: 18px;
+      border-radius: 16px;
+    }
+
+    .auto-note {
+      background: #0f172a;
+      color: #34d399;
+      font-size: 26px;
+      font-weight: 800;
+      padding: 14px 28px;
+      border-radius: 16px;
+      text-align: center;
+    }
+  </style>
+
+  <div id="root" data-composition-id="beat-03" data-width="1080" data-height="1920">
+    <div class="safe-band">
+      <div id="h1" class="headline">Siswa Kerjakan dari HP<br /><span style="color:#10b981">Lewat WiFi Sekolah</span></div>
+
+      <div id="phone" class="phone-frame clip" data-start="0.1" data-duration="7.81">
+        <div class="phone-screen">
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+              <span style="font-size:24px;font-weight:800">NILUJI Siswa</span>
+              <span class="saved-pill">Tersimpan</span>
+            </div>
+            <div style="font-size:25px;font-weight:700;line-height:1.35">
+              Bagian rangkaian listrik yang memutus arus adalah...
+            </div>
+            <div class="opt">A. Baterai</div>
+            <div class="opt sel">B. Sakelar</div>
+            <div class="opt">C. Lampu pijar</div>
+            <div class="opt">D. Kabel</div>
+          </div>
+          <div class="btn-submit">Selesai &amp; Kumpulkan</div>
+        </div>
+      </div>
+
+      <div id="note" class="auto-note clip" data-start="3.5" data-duration="4.41">
+        WiFi putus? Jawaban dikirim ulang otomatis!
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#h1", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.35, ease: "expo.out" }, 0);
+    tl.fromTo("#phone", { opacity: 0, y: 24, scale: 0.95 }, { opacity: 1, y: 0, scale: 1, duration: 0.45, ease: "back.out(1.3)" }, 0.1);
+    tl.fromTo("#note", { opacity: 0, scale: 0.92 }, { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(1.4)" }, 3.5);
+    window.__timelines["beat-03"] = tl;
+  </script>
+</template>

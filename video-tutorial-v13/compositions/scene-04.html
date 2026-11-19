@@ -1,0 +1,286 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background-color: #f1f5f9;
+      background-image: radial-gradient(#cbd5e1 1.25px, transparent 1.25px);
+      background-size: 32px 32px;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #0f172a;
+    }
+
+    .top-bar {
+      position: absolute;
+      top: 44px;
+      left: 192px;
+      right: 192px;
+      height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 20;
+    }
+
+    .step-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: #ffffff;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 999px;
+      padding: 8px 22px 8px 10px;
+      font-size: 21px;
+      font-weight: 700;
+      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+    }
+
+    .step-badge {
+      background: #10b981;
+      color: #ffffff;
+      font-weight: 800;
+      padding: 4px 14px;
+      border-radius: 999px;
+      font-size: 17px;
+    }
+
+    .stage {
+      position: absolute;
+      top: 116px;
+      left: 192px;
+      width: 1536px;
+      height: 806px;
+    }
+
+    .app-shell {
+      position: absolute;
+      inset: 0;
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+      display: grid;
+      grid-template-columns: 270px 1fr;
+    }
+
+    .sidebar {
+      background: #f8fafc;
+      border-right: 1px solid #e2e8f0;
+      padding: 26px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 4px 10px 22px;
+      font-size: 24px;
+      font-weight: 800;
+    }
+
+    .nav-item {
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 18px;
+      font-weight: 600;
+      color: #475569;
+    }
+
+    .nav-item.active {
+      background: #ecfdf5;
+      color: #059669;
+      font-weight: 700;
+    }
+
+    .nav-sub {
+      padding: 9px 16px 9px 32px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #475569;
+    }
+
+    .nav-sub.active {
+      background: #d1fae5;
+      color: #065f46;
+      font-weight: 700;
+    }
+
+    .main-area {
+      padding: 34px 44px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+    }
+
+    .panel {
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 24px 26px;
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .panel-title {
+      font-size: 24px;
+      font-weight: 800;
+    }
+
+    .btn-add {
+      background: #10b981;
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 800;
+      padding: 9px 18px;
+      border-radius: 10px;
+    }
+
+    .list-item {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: 19px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 10px;
+    }
+
+    .list-item.new {
+      border: 2px solid #10b981;
+      background: #ecfdf5;
+      color: #065f46;
+    }
+
+    .badge-new {
+      background: #10b981;
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 800;
+      padding: 3px 10px;
+      border-radius: 999px;
+    }
+
+    .cursor-wrap {
+      position: absolute;
+      left: 0;
+      top: 0;
+      z-index: 25;
+      pointer-events: none;
+    }
+
+    .subtitle-wrap {
+      position: absolute;
+      left: 192px;
+      right: 192px;
+      bottom: 36px;
+      display: flex;
+      justify-content: center;
+      z-index: 30;
+    }
+
+    .subtitle-box {
+      background: rgba(15, 23, 42, 0.92);
+      color: #f8fafc;
+      padding: 14px 28px;
+      border-radius: 14px;
+      font-size: 24px;
+      font-weight: 600;
+      line-height: 1.38;
+      text-align: center;
+      max-width: 1320px;
+    }
+  </style>
+
+  <div id="root" data-composition-id="scene-04" data-width="1920" data-height="1080">
+    <div id="top-bar" class="top-bar clip" data-start="0" data-duration="17.20">
+      <div class="step-pill">
+        <span class="step-badge">Adegan 4 / 13</span>
+        <span>Data Kelas &amp; Data Pelajaran</span>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div id="app-shell" class="app-shell clip" data-start="0" data-duration="17.20">
+        <div class="sidebar">
+          <div class="brand-row">
+            <img src="assets/images/niluji-app-icon.svg" width="32" height="32" alt="NILUJI" />
+            <span>NILUJI</span>
+          </div>
+          <div class="nav-item">Dashboard</div>
+          <div class="nav-item">Siswa</div>
+          <div class="nav-item">Bank Soal</div>
+          <div class="nav-item">Kelola Ujian</div>
+          <div class="nav-item">Hasil Ujian</div>
+          <div class="nav-item active">Pengaturan</div>
+          <div class="nav-sub active">Data Kelas</div>
+          <div class="nav-sub active">Data Pelajaran</div>
+        </div>
+
+        <div class="main-area">
+          <div id="panel-kelas" class="panel clip" data-start="0.5" data-duration="16.70">
+            <div class="panel-head">
+              <div class="panel-title">Data Kelas</div>
+              <div class="btn-add">+ Tambah Kelas</div>
+            </div>
+            <div class="list-item"><span>Kelas 4A</span><span style="color:#64748b;font-size:15px">Aktif</span></div>
+            <div class="list-item"><span>Kelas 5A</span><span style="color:#64748b;font-size:15px">Aktif</span></div>
+            <div id="kelas-new" class="list-item new clip" data-start="3.5" data-duration="13.70">
+              <span>Kelas 6A</span>
+              <span class="badge-new">Ditambahkan</span>
+            </div>
+          </div>
+
+          <div id="panel-mapel" class="panel clip" data-start="2.0" data-duration="15.20">
+            <div class="panel-head">
+              <div class="panel-title">Data Pelajaran</div>
+              <div class="btn-add">+ Tambah Pelajaran</div>
+            </div>
+            <div class="list-item"><span>Matematika</span><span style="color:#64748b;font-size:15px">MTK</span></div>
+            <div class="list-item"><span>Bahasa Indonesia</span><span style="color:#64748b;font-size:15px">BIN</span></div>
+            <div id="mapel-new" class="list-item new clip" data-start="7.5" data-duration="9.70">
+              <span>Ilmu Pengetahuan Alam (IPA)</span>
+              <span class="badge-new">Ditambahkan</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="cursor" class="cursor-wrap clip" data-start="1.0" data-duration="15.5" data-layout-allow-overlap>
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
+          <path d="M4 2L20 11L12.5 13.5L10 21L4 2Z" fill="#0F172A" stroke="#FFFFFF" stroke-width="2" />
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#app-shell", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.45, ease: "expo.out" }, 0);
+    tl.fromTo("#cursor", { x: 180, y: 400, opacity: 0 }, { x: 780, y: 80, opacity: 1, duration: 0.8, ease: "power2.inOut" }, 2.2);
+    tl.to("#cursor", { scale: 0.84, duration: 0.12 }, 3.2);
+    tl.to("#cursor", { scale: 1, duration: 0.12 }, 3.32);
+    tl.fromTo("#kelas-new", { opacity: 0, y: 14, scale: 0.96 }, { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: "back.out(1.4)" }, 3.5);
+
+    tl.to("#cursor", { x: 1380, y: 80, duration: 0.9, ease: "power2.inOut" }, 6.0);
+    tl.to("#cursor", { scale: 0.84, duration: 0.12 }, 7.1);
+    tl.to("#cursor", { scale: 1, duration: 0.12 }, 7.22);
+    tl.fromTo("#mapel-new", { opacity: 0, y: 14, scale: 0.96 }, { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: "back.out(1.4)" }, 7.5);
+
+
+    window.__timelines["scene-04"] = tl;
+  </script>
+</template>

@@ -1,0 +1,328 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background-color: #f1f5f9;
+      background-image: radial-gradient(#cbd5e1 1.25px, transparent 1.25px);
+      background-size: 32px 32px;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #0f172a;
+    }
+
+    .top-bar {
+      position: absolute;
+      top: 44px;
+      left: 192px;
+      right: 192px;
+      height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 20;
+    }
+
+    .step-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: #ffffff;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 999px;
+      padding: 8px 22px 8px 10px;
+      font-size: 21px;
+      font-weight: 700;
+      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+    }
+
+    .step-badge {
+      background: #10b981;
+      color: #ffffff;
+      font-weight: 800;
+      padding: 4px 14px;
+      border-radius: 999px;
+      font-size: 17px;
+    }
+
+    .stage {
+      position: absolute;
+      top: 116px;
+      left: 192px;
+      width: 1536px;
+      height: 806px;
+    }
+
+    .app-shell {
+      position: absolute;
+      inset: 0;
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+      display: grid;
+      grid-template-columns: 270px 1fr;
+    }
+
+    .sidebar {
+      background: #f8fafc;
+      border-right: 1px solid #e2e8f0;
+      padding: 26px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 4px 10px 22px;
+      font-size: 24px;
+      font-weight: 800;
+    }
+
+    .nav-item {
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 18px;
+      font-weight: 600;
+      color: #475569;
+    }
+
+    .nav-item.active {
+      background: #ecfdf5;
+      color: #059669;
+      font-weight: 700;
+    }
+
+    .main-area {
+      padding: 28px 42px;
+      position: relative;
+    }
+
+    .head-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 16px;
+      margin-bottom: 22px;
+    }
+
+    .page-title {
+      font-size: 28px;
+      font-weight: 800;
+    }
+
+    .token-box {
+      background: #fffbeb;
+      border: 2px solid #f59e0b;
+      color: #92400e;
+      padding: 8px 20px;
+      border-radius: 12px;
+      font-family: 'Consolas', monospace;
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px 22px;
+    }
+
+    .field {
+      background: #f8fafc;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 14px 18px;
+    }
+
+    .field-label {
+      font-size: 14px;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+    }
+
+    .field-val {
+      font-size: 20px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-top: 6px;
+    }
+
+    .weight-card {
+      margin-top: 22px;
+      background: #ecfdf5;
+      border: 2px solid #10b981;
+      border-radius: 14px;
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .switch-list {
+      margin-top: 20px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .switch-row {
+      background: #f8fafc;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .switch-on {
+      background: #10b981;
+      color: #ffffff;
+      padding: 4px 14px;
+      border-radius: 999px;
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .btn-save {
+      margin-top: 24px;
+      float: right;
+      background: #10b981;
+      color: #ffffff;
+      font-size: 20px;
+      font-weight: 800;
+      padding: 14px 34px;
+      border-radius: 12px;
+    }
+
+    .cursor-wrap {
+      position: absolute;
+      left: 0;
+      top: 0;
+      z-index: 25;
+      pointer-events: none;
+    }
+
+    .subtitle-wrap {
+      position: absolute;
+      left: 192px;
+      right: 192px;
+      bottom: 36px;
+      display: flex;
+      justify-content: center;
+      z-index: 30;
+    }
+
+    .subtitle-box {
+      background: rgba(15, 23, 42, 0.92);
+      color: #f8fafc;
+      padding: 14px 28px;
+      border-radius: 14px;
+      font-size: 24px;
+      font-weight: 600;
+      line-height: 1.38;
+      text-align: center;
+      max-width: 1320px;
+    }
+  </style>
+
+  <div id="root" data-composition-id="scene-08" data-width="1920" data-height="1080">
+    <div id="top-bar" class="top-bar clip" data-start="0" data-duration="41.73">
+      <div class="step-pill">
+        <span class="step-badge">Adegan 8 / 13</span>
+        <span>Buat Jadwal Ujian, Bobot &amp; Wajib PIN Kartu</span>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div id="app-shell" class="app-shell clip" data-start="0" data-duration="41.73">
+        <div class="sidebar">
+          <div class="brand-row">
+            <img src="assets/images/niluji-app-icon.svg" width="32" height="32" alt="NILUJI" />
+            <span>NILUJI</span>
+          </div>
+          <div class="nav-item">Dashboard</div>
+          <div class="nav-item">Siswa</div>
+          <div class="nav-item">Bank Soal</div>
+          <div class="nav-item active">Kelola Ujian</div>
+          <div class="nav-item">Hasil Ujian</div>
+          <div class="nav-item">Pengaturan</div>
+        </div>
+
+        <div class="main-area">
+          <div class="head-row">
+            <div class="page-title">Buat Ujian Baru</div>
+            <div id="token-box" class="token-box clip" data-start="11.5" data-duration="30.23">TOKEN: X7K9P2</div>
+          </div>
+
+          <div class="form-grid">
+            <div class="field"><div class="field-label">Kelas</div><div class="field-val">Kelas 6A</div></div>
+            <div class="field"><div class="field-label">Mata Pelajaran</div><div class="field-val">IPA</div></div>
+            <div class="field"><div class="field-label">Jenis Soal</div><div class="field-val">Sumatif Akhir Semester</div></div>
+            <div class="field"><div class="field-label">Tanggal Ujian</div><div class="field-val">20 November 2026</div></div>
+            <div class="field"><div class="field-label">Jam Mulai – Selesai</div><div class="field-val">08:00 – 09:30</div></div>
+            <div class="field"><div class="field-label">Durasi Pengerjaan</div><div class="field-val">60 Menit</div></div>
+          </div>
+
+          <div id="weight-card" class="weight-card clip" data-start="16.5" data-duration="25.23">
+            <div>
+              <div style="font-size:20px;font-weight:800;color:#065f46">Bobot Nilai Otomatis</div>
+              <div style="font-size:16px;color:#047857;margin-top:2px">Total bobot selalu 100%</div>
+            </div>
+            <div style="display:flex;gap:18px;font-size:22px;font-weight:800">
+              <span>Bobot Nilai PG: 70%</span>
+              <span style="color:#047857">|</span>
+              <span>Esai: 30%</span>
+            </div>
+          </div>
+
+          <div id="switches" class="switch-list clip" data-start="25.0" data-duration="16.73">
+            <div class="switch-row">
+              <span>Acak Soal &amp; Pilihan Jawaban</span>
+              <span class="switch-on">AKTIF</span>
+            </div>
+            <div class="switch-row" style="border-color:#10b981;background:#ecfdf5">
+              <span>Wajib PIN Kartu (Anti Login Akun Teman)</span>
+              <span class="switch-on">AKTIF</span>
+            </div>
+          </div>
+
+          <div id="btn-save" class="btn-save clip" data-start="1.0" data-duration="40.73">Simpan Jadwal Ujian</div>
+        </div>
+      </div>
+
+      <div id="cursor" class="cursor-wrap clip" data-start="2.0" data-duration="39.0" data-layout-allow-overlap>
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
+          <path d="M4 2L20 11L12.5 13.5L10 21L4 2Z" fill="#0F172A" stroke="#FFFFFF" stroke-width="2" />
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#app-shell", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.45, ease: "expo.out" }, 0);
+    tl.fromTo("#token-box", { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(1.4)" }, 11.5);
+    tl.fromTo("#weight-card", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.4, ease: "back.out(1.3)" }, 16.5);
+    tl.fromTo("#switches", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.4, ease: "expo.out" }, 25.0);
+
+    tl.fromTo("#cursor", { x: 400, y: 260, opacity: 0 }, { x: 1120, y: 400, opacity: 1, duration: 0.9, ease: "power2.inOut" }, 18.0);
+    tl.to("#cursor", { x: 1200, y: 500, duration: 0.9, ease: "power2.inOut" }, 28.0);
+    tl.to("#cursor", { x: 1360, y: 690, duration: 0.8, ease: "power2.inOut" }, 37.5);
+    tl.to("#cursor", { scale: 0.84, duration: 0.12 }, 38.6);
+    tl.to("#cursor", { scale: 1, duration: 0.12 }, 38.72);
+
+
+    window.__timelines["scene-08"] = tl;
+  </script>
+</template>

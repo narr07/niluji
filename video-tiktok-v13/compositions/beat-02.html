@@ -1,0 +1,134 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background-color: #f1f5f9;
+      background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
+      background-size: 32px 32px;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #0f172a;
+    }
+
+    .safe-band {
+      position: absolute;
+      top: 190px;
+      left: 72px;
+      width: 888px;
+      height: 1100px;
+      display: flex;
+      flex-direction: column;
+      gap: 26px;
+    }
+
+    .step-chip {
+      align-self: flex-start;
+      background: #10b981;
+      color: #ffffff;
+      font-size: 24px;
+      font-weight: 800;
+      padding: 8px 22px;
+      border-radius: 999px;
+    }
+
+    .headline {
+      font-size: 58px;
+      font-weight: 900;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+
+    .card-box {
+      background: #ffffff;
+      border: 2px solid #0f172a;
+      border-radius: 22px;
+      padding: 28px 32px;
+      box-shadow: 0 20px 48px rgba(15, 23, 42, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .pin-tag {
+      display: inline-block;
+      margin-top: 10px;
+      background: #ecfdf5;
+      border: 2px solid #10b981;
+      color: #065f46;
+      font-family: 'Consolas', monospace;
+      font-size: 34px;
+      font-weight: 800;
+      padding: 8px 22px;
+      border-radius: 12px;
+    }
+
+    .import-card {
+      background: #ffffff;
+      border: 2px solid #cbd5e1;
+      border-radius: 22px;
+      padding: 26px 30px;
+      box-shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
+    }
+
+    .fmt-pill {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #f8fafc;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 14px;
+      padding: 16px 22px;
+      margin-top: 12px;
+      font-size: 26px;
+      font-weight: 800;
+    }
+
+    .fmt-pill.hl {
+      background: #ecfdf5;
+      border-color: #10b981;
+      color: #065f46;
+    }
+  </style>
+
+  <div id="root" data-composition-id="beat-02" data-width="1080" data-height="1920">
+    <div class="safe-band">
+      <div class="step-chip">SIAP DALAM HITUNGAN MENIT</div>
+      <div id="h1" class="headline">Cetak Kartu QR + PIN &amp; Impor Soal</div>
+
+      <div id="qr-card" class="card-box clip" data-start="0.2" data-duration="7.51">
+        <div>
+          <div style="font-size:22px;font-weight:800;color:#64748b">KARTU PESERTA</div>
+          <div style="font-size:32px;font-weight:800;margin-top:4px">Budi Santoso · 6A</div>
+          <div class="pin-tag">PIN: 482910</div>
+        </div>
+        <svg viewBox="0 0 100 100" width="150" height="150" style="border:2px solid #cbd5e1;border-radius:14px;padding:10px;flex-shrink:0">
+          <rect x="4" y="4" width="28" height="28" fill="none" stroke="#0F172A" stroke-width="6"/>
+          <rect x="12" y="12" width="12" height="12" fill="#0F172A"/>
+          <rect x="68" y="4" width="28" height="28" fill="none" stroke="#0F172A" stroke-width="6"/>
+          <rect x="76" y="12" width="12" height="12" fill="#0F172A"/>
+          <rect x="4" y="68" width="28" height="28" fill="none" stroke="#0F172A" stroke-width="6"/>
+          <rect x="12" y="76" width="12" height="12" fill="#0F172A"/>
+          <rect x="42" y="38" width="16" height="16" fill="#10B981"/>
+          <rect x="68" y="68" width="22" height="22" fill="#0F172A"/>
+        </svg>
+      </div>
+
+      <div id="import-card" class="import-card clip" data-start="3.2" data-duration="4.51">
+        <div style="font-size:28px;font-weight:800;margin-bottom:6px">Impor Bank Soal Otomatis</div>
+        <div class="fmt-pill hl"><span>Word (.docx)</span><span>+ Gambar</span></div>
+        <div class="fmt-pill"><span>Excel / CSV</span><span>Siap Pakai</span></div>
+        <div class="fmt-pill"><span>Markdown (.md)</span><span>Cepat</span></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#h1", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.35, ease: "expo.out" }, 0);
+    tl.fromTo("#qr-card", { opacity: 0, scale: 0.94, y: 16 }, { opacity: 1, scale: 1, y: 0, duration: 0.4, ease: "back.out(1.4)" }, 0.2);
+    tl.fromTo("#import-card", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.4, ease: "expo.out" }, 3.2);
+    window.__timelines["beat-02"] = tl;
+  </script>
+</template>

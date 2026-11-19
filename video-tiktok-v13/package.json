@@ -1,0 +1,11 @@
+{
+  "name": "video-tiktok-v13",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx hyperframes preview",
+    "check": "npx hyperframes check",
+    "render": "npx hyperframes render",
+    "publish": "npx hyperframes publish"
+  }
+}

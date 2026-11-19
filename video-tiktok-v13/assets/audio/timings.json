@@ -1,0 +1,53 @@
+{
+  "totalDuration": 44.65,
+  "beats": [
+    {
+      "id": "beat-01",
+      "file": "assets/audio/ad-01.wav",
+      "start": 0,
+      "duration": 8.58,
+      "end": 8.58,
+      "text": "Ujian sekolah tanpa internet? Pakai NILUJI! Cukup satu laptop guru jadi server lokal."
+    },
+    {
+      "id": "beat-02",
+      "file": "assets/audio/ad-02.wav",
+      "start": 8.58,
+      "duration": 7.71,
+      "end": 16.29,
+      "text": "Cetak kartu QR dan PIN otomatis, lalu impor soal dari Word, Excel, atau Markdown."
+    },
+    {
+      "id": "beat-03",
+      "file": "assets/audio/ad-03.wav",
+      "start": 16.29,
+      "duration": 7.91,
+      "end": 24.2,
+      "text": "Siswa kerjakan dari HP lewat WiFi sekolah. Jawaban tersimpan otomatis dan aman."
+    },
+    {
+      "id": "beat-04",
+      "file": "assets/audio/ad-04.wav",
+      "start": 24.2,
+      "duration": 6.51,
+      "end": 30.71,
+      "text": "Pengawas pantau langsung: bisa buka kunci perangkat atau tambah waktu sepuluh menit."
+    },
+    {
+      "id": "beat-05",
+      "file": "assets/audio/ad-05.wav",
+      "start": 30.71,
+      "duration": 6.39,
+      "end": 37.1,
+      "text": "Koreksi esai, analisis soal, dan ekspor nilai Excel dalam hitungan detik!"
+    },
+    {
+      "id": "beat-06",
+      "file": "assets/audio/ad-06.wav",
+      "start": 37.1,
+      "duration": 7.55,
+      "end": 44.65,
+      "text": "NILUJI versi satu titik tiga. Unduh gratis di niluji titik permadi titik dev."
+    }
+  ]
+}

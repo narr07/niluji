@@ -1,0 +1,306 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background-color: #f1f5f9;
+      background-image: radial-gradient(#cbd5e1 1.25px, transparent 1.25px);
+      background-size: 32px 32px;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #0f172a;
+    }
+
+    .top-bar {
+      position: absolute;
+      top: 44px;
+      left: 192px;
+      right: 192px;
+      height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 20;
+    }
+
+    .step-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: #ffffff;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 999px;
+      padding: 8px 22px 8px 10px;
+      font-size: 21px;
+      font-weight: 700;
+      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+    }
+
+    .step-badge {
+      background: #10b981;
+      color: #ffffff;
+      font-weight: 800;
+      padding: 4px 14px;
+      border-radius: 999px;
+      font-size: 17px;
+    }
+
+    /* Centered HP Frame as specified in NASKAH-NARASI.md */
+    .phone-stage {
+      position: absolute;
+      top: 112px;
+      left: 740px;
+      width: 440px;
+      height: 820px;
+      background: #0f172a;
+      border-radius: 46px;
+      padding: 16px;
+      box-shadow: 0 28px 64px rgba(15, 23, 42, 0.25);
+    }
+
+    .phone-screen {
+      width: 100%;
+      height: 100%;
+      background: #ffffff;
+      border-radius: 32px;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .phone-status {
+      height: 36px;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 22px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #475569;
+    }
+
+    .phone-view {
+      position: absolute;
+      top: 36px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 24px 22px;
+      background: #ffffff;
+    }
+
+    .btn-full {
+      background: #10b981;
+      color: #ffffff;
+      text-align: center;
+      font-size: 18px;
+      font-weight: 800;
+      padding: 14px;
+      border-radius: 12px;
+      margin-top: 16px;
+    }
+
+    .input-box {
+      background: #f8fafc;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 17px;
+      font-weight: 700;
+      margin-top: 8px;
+    }
+
+    .pin-banner {
+      background: #ecfdf5;
+      border: 1.5px solid #10b981;
+      border-radius: 12px;
+      padding: 14px;
+      margin-top: 16px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #065f46;
+    }
+
+    .q-opt {
+      border: 1.5px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-top: 10px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .q-opt.selected {
+      background: #ecfdf5;
+      border-color: #10b981;
+      color: #065f46;
+      font-weight: 800;
+    }
+
+    .action-bar {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .btn-ragu {
+      background: #fef3c7;
+      border: 1.5px solid #f59e0b;
+      color: #92400e;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .saved-badge {
+      background: #d1fae5;
+      color: #065f46;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .side-note {
+      position: absolute;
+      top: 220px;
+      width: 380px;
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 16px;
+      padding: 20px 24px;
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+    }
+
+    .subtitle-wrap {
+      position: absolute;
+      left: 192px;
+      right: 192px;
+      bottom: 36px;
+      display: flex;
+      justify-content: center;
+      z-index: 30;
+    }
+
+    .subtitle-box {
+      background: rgba(15, 23, 42, 0.92);
+      color: #f8fafc;
+      padding: 14px 28px;
+      border-radius: 14px;
+      font-size: 24px;
+      font-weight: 600;
+      line-height: 1.38;
+      text-align: center;
+      max-width: 1320px;
+    }
+  </style>
+
+  <div id="root" data-composition-id="scene-10" data-width="1920" data-height="1080">
+    <div id="top-bar" class="top-bar clip" data-start="0" data-duration="54.37">
+      <div class="step-pill">
+        <span class="step-badge">Adegan 10 / 13</span>
+        <span>Sisi Siswa — NILUJI Siswa &amp; Portal CBT</span>
+      </div>
+    </div>
+
+    <div id="note-left" class="side-note clip" style="left:192px" data-start="2.0" data-duration="50.0">
+      <div style="font-size:18px;font-weight:800;color:#059669;margin-bottom:8px">2 Cara Masuk Siswa</div>
+      <div style="font-size:17px;line-height:1.45;color:#334155">
+        1. Browser HP/Laptop (ketik alamat di kartu)<br/>
+        2. Aplikasi Android <strong>NILUJI Siswa</strong> (Pindai QR + Sematkan Aplikasi)
+      </div>
+    </div>
+
+    <div id="note-right" class="side-note clip" style="right:192px" data-start="26.0" data-duration="26.0">
+      <div style="font-size:18px;font-weight:800;color:#059669;margin-bottom:8px">Keandalan Offline</div>
+      <div style="font-size:17px;line-height:1.45;color:#334155">
+        Jawaban tersimpan otomatis ke server. Bila WiFi sempat putus, jawaban dikirim ulang otomatis saat tersambung kembali.
+      </div>
+    </div>
+
+    <!-- Centered Smartphone -->
+    <div id="phone" class="phone-stage clip" data-start="0" data-duration="54.37">
+      <div class="phone-screen">
+        <div class="phone-status">
+          <span>WiFi-Ujian</span>
+          <span>NILUJI Siswa</span>
+        </div>
+
+        <!-- View 1: Android App QR & App Pinning -->
+        <div id="pv-1" class="phone-view clip" data-start="0" data-duration="18.0">
+          <div style="text-align:center;margin-top:24px">
+            <img src="assets/images/niluji-app-icon.svg" width="64" height="64" alt="NILUJI" />
+            <div style="font-size:24px;font-weight:800;margin-top:12px">NILUJI Siswa</div>
+            <div style="font-size:15px;color:#475569;margin-top:4px">Mode Ujian Terproteksi</div>
+          </div>
+          <div class="btn-full" style="margin-top:34px">Pindai QR Kartu Peserta</div>
+          <div class="pin-banner">
+            <strong>Sematkan Aplikasi &amp; Blokir Screenshot</strong><br/>
+            HP disematkan selama ujian berlangsung agar fokus dan aman.
+          </div>
+        </div>
+
+        <!-- View 2: Portal Login -->
+        <div id="pv-2" class="phone-view clip" data-start="17.8" data-duration="14.5" data-layout-allow-overlap>
+          <div style="font-size:22px;font-weight:800;margin-bottom:14px">Portal Ujian Siswa</div>
+          <div style="font-size:14px;font-weight:700;color:#475569">NISN</div>
+          <div class="input-box" style="font-family:Consolas,monospace">0123456782</div>
+          <div style="font-size:14px;font-weight:700;color:#475569;margin-top:12px">Nama Lengkap</div>
+          <div class="input-box">Budi Santoso</div>
+          <div class="btn-full" style="background:#0f172a">Lanjutkan</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px">
+            <div>
+              <div style="font-size:13px;font-weight:700;color:#475569">Token Ujian</div>
+              <div class="input-box" style="font-family:Consolas,monospace;text-align:center">X7K9P2</div>
+            </div>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:#475569">PIN Kartu</div>
+              <div class="input-box" style="font-family:Consolas,monospace;text-align:center">482910</div>
+            </div>
+          </div>
+          <div class="btn-full">Mulai Kerjakan Ujian</div>
+        </div>
+
+        <!-- View 3: Answering PG + Ragu-ragu + Esai + Submit -->
+        <div id="pv-3" class="phone-view clip" data-start="32.0" data-duration="22.37" data-layout-allow-overlap>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+            <span style="font-size:16px;font-weight:800">Soal No. 1 (PG)</span>
+            <span class="saved-badge">Tersimpan</span>
+          </div>
+          <div style="font-size:16px;font-weight:700;line-height:1.4">Bagian rangkaian listrik yang berfungsi memutus arus adalah...</div>
+          <div class="q-opt">A. Baterai</div>
+          <div class="q-opt selected">B. Sakelar</div>
+          <div class="q-opt">C. Lampu pijar</div>
+          <div class="q-opt">D. Kabel penghantar</div>
+          <div class="action-bar">
+            <div class="btn-ragu">Ragu-ragu</div>
+            <div class="btn-full" style="margin-top:0;padding:10px 18px;font-size:15px">Lanjut ke Esai →</div>
+          </div>
+          <div id="submit-btn" class="btn-full clip" style="background:#0f172a;margin-top:28px" data-start="46.0" data-duration="8.37">
+            Selesai &amp; Kumpulkan
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#phone", { opacity: 0, y: 24, scale: 0.96 }, { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: "expo.out" }, 0);
+    tl.fromTo("#note-left", { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.45, ease: "expo.out" }, 2.0);
+    tl.to("#pv-1", { opacity: 0, duration: 0.3 }, 17.6);
+    tl.fromTo("#pv-2", { opacity: 0, x: 30 }, { opacity: 1, x: 0, duration: 0.4, ease: "expo.out" }, 17.8);
+    tl.fromTo("#note-right", { opacity: 0, x: 20 }, { opacity: 1, x: 0, duration: 0.45, ease: "expo.out" }, 26.0);
+    tl.to("#pv-2", { opacity: 0, duration: 0.3 }, 31.8);
+    tl.fromTo("#pv-3", { opacity: 0, x: 30 }, { opacity: 1, x: 0, duration: 0.4, ease: "expo.out" }, 32.0);
+    tl.fromTo("#submit-btn", { opacity: 0, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(1.4)" }, 46.0);
+
+
+    window.__timelines["scene-10"] = tl;
+  </script>
+</template>

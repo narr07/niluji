@@ -1,0 +1,108 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background-color: #f1f5f9;
+      background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
+      background-size: 32px 32px;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #0f172a;
+    }
+
+    .safe-band {
+      position: absolute;
+      top: 190px;
+      left: 72px;
+      width: 888px;
+      height: 1100px;
+      display: flex;
+      flex-direction: column;
+      gap: 26px;
+    }
+
+    .headline {
+      font-size: 56px;
+      font-weight: 900;
+      line-height: 1.1;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .stat-card {
+      background: #ffffff;
+      border: 2px solid #cbd5e1;
+      border-radius: 18px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .stat-num {
+      font-size: 46px;
+      font-weight: 900;
+      margin-top: 6px;
+    }
+
+    .student-row {
+      background: #ffffff;
+      border: 2px solid #cbd5e1;
+      border-radius: 22px;
+      padding: 26px 28px;
+      box-shadow: 0 20px 48px rgba(15, 23, 42, 0.1);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .act-pill {
+      flex: 1;
+      text-align: center;
+      background: #ecfdf5;
+      border: 2px solid #10b981;
+      color: #065f46;
+      font-size: 24px;
+      font-weight: 800;
+      padding: 16px 14px;
+      border-radius: 14px;
+    }
+  </style>
+
+  <div id="root" data-composition-id="beat-04" data-width="1080" data-height="1920">
+    <div class="safe-band">
+      <div id="h1" class="headline">Pantau Langsung<br /><span style="color:#10b981">dari Meja Pengawas</span></div>
+
+      <div id="stats" class="stat-grid clip" data-start="0.1" data-duration="6.41">
+        <div class="stat-card"><div style="font-size:20px;font-weight:700;color:#1d4ed8">Sesi PG</div><div class="stat-num">12</div></div>
+        <div class="stat-card"><div style="font-size:20px;font-weight:700;color:#92400e">Sesi Esai</div><div class="stat-num">8</div></div>
+        <div class="stat-card"><div style="font-size:20px;font-weight:700;color:#065f46">Selesai</div><div class="stat-num">12</div></div>
+      </div>
+
+      <div id="row" class="student-row clip" data-start="1.4" data-duration="5.11">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:30px;font-weight:800">Budi Santoso · 6A</span>
+          <span style="background:#dbeafe;color:#1d4ed8;padding:6px 16px;border-radius:999px;font-size:20px;font-weight:800">Aktif</span>
+        </div>
+        <div class="btn-row">
+          <div class="act-pill">Buka Kunci Perangkat</div>
+          <div class="act-pill">+10 Menit</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#h1", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.35, ease: "expo.out" }, 0);
+    tl.fromTo("#stats", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.35, ease: "expo.out" }, 0.1);
+    tl.fromTo("#row", { opacity: 0, scale: 0.94, y: 18 }, { opacity: 1, scale: 1, y: 0, duration: 0.4, ease: "back.out(1.4)" }, 1.4);
+    window.__timelines["beat-04"] = tl;
+  </script>
+</template>

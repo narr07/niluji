@@ -1,0 +1,125 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background-color: #f1f5f9;
+      background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
+      background-size: 32px 32px;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #0f172a;
+    }
+
+    .safe-band {
+      position: absolute;
+      top: 190px;
+      left: 72px;
+      width: 888px;
+      height: 1100px;
+      display: flex;
+      flex-direction: column;
+      gap: 26px;
+    }
+
+    .headline {
+      font-size: 56px;
+      font-weight: 900;
+      line-height: 1.1;
+    }
+
+    .score-card {
+      background: #ffffff;
+      border: 2.5px solid #10b981;
+      border-radius: 24px;
+      padding: 28px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 22px 52px rgba(15, 23, 42, 0.12);
+    }
+
+    .big-score {
+      background: #10b981;
+      color: #ffffff;
+      font-size: 54px;
+      font-weight: 900;
+      padding: 14px 32px;
+      border-radius: 18px;
+    }
+
+    .analisis-card {
+      background: #ffffff;
+      border: 2px solid #cbd5e1;
+      border-radius: 22px;
+      padding: 26px 30px;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 120px 1fr 74px;
+      align-items: center;
+      gap: 14px;
+      margin-top: 14px;
+      font-size: 22px;
+      font-weight: 800;
+    }
+
+    .bar-track {
+      height: 22px;
+      background: #e2e8f0;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 999px;
+    }
+
+    .excel-btn {
+      background: #0f172a;
+      color: #34d399;
+      text-align: center;
+      font-size: 28px;
+      font-weight: 800;
+      padding: 20px;
+      border-radius: 18px;
+    }
+  </style>
+
+  <div id="root" data-composition-id="beat-05" data-width="1080" data-height="1920">
+    <div class="safe-band">
+      <div id="h1" class="headline">Koreksi Esai, Analisis &amp; <span style="color:#10b981">Ekspor Excel!</span></div>
+
+      <div id="score" class="score-card clip" data-start="0.1" data-duration="6.29">
+        <div>
+          <div style="font-size:22px;font-weight:800;color:#64748b">NILAI AKHIR OTOMATIS</div>
+          <div style="font-size:32px;font-weight:800;margin-top:4px">Budi Santoso</div>
+          <div style="font-size:22px;color:#475569;margin-top:4px">PG 70% · Esai 30%</div>
+        </div>
+        <div class="big-score">88,5</div>
+      </div>
+
+      <div id="analisis" class="analisis-card clip" data-start="1.6" data-duration="4.79">
+        <div style="font-size:26px;font-weight:800;margin-bottom:6px">Analisis Pengecoh Soal</div>
+        <div class="bar-row"><span>Opsi A</span><div class="bar-track"><div class="bar-fill" style="width:18%;background:#94a3b8"></div></div><span>18%</span></div>
+        <div class="bar-row"><span>Opsi B</span><div class="bar-track"><div class="bar-fill" style="width:42%;background:#10b981"></div></div><span>42%</span></div>
+        <div class="bar-row"><span>Opsi C</span><div class="bar-track"><div class="bar-fill" style="width:31%;background:#f59e0b"></div></div><span>31%</span></div>
+      </div>
+
+      <div id="excel" class="excel-btn clip" data-start="3.2" data-duration="3.19">
+        Export Rekap Nilai Excel (.xlsx)
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#h1", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.35, ease: "expo.out" }, 0);
+    tl.fromTo("#score", { opacity: 0, scale: 0.94, y: 16 }, { opacity: 1, scale: 1, y: 0, duration: 0.4, ease: "back.out(1.4)" }, 0.1);
+    tl.fromTo("#analisis", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.35, ease: "expo.out" }, 1.6);
+    tl.fromTo("#excel", { opacity: 0, scale: 0.92 }, { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(1.4)" }, 3.2);
+    window.__timelines["beat-05"] = tl;
+  </script>
+</template>

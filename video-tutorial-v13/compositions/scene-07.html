@@ -1,0 +1,330 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background-color: #f1f5f9;
+      background-image: radial-gradient(#cbd5e1 1.25px, transparent 1.25px);
+      background-size: 32px 32px;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #0f172a;
+    }
+
+    .top-bar {
+      position: absolute;
+      top: 44px;
+      left: 192px;
+      right: 192px;
+      height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 20;
+    }
+
+    .step-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: #ffffff;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 999px;
+      padding: 8px 22px 8px 10px;
+      font-size: 21px;
+      font-weight: 700;
+      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+    }
+
+    .step-badge {
+      background: #10b981;
+      color: #ffffff;
+      font-weight: 800;
+      padding: 4px 14px;
+      border-radius: 999px;
+      font-size: 17px;
+    }
+
+    .stage {
+      position: absolute;
+      top: 116px;
+      left: 192px;
+      width: 1536px;
+      height: 806px;
+    }
+
+    .app-shell {
+      position: absolute;
+      inset: 0;
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+      display: grid;
+      grid-template-columns: 270px 1fr;
+    }
+
+    .sidebar {
+      background: #f8fafc;
+      border-right: 1px solid #e2e8f0;
+      padding: 26px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 4px 10px 22px;
+      font-size: 24px;
+      font-weight: 800;
+    }
+
+    .nav-item {
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 18px;
+      font-weight: 600;
+      color: #475569;
+    }
+
+    .nav-item.active {
+      background: #ecfdf5;
+      color: #059669;
+      font-weight: 700;
+    }
+
+    .main-area {
+      padding: 28px 42px;
+      position: relative;
+    }
+
+    .head-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .page-title {
+      font-size: 26px;
+      font-weight: 800;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn-outline {
+      background: #f8fafc;
+      border: 1.5px solid #cbd5e1;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .btn-primary {
+      background: #10b981;
+      color: #ffffff;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .editor-card {
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 22px 26px;
+    }
+
+    .editor-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #cbd5e1;
+      margin-bottom: 16px;
+    }
+
+    .img-btn {
+      background: #eff6ff;
+      border: 1.5px solid #3b82f6;
+      color: #1d4ed8;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .opt-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 10px 16px;
+      margin-top: 10px;
+      font-size: 17px;
+      font-weight: 600;
+    }
+
+    .opt-row.key {
+      background: #ecfdf5;
+      border-color: #10b981;
+      color: #065f46;
+    }
+
+    .import-modal {
+      position: absolute;
+      left: 340px;
+      top: 140px;
+      width: 780px;
+      background: #ffffff;
+      border: 2px solid #0f172a;
+      border-radius: 18px;
+      padding: 28px 32px;
+      box-shadow: 0 28px 64px rgba(15, 23, 42, 0.25);
+      z-index: 18;
+    }
+
+    .fmt-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 12px;
+      margin-top: 14px;
+      font-size: 19px;
+      font-weight: 700;
+    }
+
+    .fmt-row.active {
+      border-color: #10b981;
+      background: #ecfdf5;
+      color: #065f46;
+    }
+
+    .cursor-wrap {
+      position: absolute;
+      left: 0;
+      top: 0;
+      z-index: 25;
+      pointer-events: none;
+    }
+
+    .subtitle-wrap {
+      position: absolute;
+      left: 192px;
+      right: 192px;
+      bottom: 36px;
+      display: flex;
+      justify-content: center;
+      z-index: 30;
+    }
+
+    .subtitle-box {
+      background: rgba(15, 23, 42, 0.92);
+      color: #f8fafc;
+      padding: 14px 28px;
+      border-radius: 14px;
+      font-size: 24px;
+      font-weight: 600;
+      line-height: 1.38;
+      text-align: center;
+      max-width: 1320px;
+    }
+  </style>
+
+  <div id="root" data-composition-id="scene-07" data-width="1920" data-height="1080">
+    <div id="top-bar" class="top-bar clip" data-start="0" data-duration="42.40">
+      <div class="step-pill">
+        <span class="step-badge">Adegan 7 / 13</span>
+        <span>Bank Soal (PG A–E, Esai, Gambar &amp; Import)</span>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div id="app-shell" class="app-shell clip" data-start="0" data-duration="42.40">
+        <div class="sidebar">
+          <div class="brand-row">
+            <img src="assets/images/niluji-app-icon.svg" width="32" height="32" alt="NILUJI" />
+            <span>NILUJI</span>
+          </div>
+          <div class="nav-item">Dashboard</div>
+          <div class="nav-item">Siswa</div>
+          <div class="nav-item active">Bank Soal</div>
+          <div class="nav-item">Kelola Ujian</div>
+          <div class="nav-item">Hasil Ujian</div>
+          <div class="nav-item">Pengaturan</div>
+        </div>
+
+        <div class="main-area">
+          <div class="head-row">
+            <div>
+              <div class="page-title">Bank Soal · Kelas 6A · IPA</div>
+              <div style="font-size:16px;color:#059669;font-weight:700;margin-top:2px">Jenis Ujian: Sumatif Akhir Semester</div>
+            </div>
+            <div class="btn-row">
+              <div class="btn-outline">Import Soal</div>
+              <div class="btn-primary">+ Tambah Soal</div>
+            </div>
+          </div>
+
+          <div id="editor-card" class="editor-card clip" data-start="1.0" data-duration="22.0">
+            <div class="editor-toolbar">
+              <span style="font-size:18px;font-weight:800">Soal #1 · Pilihan Ganda (Opsi A–E) atau Esai</span>
+              <span class="img-btn">Sisipkan Gambar</span>
+            </div>
+            <div style="font-size:19px;font-weight:700;margin-bottom:14px">
+              Perhatikan gambar rangkaian listrik berikut. Bagian yang berfungsi memutus arus adalah...
+            </div>
+            <div class="opt-row"><span>A. Baterai</span><span class="img-btn" style="font-size:13px">+ Gambar</span></div>
+            <div class="opt-row key"><span>B. Sakelar (Kunci Jawaban)</span><span class="img-btn" style="font-size:13px">+ Gambar</span></div>
+            <div class="opt-row"><span>C. Lampu pijar</span><span class="img-btn" style="font-size:13px">+ Gambar</span></div>
+            <div class="opt-row"><span>D. Kabel penghantar</span><span class="img-btn" style="font-size:13px">+ Gambar</span></div>
+            <div class="opt-row"><span>E. Sekering</span><span class="img-btn" style="font-size:13px">+ Gambar</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="import-modal" class="import-modal clip" data-start="22.5" data-duration="19.90" data-layout-allow-overlap>
+        <div style="font-size:24px;font-weight:800;margin-bottom:6px">Import Soal Otomatis + Pratinjau</div>
+        <div style="font-size:17px;color:#475569;margin-bottom:18px">Pilih sumber naskah soal yang sudah diketik:</div>
+        <div class="fmt-row active"><span>1. Microsoft Word (.docx)</span><span>Didukung + Gambar</span></div>
+        <div class="fmt-row"><span>2. Excel / CSV (.xlsx / .csv)</span><span>Template Resmi</span></div>
+        <div class="fmt-row"><span>3. Bundel Markdown (.md)</span><span>Teks &amp; Gambar</span></div>
+      </div>
+
+      <div id="cursor" class="cursor-wrap clip" data-start="1.0" data-duration="40.5" data-layout-allow-overlap>
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
+          <path d="M4 2L20 11L12.5 13.5L10 21L4 2Z" fill="#0F172A" stroke="#FFFFFF" stroke-width="2" />
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#app-shell", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.45, ease: "expo.out" }, 0);
+    tl.fromTo("#editor-card", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.4, ease: "expo.out" }, 1.0);
+    tl.fromTo("#cursor", { x: 400, y: 300, opacity: 0 }, { x: 1380, y: 52, opacity: 1, duration: 0.8, ease: "power2.inOut" }, 6.0);
+    tl.to("#cursor", { x: 1360, y: 142, duration: 0.9, ease: "power2.inOut" }, 14.0);
+    tl.to("#cursor", { x: 1180, y: 52, duration: 0.8, ease: "power2.inOut" }, 21.3);
+    tl.to("#cursor", { scale: 0.84, duration: 0.12 }, 22.2);
+    tl.to("#cursor", { scale: 1, duration: 0.12 }, 22.32);
+
+    tl.fromTo("#import-modal", { opacity: 0, scale: 0.92, y: 18 }, { opacity: 1, scale: 1, y: 0, duration: 0.45, ease: "back.out(1.4)" }, 22.5);
+
+
+    window.__timelines["scene-07"] = tl;
+  </script>
+</template>

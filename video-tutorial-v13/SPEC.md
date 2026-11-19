@@ -1,0 +1,30 @@
+# SPEC — Video Tutorial NILUJI v1.3.0 (13 Adegan)
+
+- **GOAL**: Guru, operator sekolah, dan pengawas memahami alur lengkap menyelenggarakan ujian berbasis komputer tanpa internet dengan NILUJI v1.3.0 — mulai dari instalasi dan WiFi ujian, identitas sekolah, data siswa & kartu peserta, bank soal, jadwal ujian, pengerjaan siswa di HP, pantauan pengawas, koreksi esai & analisis soal, hingga backup database.
+- **OUTPUT**: HyperFrames, `1920 x 1080`, `30 fps`, H.264 MP4 (`renders/niluji-tutorial-v130.mp4`).
+- **TIME**: Synced to measured WAV durations in `assets/audio/timings.json` (`adegan-01.wav` .. `adegan-13.wav`, ~5–6 menit total).
+- **LOOK**:
+  - **Ground**: `#F1F5F9` (Slate 100) light studio surface with a `1px` `#CBD5E1` dot grid at `32px` spacing (matching NILUJI's clean light UI).
+  - **Surface**: `#FFFFFF` (App Window / Phone Frame) with `1px solid #E2E8F0` border and `0 24px 60px rgba(15, 23, 42, 0.12)` contact shadow.
+  - **Ink**: `#0F172A` primary text, `#475569` secondary labels (WCAG AA >= 4.5:1).
+  - **Accent**: `#10B981` (Emerald 500) for active step indicators, verified badges, cursor click rings, and primary actions; `#F59E0B` (Amber 500) for Ragu-ragu & Token highlights; `#3B82F6` (Blue 500) for PG & info actions.
+  - **Typography**:
+    - Display / Headers: `'Segoe UI', system-ui, sans-serif`, `700–800`, `40px–56px`, `letter-spacing: -0.02em`, `line-height: 1.15`.
+    - UI Labels & Callouts: `'Segoe UI', system-ui, sans-serif`, `600`, `20px–26px`, `line-height: 1.35`.
+    - Monospace (IP, NISN, PIN, Token): `'Consolas', 'Courier New', monospace`, `700`, `22px–34px`.
+    - Subtitles (80% title-safe bottom bar): `26px`, `600`, `#F8FAFC` on `#0F172A` (`rgba(15, 23, 42, 0.92)`), `left: 192px; right: 192px; bottom: 44px`.
+- **OBJECTS**:
+  - Real `niluji.permadi.dev` captures (`niluji_web_home.png`, `niluji_web_rilis.png`), real `dashboard_verified.png`, real `niluji-lockup.svg` / `niluji-app-icon.svg`.
+  - Authentic NILUJI v1.3.0 desktop window (`1440px x 820px` scaled/framed cleanly on `1920x1080`), Windows Defender Firewall dialog, Student Exam Card (`QR + 6-digit PIN`), Centered Android Smartphone frame (`420px x 840px`) for Adegan 10, Interactive cursor (`28px` pointer + emerald click ring).
+- **MOTION**:
+  - Enter: `0.45s` (`14 frames`), `expo.out`.
+  - Cursor Move: `0.5s` (`15 frames`), `power2.inOut`, followed by click pulse (`scale: 0.85`, `0.12s`).
+  - Focus Callout / Badge Pop: `0.32s` (`10 frames`), `back.out(1.4)`.
+  - Exit / Hold: every scene lands cleanly before its `data-duration` ends.
+- **SOUND**:
+  - Narration: `assets/audio/adegan-01.wav` .. `adegan-13.wav` (Indonesian neural voice `id-ID-GadisNeural`, normalized to `-16 LUFS`, `-1.0 dBTP`).
+  - SFX: `assets/sfx/click-soft.mp3`, `pop.mp3`, `whoosh-short.mp3`, `notification.mp3`, `chime.mp3` placed `+0.04s` after visual action beats at `data-volume="0.25"`.
+- **BANNED**:
+  - Dark navy void with small floating elements, neon/bloom/particles, purple/cyan AI gradients, glass cards, docked corner logos, 3-card feature grids, CSS `transform` on GSAP-animated elements, `Math.random()`, `Date.now()`, `repeat: -1`.
+- **QA**:
+  - Check midpoint snapshots of all 13 scenes (`scene-01` .. `scene-13`) via `npx hyperframes check --json` and `npx hyperframes snapshot`.

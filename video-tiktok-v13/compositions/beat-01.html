@@ -1,0 +1,135 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background-color: #f1f5f9;
+      background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
+      background-size: 32px 32px;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #0f172a;
+    }
+
+    .safe-band {
+      position: absolute;
+      top: 190px;
+      left: 72px;
+      width: 888px;
+      height: 1100px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    .pill-hook {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      align-self: flex-start;
+      background: #0f172a;
+      color: #34d399;
+      font-size: 26px;
+      font-weight: 800;
+      padding: 10px 24px;
+      border-radius: 999px;
+    }
+
+    .headline {
+      font-size: 68px;
+      font-weight: 900;
+      line-height: 1.08;
+      letter-spacing: -0.025em;
+      color: #0f172a;
+    }
+
+    .accent {
+      color: #10b981;
+    }
+
+    .subline {
+      font-size: 32px;
+      font-weight: 700;
+      color: #334155;
+      line-height: 1.3;
+    }
+
+    .hero-card {
+      background: #ffffff;
+      border: 2px solid #cbd5e1;
+      border-radius: 26px;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.14);
+      margin-top: 8px;
+    }
+
+    .hero-bar {
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: 'Consolas', monospace;
+      font-size: 22px;
+      font-weight: 800;
+      color: #059669;
+    }
+
+    .hero-card img {
+      width: 100%;
+      height: 520px;
+      object-fit: cover;
+      object-position: top left;
+      display: block;
+    }
+
+    .badge-row {
+      display: flex;
+      gap: 14px;
+      margin-top: 4px;
+    }
+
+    .mini-badge {
+      background: #ecfdf5;
+      border: 2px solid #10b981;
+      color: #065f46;
+      font-size: 24px;
+      font-weight: 800;
+      padding: 12px 22px;
+      border-radius: 14px;
+    }
+  </style>
+
+  <div id="root" data-composition-id="beat-01" data-width="1080" data-height="1920">
+    <div class="safe-band">
+      <div id="pill" class="pill-hook">100% OFFLINE · WIFI SEKOLAH</div>
+      <div id="h1" class="headline">
+        Ujian Sekolah<br /><span class="accent">Tanpa Internet?</span>
+      </div>
+      <div id="sub" class="subline clip" data-start="1.6" data-duration="6.98">
+        Pakai <strong style="color:#0f172a">NILUJI</strong>! Cukup 1 laptop guru jadi server lokal.
+      </div>
+      <div id="hero" class="hero-card clip" data-start="0" data-duration="8.58">
+        <div class="hero-bar">
+          <span>Server Lokal Aktif</span>
+          <span>192.168.1.10</span>
+        </div>
+        <img src="assets/images/dashboard_verified.png" alt="Dashboard NILUJI" />
+      </div>
+      <div id="badges" class="badge-row clip" data-start="3.2" data-duration="5.38">
+        <div class="mini-badge">Tanpa Kuota</div>
+        <div class="mini-badge">Tanpa Ribet Server</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#h1", { y: 18 }, { y: 0, duration: 0.35, ease: "expo.out" }, 0);
+    tl.fromTo("#hero", { scale: 0.96, y: 20 }, { scale: 1, y: 0, duration: 0.45, ease: "expo.out" }, 0);
+    tl.fromTo("#sub", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.35, ease: "expo.out" }, 1.6);
+    tl.fromTo("#badges", { opacity: 0, scale: 0.92 }, { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(1.4)" }, 3.2);
+    window.__timelines["beat-01"] = tl;
+  </script>
+</template>

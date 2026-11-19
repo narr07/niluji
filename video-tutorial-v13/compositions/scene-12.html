@@ -1,0 +1,376 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background-color: #f1f5f9;
+      background-image: radial-gradient(#cbd5e1 1.25px, transparent 1.25px);
+      background-size: 32px 32px;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #0f172a;
+    }
+
+    .top-bar {
+      position: absolute;
+      top: 44px;
+      left: 192px;
+      right: 192px;
+      height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 20;
+    }
+
+    .step-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: #ffffff;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 999px;
+      padding: 8px 22px 8px 10px;
+      font-size: 21px;
+      font-weight: 700;
+      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+    }
+
+    .step-badge {
+      background: #10b981;
+      color: #ffffff;
+      font-weight: 800;
+      padding: 4px 14px;
+      border-radius: 999px;
+      font-size: 17px;
+    }
+
+    .stage {
+      position: absolute;
+      top: 116px;
+      left: 192px;
+      width: 1536px;
+      height: 806px;
+    }
+
+    .app-shell {
+      position: absolute;
+      inset: 0;
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+      display: grid;
+      grid-template-columns: 270px 1fr;
+    }
+
+    .sidebar {
+      background: #f8fafc;
+      border-right: 1px solid #e2e8f0;
+      padding: 26px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 4px 10px 22px;
+      font-size: 24px;
+      font-weight: 800;
+    }
+
+    .nav-item {
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 18px;
+      font-weight: 600;
+      color: #475569;
+    }
+
+    .nav-item.active {
+      background: #ecfdf5;
+      color: #059669;
+      font-weight: 700;
+    }
+
+    .main-area {
+      padding: 28px 42px;
+      position: relative;
+    }
+
+    .head-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .page-title {
+      font-size: 26px;
+      font-weight: 800;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-outline {
+      background: #f8fafc;
+      border: 1.5px solid #cbd5e1;
+      padding: 9px 16px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .btn-primary {
+      background: #10b981;
+      color: #ffffff;
+      padding: 9px 18px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      text-align: left;
+      background: #f8fafc;
+      padding: 12px 16px;
+      font-size: 15px;
+      font-weight: 800;
+      color: #475569;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    td {
+      padding: 14px 16px;
+      font-size: 18px;
+      font-weight: 600;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .wait-badge {
+      background: #fef3c7;
+      color: #92400e;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .score-badge {
+      background: #d1fae5;
+      color: #065f46;
+      padding: 4px 14px;
+      border-radius: 999px;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    /* Detail & Koreksi Drawer */
+    .koreksi-modal {
+      position: absolute;
+      right: 36px;
+      top: 90px;
+      width: 560px;
+      background: #ffffff;
+      border: 2px solid #0f172a;
+      border-radius: 16px;
+      padding: 24px 28px;
+      box-shadow: 0 24px 56px rgba(15, 23, 42, 0.25);
+      z-index: 16;
+    }
+
+    /* Analisis Soal Panel */
+    .analisis-panel {
+      position: absolute;
+      inset: 90px 42px 30px 42px;
+      background: #f8fafc;
+      border: 2px solid #10b981;
+      border-radius: 16px;
+      padding: 24px 28px;
+      z-index: 18;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 180px 1fr 70px;
+      align-items: center;
+      gap: 14px;
+      margin-top: 14px;
+      font-size: 17px;
+      font-weight: 700;
+    }
+
+    .bar-track {
+      height: 20px;
+      background: #e2e8f0;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 999px;
+    }
+
+    .cursor-wrap {
+      position: absolute;
+      left: 0;
+      top: 0;
+      z-index: 25;
+      pointer-events: none;
+    }
+
+    .subtitle-wrap {
+      position: absolute;
+      left: 192px;
+      right: 192px;
+      bottom: 36px;
+      display: flex;
+      justify-content: center;
+      z-index: 30;
+    }
+
+    .subtitle-box {
+      background: rgba(15, 23, 42, 0.92);
+      color: #f8fafc;
+      padding: 14px 28px;
+      border-radius: 14px;
+      font-size: 24px;
+      font-weight: 600;
+      line-height: 1.38;
+      text-align: center;
+      max-width: 1320px;
+    }
+  </style>
+
+  <div id="root" data-composition-id="scene-12" data-width="1920" data-height="1080">
+    <div id="top-bar" class="top-bar clip" data-start="0" data-duration="46.12">
+      <div class="step-pill">
+        <span class="step-badge">Adegan 12 / 13</span>
+        <span>Koreksi Esai, Analisis Soal &amp; Ekspor Nilai</span>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div id="app-shell" class="app-shell clip" data-start="0" data-duration="46.12">
+        <div class="sidebar">
+          <div class="brand-row">
+            <img src="assets/images/niluji-app-icon.svg" width="32" height="32" alt="NILUJI" />
+            <span>NILUJI</span>
+          </div>
+          <div class="nav-item">Dashboard</div>
+          <div class="nav-item">Siswa</div>
+          <div class="nav-item">Bank Soal</div>
+          <div class="nav-item">Kelola Ujian</div>
+          <div class="nav-item active">Hasil Ujian</div>
+          <div class="nav-item">Pengaturan</div>
+        </div>
+
+        <div class="main-area">
+          <div class="head-row">
+            <div>
+              <div class="page-title">Hasil Ujian · Kelas 6A · IPA</div>
+              <div style="font-size:15px;color:#475569;margin-top:2px">Sumatif Akhir Semester (PG 70% · Esai 30%)</div>
+            </div>
+            <div class="btn-row">
+              <div class="btn-outline">Nilai Ulang</div>
+              <div class="btn-outline">Analisis Soal</div>
+              <div class="btn-primary">Export Excel (.xlsx)</div>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Nama Siswa</th>
+                <th>Nilai PG</th>
+                <th>Nilai Esai</th>
+                <th>Nilai Akhir</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Budi Santoso</td>
+                <td>90</td>
+                <td><span id="esai-wait" class="wait-badge clip" data-start="0" data-duration="17.5">Menunggu nilai esai</span><span id="esai-done" class="score-badge clip" data-start="17.5" data-duration="28.62" data-layout-allow-overlap>85</span></td>
+                <td><span id="final-wait" class="wait-badge clip" data-start="0" data-duration="17.5">Menunggu</span><span id="final-done" class="score-badge clip" data-start="17.5" data-duration="28.62" data-layout-allow-overlap>88,5</span></td>
+                <td><span class="btn-outline" style="padding:5px 12px;font-size:14px">Detail &amp; Koreksi</span></td>
+              </tr>
+              <tr>
+                <td>Citra Dewi</td>
+                <td>84</td>
+                <td>80</td>
+                <td><span class="score-badge">82,8</span></td>
+                <td><span class="btn-outline" style="padding:5px 12px;font-size:14px">Detail &amp; Koreksi</span></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Koreksi Esai Modal -->
+          <div id="koreksi-modal" class="koreksi-modal clip" data-start="8.0" data-duration="10.0" data-layout-allow-overlap>
+            <div style="font-size:21px;font-weight:800;margin-bottom:10px">Detail &amp; Koreksi Esai — Budi Santoso</div>
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 16px;font-size:16px;line-height:1.4">
+              <strong>Jawaban Siswa:</strong> Rangkaian seri disusun berurutan sehingga jika satu lampu padam, lampu lain ikut padam.
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:18px">
+              <span style="font-size:17px;font-weight:700">Nilai Esai (0–100):</span>
+              <span style="background:#ecfdf5;border:2px solid #10b981;padding:8px 22px;border-radius:10px;font-size:24px;font-weight:800;color:#065f46">85</span>
+            </div>
+            <div class="btn-primary" style="text-align:center;margin-top:16px">Simpan Nilai Esai</div>
+          </div>
+
+          <!-- Analisis Soal Panel -->
+          <div id="analisis-panel" class="analisis-panel clip" data-start="27.5" data-duration="18.62" data-layout-allow-overlap>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="font-size:23px;font-weight:800">Tab Analisis Soal — Tingkat Kesulitan &amp; Analisis Pengecoh</div>
+              <span class="score-badge">Soal #4 · Kategori: Sulit</span>
+            </div>
+            <div class="bar-row"><span>Opsi A (Pengecoh)</span><div class="bar-track"><div class="bar-fill" style="width:18%;background:#94a3b8"></div></div><span>18%</span></div>
+            <div class="bar-row"><span>Opsi B (Kunci Benar)</span><div class="bar-track"><div class="bar-fill" style="width:42%;background:#10b981"></div></div><span>42%</span></div>
+            <div class="bar-row"><span>Opsi C (Menjebak)</span><div class="bar-track"><div class="bar-fill" style="width:31%;background:#f59e0b"></div></div><span>31%</span></div>
+            <div class="bar-row"><span>Opsi D (Pengecoh)</span><div class="bar-track"><div class="bar-fill" style="width:9%;background:#94a3b8"></div></div><span>9%</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="cursor" class="cursor-wrap clip" data-start="1.0" data-duration="44.0" data-layout-allow-overlap>
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
+          <path d="M4 2L20 11L12.5 13.5L10 21L4 2Z" fill="#0F172A" stroke="#FFFFFF" stroke-width="2" />
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#app-shell", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.45, ease: "expo.out" }, 0);
+    tl.fromTo("#cursor", { x: 400, y: 200, opacity: 0 }, { x: 1380, y: 215, opacity: 1, duration: 0.9, ease: "power2.inOut" }, 6.8);
+    tl.to("#cursor", { scale: 0.84, duration: 0.12 }, 7.8);
+    tl.to("#cursor", { scale: 1, duration: 0.12 }, 7.92);
+    tl.fromTo("#koreksi-modal", { opacity: 0, x: 24 }, { opacity: 1, x: 0, duration: 0.4, ease: "back.out(1.3)" }, 8.0);
+    tl.to("#koreksi-modal", { opacity: 0, x: 24, duration: 0.35 }, 17.5);
+
+    tl.to("#cursor", { x: 1020, y: 52, duration: 0.9, ease: "power2.inOut" }, 22.0);
+    tl.to("#cursor", { x: 1170, y: 52, duration: 0.7, ease: "power2.inOut" }, 26.5);
+    tl.fromTo("#analisis-panel", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.45, ease: "expo.out" }, 27.5);
+    tl.to("#cursor", { x: 1360, y: 52, duration: 0.9, ease: "power2.inOut" }, 39.0);
+    tl.to("#cursor", { scale: 0.84, duration: 0.12 }, 40.2);
+    tl.to("#cursor", { scale: 1, duration: 0.12 }, 40.32);
+
+
+    window.__timelines["scene-12"] = tl;
+  </script>
+</template>
