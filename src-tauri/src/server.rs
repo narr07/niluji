@@ -44,7 +44,7 @@ pub struct OnlineStudent {
 
 pub fn list_online(state: &LoginState) -> Vec<OnlineStudent> {
 	let mut list: Vec<OnlineStudent> = state.lock().unwrap().values().cloned().collect();
-	list.sort_by(|a, b| b.logged_in_at.cmp(&a.logged_in_at));
+	list.sort_by_key(|student| std::cmp::Reverse(student.logged_in_at));
 	list
 }
 
@@ -242,10 +242,7 @@ fn is_valid_lan_ipv4(ip: &Ipv4Addr) -> bool {
 	}
 	let octets = ip.octets();
 	// Exclude APIPA link-local 169.254.x.x
-	if octets[0] == 169 && octets[1] == 254 {
-		return false;
-	}
-	true
+	!(octets[0] == 169 && octets[1] == 254)
 }
 
 fn ipv4_priority(ip: &Ipv4Addr) -> u8 {
