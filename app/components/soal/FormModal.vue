@@ -283,7 +283,7 @@
 							</template>
 							<template #trailing>
 								<UButton
-									size="2xs"
+									size="xs"
 									variant="ghost"
 									color="neutral"
 									icon="lucide:image-plus"
@@ -294,7 +294,7 @@
 						<div v-if="form.options[key].imagePreview" class="flex items-center gap-2 pl-7">
 							<img :src="form.options[key].imagePreview" class="h-10 rounded border border-default" alt="">
 							<UButton
-								size="2xs"
+								size="xs"
 								variant="ghost"
 								color="error"
 								icon="lucide:x"

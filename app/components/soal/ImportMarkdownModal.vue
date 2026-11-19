@@ -138,6 +138,7 @@
 					const optionBImage = row.pilihan_b_gambar ? await resolveOptionImage(row.pilihan_b_gambar) : undefined;
 					const optionCImage = row.pilihan_c_gambar ? await resolveOptionImage(row.pilihan_c_gambar) : undefined;
 					const optionDImage = row.pilihan_d_gambar ? await resolveOptionImage(row.pilihan_d_gambar) : undefined;
+					const optionEImage = row.pilihan_e_gambar ? await resolveOptionImage(row.pilihan_e_gambar) : undefined;
 
 					await invoke("create_question", {
 						input: {
@@ -152,11 +153,12 @@
 							optionB: row.tipe === "pg" ? row.pilihan_b : "",
 							optionC: row.tipe === "pg" ? (row.pilihan_c || undefined) : undefined,
 							optionD: row.tipe === "pg" ? (row.pilihan_d || undefined) : undefined,
-							optionE: undefined,
+							optionE: row.tipe === "pg" ? (row.pilihan_e || undefined) : undefined,
 							optionAImage,
 							optionBImage,
 							optionCImage,
 							optionDImage,
+							optionEImage,
 							correctOption: row.tipe === "pg" ? row.kunci_jawaban.trim().toUpperCase() : ""
 						}
 					});
@@ -251,7 +253,7 @@
 									{{ row.original.tipe === "pg" ? "PG" : "Esai" }}
 								</UBadge>
 								<UIcon
-									v-if="row.original.nama_file_gambar || row.original.pilihan_a_gambar || row.original.pilihan_b_gambar || row.original.pilihan_c_gambar || row.original.pilihan_d_gambar"
+									v-if="row.original.nama_file_gambar || row.original.pilihan_a_gambar || row.original.pilihan_b_gambar || row.original.pilihan_c_gambar || row.original.pilihan_d_gambar || row.original.pilihan_e_gambar"
 									name="lucide:image"
 									class="ml-1 size-3.5 inline" />
 							</template>

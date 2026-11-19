@@ -16,8 +16,10 @@
 		score: number | null
 		essayScore?: number | null
 		finalScore?: number | null
+		essayPending?: number
 		extraMinutes?: number
 		deviceLocked?: boolean
+		autoSubmitted?: boolean
 	}
 
 	defineProps<{
@@ -33,6 +35,7 @@
 	}>();
 
 	const statusInfo = (s: SessionProgress): { text: string, color: "success" | "warning" | "neutral" } => {
+		if (s.submittedAt && s.autoSubmitted) return { text: "Selesai otomatis", color: "warning" };
 		if (s.submittedAt) return { text: "Selesai", color: "success" };
 		if (s.pgTotal > 0 && s.pgAnswered >= s.pgTotal && s.totalQuestions > s.pgTotal) {
 			return { text: "PG selesai, lanjut esai", color: "warning" };
@@ -90,7 +93,7 @@
 			accessorKey: "score",
 			header: "Nilai PG",
 			cell: ({ row }: { row: { original: SessionProgress } }) =>
-				row.original.score === null || row.original.score === undefined
+				row.original.score === null || row.original.score === undefined || row.original.pgTotal === 0
 					? h("span", { class: "text-dimmed" }, "-")
 					: h("span", { class: "font-medium text-default" }, row.original.score.toFixed(0))
 		},
@@ -106,10 +109,13 @@
 			accessorKey: "finalScore",
 			header: "Nilai Akhir",
 			cell: ({ row }: { row: { original: SessionProgress } }) => {
-				const val = row.original.finalScore ?? row.original.score;
-				return val === null || val === undefined
-					? h("span", { class: "text-dimmed" }, "-")
-					: h("span", { class: "font-bold text-highlighted" }, val.toFixed(0));
+				const val = row.original.finalScore;
+				if (val !== null && val !== undefined) return h("span", { class: "font-bold text-highlighted" }, val.toFixed(0));
+				if (row.original.submittedAt && row.original.essayPending) {
+					const UBadge = resolveComponent("UBadge");
+					return h(UBadge, { color: "warning", variant: "subtle", size: "sm" }, () => "Menunggu nilai esai");
+				}
+				return h("span", { class: "text-dimmed" }, "-");
 			}
 		},
 		{
@@ -129,8 +135,13 @@
 
 				return h("div", { class: "flex justify-end gap-0.5" }, [
 					mk("i-lucide-eye", "Detail & Koreksi", "neutral", () => emit("detail", s.sessionId)),
-					!s.submittedAt
-						? mk("i-lucide-clock-plus", "Tambah waktu +10 menit", "info", () => emit("addTime", s.sessionId, s.studentName, 10))
+					!s.submittedAt || s.autoSubmitted
+						? mk(
+							"i-lucide-clock-plus",
+							s.autoSubmitted ? "Buka lagi dengan tambahan 10 menit" : "Tambah waktu +10 menit",
+							"info",
+							() => emit("addTime", s.sessionId, s.studentName, 10)
+						)
 						: null,
 					!s.submittedAt && s.deviceLocked
 						? mk("i-lucide-smartphone", "Buka kunci perangkat (pindah HP/PC)", "warning", () => emit("unlockDevice", s.sessionId, s.studentName))

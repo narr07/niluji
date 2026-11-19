@@ -6,7 +6,7 @@ import { getDefaultAttributes } from "eslint-plugin-better-tailwindcss/api/defau
 
 export default withNuxt(
 	{
-		ignores: ["docs/**"]
+		ignores: ["docs/**", "video-tutorial/**"]
 	},
 	{
 		plugins: { style: stylistic },

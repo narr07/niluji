@@ -125,8 +125,8 @@
 	const preparationChecklist = computed(() => [
 		{
 			label: "1. Isi Identitas Sekolah",
-			done: Boolean(school.value?.name && school.value.name !== "Nama Sekolah Belum Diatur"),
-			to: "/pengaturan/sekolah"
+			done: Boolean(school.value?.name && school.value.name !== "Nama Sekolah"),
+			to: "/pengaturan"
 		},
 		{
 			label: "2. Tambah / Impor Data Siswa",

@@ -66,15 +66,46 @@
 		{ label: "Export per Siswa (Semua, .zip)", icon: "lucide:users", onSelect: exportAllStudents }
 	]];
 
+	const showError = (title: string, error: unknown) => {
+		toast.add({ title, description: error instanceof Error ? error.message : String(error), icon: "lucide:x", color: "error" });
+	};
+
 	const resetSession = async (sessionId: number, studentName: string) => {
 		const ok = await confirmDelete({
 			title: `Reset ujian ${studentName}?`,
-			description: "Semua jawaban yang sudah diisi akan dihapus.",
+			description: "Semua jawaban siswa ini akan dihapus. Salinan database dibuat otomatis sebelum reset.",
 			confirmLabel: "Reset"
 		});
 		if (!ok) return;
-		await invoke("reset_exam_session", { sessionId });
-		await refresh();
+		try {
+			await invoke("reset_exam_session", { sessionId });
+			await refresh();
+		} catch (error) {
+			showError("Reset gagal", error);
+		}
+	};
+
+	const regrading = ref(false);
+	const regrade = async () => {
+		const ok = await confirmDelete({
+			title: "Nilai ulang dari Bank Soal?",
+			description: "Kunci jawaban dan skor terbaru di Bank Soal diterapkan ke semua hasil pada jenis ujian ini. Teks soal yang dilihat siswa tidak berubah. Salinan database dibuat otomatis lebih dulu.",
+			confirmLabel: "Nilai Ulang"
+		});
+		if (!ok) return;
+		regrading.value = true;
+		try {
+			const subjects = await invoke<{ id: number, name: string }[]>("list_subjects");
+			const subject = subjects.find((s) => s.name === pelajaran.value);
+			if (!subject) throw new Error("Mata pelajaran tidak ditemukan.");
+			const count = await invoke<number>("regrade_exam_sessions", { class: kelas.value, subjectId: subject.id, jenis: jenis.value });
+			toast.add({ title: "Nilai diperbarui", description: `${count} sesi ujian dinilai ulang.`, icon: "lucide:check", color: "success" });
+			await refresh();
+		} catch (error) {
+			showError("Nilai ulang gagal", error);
+		} finally {
+			regrading.value = false;
+		}
 	};
 
 	const unlockDevice = async (sessionId: number, studentName: string) => {
@@ -128,7 +159,16 @@
 
 <template>
 	<div>
-		<div class="flex justify-end mb-4">
+		<div class="flex justify-end gap-2 mb-4">
+			<UButton
+				icon="lucide:refresh-cw"
+				variant="soft"
+				color="neutral"
+				:loading="regrading"
+				:disabled="sessions.length === 0"
+				@click="regrade">
+				Nilai Ulang
+			</UButton>
 			<UDropdownMenu :items="exportMenuItems">
 				<UButton
 					icon="lucide:download"

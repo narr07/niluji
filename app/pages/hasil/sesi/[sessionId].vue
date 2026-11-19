@@ -24,6 +24,7 @@
 		score: number | null
 		essayScore?: number | null
 		finalScore?: number | null
+		essayPending?: number
 		pgWeight?: number
 		pgSubmittedAt: number | null
 		submittedAt: number | null
@@ -50,6 +51,17 @@
 
 	const pgItems = computed(() => detail.value?.items.filter((i) => i.questionType !== "essay") ?? []);
 	const essayItems = computed(() => detail.value?.items.filter((i) => i.questionType === "essay") ?? []);
+
+	const finalScoreText = computed(() => {
+		const value = detail.value?.finalScore;
+		if (value !== null && value !== undefined) return value.toFixed(0);
+		return detail.value?.submittedAt && detail.value.essayPending ? "Menunggu" : "-";
+	});
+
+	const essayStatus = (item: AnswerDetail) => {
+		if (item.essayScore !== null) return "Sudah dinilai";
+		return item.studentAnswer?.trim() ? "Belum dinilai" : "Tidak dijawab";
+	};
 
 	const tabs = computed(() => [
 		{ label: `Pilihan Ganda (${pgItems.value.length})`, slot: "pg" as const },
@@ -114,7 +126,7 @@
 				it.questionText,
 				it.studentAnswer ?? "-",
 				it.questionType === "essay" ? `${it.essayScore ?? "-"} / ${it.maxScore}` : (it.correctAnswer ?? "-"),
-				it.questionType === "essay" ? (it.essayScore === null ? "Belum dinilai" : "Sudah dinilai") : (it.isCorrect ? "Benar" : "Salah")
+				it.questionType === "essay" ? essayStatus(it) : (it.isCorrect ? "Benar" : "Salah")
 			])
 		]);
 	};
@@ -159,7 +171,7 @@
 										Nilai PG
 									</p>
 									<p class="text-2xl font-bold text-default">
-										{{ detail.score?.toFixed(0) ?? "-" }}
+										{{ pgItems.length ? (detail.score?.toFixed(0) ?? "-") : "-" }}
 									</p>
 								</div>
 								<div v-if="essayItems.length">
@@ -175,7 +187,7 @@
 										Nilai Akhir ({{ detail.pgWeight ?? 100 }}% PG)
 									</p>
 									<p class="text-2xl font-bold text-primary">
-										{{ (detail.finalScore ?? detail.score)?.toFixed(0) ?? "-" }}
+										{{ finalScoreText }}
 									</p>
 								</div>
 							</div>
@@ -193,6 +205,14 @@
 						</div>
 					</div>
 				</UCard>
+
+				<UAlert
+					v-if="detail.submittedAt && detail.essayPending"
+					color="warning"
+					variant="subtle"
+					icon="lucide:clipboard-pen"
+					:title="`${detail.essayPending} jawaban esai belum dinilai`"
+					description="Nilai akhir muncul setelah semua jawaban esai diberi nilai." />
 
 				<UTabs v-model="activeTab" :items="tabs">
 					<template #pg>
@@ -253,11 +273,18 @@
 										Sudah dinilai
 									</UBadge>
 									<UBadge
-										v-else
+										v-else-if="item.studentAnswer?.trim()"
 										color="warning"
 										variant="subtle"
 										class="mt-6">
 										Perlu dinilai
+									</UBadge>
+									<UBadge
+										v-else
+										color="neutral"
+										variant="subtle"
+										class="mt-6">
+										Tidak dijawab
 									</UBadge>
 								</div>
 							</div>

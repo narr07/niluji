@@ -39,6 +39,11 @@
 	const canFetch = computed(() => connectionStatus.value === "online");
 	const toast = useToast();
 
+	const refreshAndReload = async () => {
+		await refreshConnection();
+		if (canFetch.value) await loadSourceSchools();
+	};
+
 	const refreshConnection = async () => {
 		checkingConnection.value = true;
 		connectionStatus.value = "checking";
@@ -149,7 +154,7 @@
 				variant="soft"
 				icon="lucide:refresh-cw"
 				:loading="checkingConnection"
-				@click="refreshConnection().then(() => canFetch && loadSourceSchools())">
+				@click="refreshAndReload">
 				Refresh koneksi
 			</UButton>
 		</div>

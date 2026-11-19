@@ -27,7 +27,7 @@
 
 	useSeoMeta({
 		title: "Rilis & Unduhan Installer",
-		description: "Unduh installer aplikasi desktop NILUJI terbaru untuk Windows, Linux, dan macOS beserta catatan perubahan versi (changelog)."
+		description: "Unduh installer aplikasi desktop NILUJI terbaru beserta catatan perubahan versi (changelog)."
 	});
 
 	const runtimeConfig = useRuntimeConfig();
@@ -38,32 +38,15 @@
 
 	const fallbackReleases: LocalChangelogItem[] = [
 		{
-			version: "v1.1.0",
-			title: "Keamanan Sesi, Kartu Peserta & Peningkatan UI CBT",
-			date: "2026-10-31",
-			badgeColor: "success",
-			htmlUrl: "https://github.com/narr07/niluji/releases/latest",
-			assets: [
-				{ label: "Windows (.exe / .msi)", icon: "i-lucide-monitor", url: "https://github.com/narr07/niluji/releases/latest" },
-				{ label: "Linux (.deb / .AppImage)", icon: "i-lucide-terminal", url: "https://github.com/narr07/niluji/releases/latest" },
-				{ label: "macOS (.dmg)", icon: "i-lucide-laptop", url: "https://github.com/narr07/niluji/releases/latest" }
-			],
-			highlights: [
-				"Kartu Peserta Ujian & PIN 6 Digit: setiap siswa otomatis memiliki PIN unik dan dapat dicetak bersama QR Code akses lokal.",
-				"Kunci Perangkat (Single-Device Lock): mencegah satu akun siswa dikerjakan dari 2 perangkat sekaligus, dilengkapi tombol Buka Kunci Perangkat bagi pengawas.",
-				"Aksi Pengawas Real-Time: tambah waktu ujian (+10 menit) dan paksa kumpulkan (Force Submit) langsung dari tabel Hasil Ujian.",
-				"Acak Opsi Jawaban PG (A-D) secara deterministik per sesi siswa dan penggabungan otomatis Nilai PG + Nilai Esai sesuai bobot persentase.",
-				"Portal CBT Siswa diperbarui: tombol Ragu-ragu (bookmark), pengatur ukuran teks (A-/A/A+), indikator status simpan real-time, pintasan keyboard (A-D, R, Panah), dan bilah navigasi bawah khusus HP.",
-				"Analisis Pengecoh (Distractor Analysis) per butir soal dan fitur Akses Cepat Paket Soal di halaman Bank Soal."
-			]
-		},
-		{
 			version: "v1.0.1",
 			title: "Perbaikan Stabilitas, Impor Markdown & Backup Otomatis",
 			date: "2026-09-22",
-			badgeColor: "primary",
+			badgeColor: "success",
 			htmlUrl: "https://github.com/narr07/niluji/releases/tag/v1.0.1",
-			assets: [],
+			assets: [
+				{ label: "Niluji_1.0.1_x64-setup.exe", icon: "i-lucide-monitor", url: "https://github.com/narr07/niluji/releases/download/v1.0.1/Niluji_1.0.1_x64-setup.exe" },
+				{ label: "Niluji_1.0.1_x64_en-US.msi", icon: "i-lucide-monitor", url: "https://github.com/narr07/niluji/releases/download/v1.0.1/Niluji_1.0.1_x64_en-US.msi" }
+			],
 			highlights: [
 				"Perbaikan ketahanan sesi ujian ketika terdapat butir soal yang dihapus dari Bank Soal.",
 				"Penyimpanan ulang jawaban otomatis (auto-retry) ketika jaringan WiFi lokal sempat terputus sementara.",
@@ -90,13 +73,39 @@
 		}
 	];
 
-	const liveReleases = ref<LocalChangelogItem[]>(fallbackReleases);
-	const latestVersion = computed(() => liveReleases.value[0]?.version || "v1.1.0");
+	const OS_LABEL = { windows: "Windows", linux: "Linux", macos: "macOS" } as const;
+	type OsKey = keyof typeof OS_LABEL;
+	const OS_KEYS = Object.keys(OS_LABEL) as OsKey[];
+	const assetOs = (name: string): OsKey | null => {
+		if (/\.(?:exe|msi)$/i.test(name)) return "windows";
+		if (/\.(?:deb|rpm|appimage)$/i.test(name)) return "linux";
+		if (/\.dmg$/i.test(name)) return "macos";
+		return null;
+	};
 
-	const primaryDownloadLabel = computed(() => {
-		if (detectedOs.value === "linux") return `Unduh untuk Linux (${latestVersion.value})`;
-		if (detectedOs.value === "macos") return `Unduh untuk macOS (${latestVersion.value})`;
-		return `Unduh untuk Windows (${latestVersion.value})`;
+	const liveReleases = ref<LocalChangelogItem[]>(fallbackReleases);
+	const latestRelease = computed(() => liveReleases.value[0]);
+	const latestVersion = computed(() => latestRelease.value?.version || "");
+
+	// Sistem operasi hanya ditampilkan bila rilis terbaru benar-benar memuat installernya.
+	const availableOs = computed(() => {
+		const found = new Set<OsKey>();
+		for (const asset of latestRelease.value?.assets || []) {
+			const os = assetOs(asset.label);
+			if (os) found.add(os);
+		}
+		return OS_KEYS.filter(os => found.has(os));
+	});
+	const availableOsLabel = computed(() => availableOs.value.map(os => OS_LABEL[os]).join(" • "));
+	const missingOsLabel = computed(() => OS_KEYS.filter(os => !availableOs.value.includes(os)).map(os => OS_LABEL[os]).join(" dan "));
+
+	const targetOs = computed<OsKey>(() => availableOs.value.includes(detectedOs.value) ? detectedOs.value : (availableOs.value[0] || "windows"));
+	const primaryDownloadLabel = computed(() => `Unduh untuk ${OS_LABEL[targetOs.value]} (${latestVersion.value})`);
+	const primaryDownloadUrl = computed(() => {
+		const assets = latestRelease.value?.assets || [];
+		const match = assets.find(a => assetOs(a.label) === targetOs.value && /\.(?:exe|deb|dmg)$/i.test(a.label))
+			|| assets.find(a => assetOs(a.label) === targetOs.value);
+		return match?.url || "https://github.com/narr07/niluji/releases/latest";
 	});
 
 	onMounted(async () => {
@@ -140,9 +149,10 @@
 				};
 			});
 
+			// Data GitHub dipakai apa adanya. Data bawaan hanya mengisi versi yang tidak dikembalikan API.
 			for (const fb of fallbackReleases) {
 				if (!mapped.some(m => m.version === fb.version)) {
-					mapped.push(fb);
+					mapped.push({ ...fb, badgeColor: "primary" });
 				}
 			}
 			liveReleases.value = mapped;
@@ -162,8 +172,13 @@
 						<UBadge color="success" variant="subtle" size="sm">
 							Rilis Stabil Terbaru: {{ latestVersion }}
 						</UBadge>
-						<UBadge color="neutral" variant="outline" size="sm">
-							Windows • Linux • macOS
+						<UBadge
+							v-if="availableOsLabel"
+							color="neutral"
+							variant="outline"
+							size="sm"
+						>
+							{{ availableOsLabel }}
 						</UBadge>
 					</div>
 					<h1 class="text-2xl sm:text-3xl font-bold text-highlighted">
@@ -171,6 +186,12 @@
 					</h1>
 					<p class="text-sm sm:text-base text-muted">
 						Instal NILUJI pada komputer pengawas/proktor. Siswa cukup mengakses ujian melalui browser di HP atau laptop masing-masing menggunakan jaringan WiFi/LAN lokal tanpa internet.
+					</p>
+					<p
+						v-if="missingOsLabel"
+						class="text-sm text-muted"
+					>
+						Installer untuk {{ missingOsLabel }} belum tersedia pada rilis ini.
 					</p>
 				</div>
 
@@ -180,11 +201,11 @@
 						icon="i-lucide-download"
 						size="lg"
 						color="primary"
-						to="https://github.com/narr07/niluji/releases/latest"
+						:to="primaryDownloadUrl"
 						target="_blank"
 					/>
 					<UButton
-						label="Semua Sistem Operasi"
+						label="Semua Rilis di GitHub"
 						icon="i-simple-icons-github"
 						size="lg"
 						color="neutral"
@@ -236,7 +257,7 @@
 							<span class="font-semibold text-highlighted">Template Bank Soal (Markdown)</span>
 						</div>
 						<p class="text-xs text-muted leading-relaxed">
-							Contoh berkas `.md` lengkap dengan soal Pilihan Ganda, opsi bergambar (`![opsi-A]`), kunci jawaban, dan soal Esai.
+							Contoh berkas `.md` berisi soal Pilihan Ganda empat dan lima opsi, kunci jawaban, skor, dan soal Esai. Bisa langsung dibuka lewat Import Soal > Dari file Markdown (.md).
 						</p>
 						<UButton
 							label="Unduh template-soal.md"

@@ -84,9 +84,40 @@ pub fn save_image_bytes(uploads_dir: &Path, source_name: &str, bytes: &[u8]) -> 
 
 pub fn load_data_url(uploads_dir: &Path, relative_path: &str) -> Result<String, String> {
 	let filename = relative_path.strip_prefix("uploads/").unwrap_or(relative_path);
+	let is_plain_image = !filename.contains(['/', '\\', ':'])
+		&& Path::new(filename)
+			.extension()
+			.and_then(|e| e.to_str())
+			.is_some_and(|e| ALLOWED_EXTENSIONS.contains(&e.to_lowercase().as_str()));
+	if !is_plain_image {
+		return Err("Lokasi gambar tidak valid.".to_string());
+	}
 	to_data_url(&uploads_dir.join(filename))
 }
 
 pub fn resolve_dir(app_data_dir: &Path) -> PathBuf {
 	app_data_dir.join("uploads")
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn image_loader_stays_inside_the_uploads_folder() {
+		let nanos = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+		let root = std::env::temp_dir().join(format!("niluji_uploads_test_{}_{nanos}", std::process::id()));
+		let uploads = root.join("uploads");
+		std::fs::create_dir_all(&uploads).unwrap();
+		std::fs::write(uploads.join("1.png"), b"gambar").unwrap();
+		std::fs::write(root.join("rahasia.png"), b"rahasia").unwrap();
+		std::fs::write(root.join("cbt.sqlite"), b"db").unwrap();
+
+		assert!(load_data_url(&uploads, "uploads/1.png").is_ok());
+		assert!(load_data_url(&uploads, "1.png").is_ok());
+		for attack in ["../rahasia.png", "uploads/../rahasia.png", "..\\rahasia.png", "../cbt.sqlite", "C:/Windows/win.png", "cbt.sqlite"] {
+			assert!(load_data_url(&uploads, attack).is_err(), "{attack}");
+		}
+		let _ = std::fs::remove_dir_all(&root);
+	}
 }

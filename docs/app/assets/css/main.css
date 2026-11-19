@@ -12,3 +12,8 @@
 :root {
 	--ui-container: var(--container-8xl);
 }
+
+/* Kode sebaris yang panjang, seperti path folder, boleh dipatah supaya halaman tidak melebar di HP. */
+:not(pre) > code {
+	overflow-wrap: anywhere;
+}

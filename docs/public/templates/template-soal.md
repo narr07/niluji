@@ -1,39 +1,36 @@
 ---
-kelas: "6"
-pelajaran: "IPAS"
-jenis: "Sumatif Tengah Semester"
-pin: "1234"
+kelas: 6
+pelajaran: IPAS
+jenis: Sumatif Tengah Semester
 ---
 
-## Soal 1
+## 1. Pilihan Ganda
 
-Perhatikan perubahan wujud benda di sekitar kita. Proses perubahan wujud dari benda gas menjadi benda cair disebut...
+Perhatikan perubahan wujud benda di sekitar kita. Proses perubahan wujud dari benda gas menjadi benda cair disebut ....
 
 - A. Mencair
 - B. Mengembun
 - C. Menyublim
 - D. Membeku
 
-**Kunci:** B
-**Poin:** 1
+Kunci: B
+Skor: 1
 
-## Soal 2
+## 2. Pilihan Ganda
 
-Planet dalam tata surya yang memiliki cincin paling jelas terlihat dari Bumi adalah...
+Planet dalam tata surya yang memiliki cincin paling jelas terlihat dari Bumi adalah ....
 
 - A. Jupiter
 - B. Mars
 - C. Saturnus
 - D. Uranus
+- E. Neptunus
 
-**Kunci:** C
-**Poin:** 1
+Kunci: C
+Skor: 1
 
-## Soal 3
+## 3. Esai
 
 Jelaskan tiga cara menghemat energi listrik dalam kehidupan sehari-hari di rumah maupun di sekolah!
 
-**Tipe:** esai
-**Poin:** 5
-**Pedoman:** Menyebutkan minimal 3 tindakan penghematan listrik yang tepat (mematikan lampu di siang hari, mencabut steker alat elektronik yang tidak dipakai, menggunakan lampu hemat energi/LED).
-
+Skor: 5

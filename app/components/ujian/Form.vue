@@ -60,7 +60,17 @@
 	};
 
 	const TOKEN_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-	const generateToken = () => Array.from({ length: 4 }, () => TOKEN_LETTERS[Math.floor(Math.random() * TOKEN_LETTERS.length)]).join("");
+	const TOKEN_LENGTH = 6;
+	const generateToken = () => {
+		// 234 adalah kelipatan 26 terbesar di bawah 256, supaya tiap huruf punya peluang yang sama.
+		const letters: string[] = [];
+		while (letters.length < TOKEN_LENGTH) {
+			for (const byte of crypto.getRandomValues(new Uint8Array(TOKEN_LENGTH * 2))) {
+				if (byte < 234 && letters.length < TOKEN_LENGTH) letters.push(TOKEN_LETTERS[byte % TOKEN_LETTERS.length]!);
+			}
+		}
+		return letters.join("");
+	};
 
 	const emptyForm = () => ({
 		subject: undefined as { label: string, value: number } | undefined,
@@ -75,7 +85,7 @@
 		randomizePg: true,
 		randomizeEssay: true,
 		randomizeOptions: true,
-		requirePin: false,
+		requirePin: true,
 		pgWeight: 70
 	});
 
@@ -99,6 +109,32 @@
 					.map((q) => q.jenis as string)
 			)
 		];
+	});
+
+	const studentsInClass = ref<number | null>(null);
+	watch(
+		() => form.class,
+		async (selectedClass) => {
+			studentsInClass.value = null;
+			if (!selectedClass) return;
+			const target = selectedClass.trim().toLowerCase();
+			try {
+				const students = await invoke<{ class: string | null }[]>("list_students");
+				if (form.class === selectedClass) {
+					studentsInClass.value = students.filter((s) => s.class?.trim().toLowerCase() === target).length;
+				}
+			} catch {
+				studentsInClass.value = null;
+			}
+		},
+		{ immediate: true }
+	);
+
+	const pgWeightDescription = computed(() => {
+		const weight = form.pgWeight ?? 0;
+		if (weight >= 100) return "Nilai akhir hanya dari PG, esai tidak dihitung.";
+		if (weight <= 0) return "Nilai akhir hanya dari esai, PG tidak dihitung.";
+		return `Esai ${100 - weight}% bila ada soal esai.`;
 	});
 
 	const onJenisSelected = (value: string | undefined) => {
@@ -234,11 +270,11 @@
 			<UInput v-model="form.examDate" type="date" class="w-full" />
 		</UFormField>
 
-		<UFormField label="Token Masuk" description="Terisi otomatis, bisa diganti bebas.">
+		<UFormField label="Token Masuk" description="Terisi otomatis, bisa diganti (minimal 4 karakter).">
 			<UInput v-model="form.token" placeholder="Contoh: UTS2026" class="w-full font-mono uppercase">
 				<template #trailing>
 					<UButton
-						size="2xs"
+						size="xs"
 						variant="ghost"
 						color="neutral"
 						icon="lucide:refresh-cw"
@@ -260,7 +296,7 @@
 			<UInputNumber v-model="form.duration" :min="1" class="w-full" />
 		</UFormField>
 
-		<UFormField label="Bobot Nilai PG (%)" :description="`Esai otomatis ${Math.max(0, 100 - (form.pgWeight || 0))}% bila ada soal esai.`">
+		<UFormField label="Bobot Nilai PG (%)" :description="pgWeightDescription">
 			<UInputNumber
 				v-model="form.pgWeight"
 				:min="0"
@@ -275,7 +311,7 @@
 			</label>
 			<label class="flex items-center gap-2 cursor-pointer">
 				<USwitch v-model="form.randomizeOptions" size="sm" />
-				<span class="text-xs font-medium">Acak Opsi A-D</span>
+				<span class="text-xs font-medium">Acak Opsi Jawaban</span>
 			</label>
 			<label class="flex items-center gap-2 cursor-pointer">
 				<USwitch v-model="form.randomizeEssay" size="sm" />
@@ -286,6 +322,15 @@
 				<span class="text-xs font-medium">Wajib PIN Kartu</span>
 			</label>
 		</div>
+
+		<UAlert
+			v-if="studentsInClass === 0"
+			color="warning"
+			variant="subtle"
+			class="sm:col-span-2"
+			icon="lucide:triangle-alert"
+			:title="`Belum ada siswa terdaftar di Kelas ${form.class}`"
+			description="Siswa yang terdaftar di kelas lain tidak bisa masuk ke ujian ini. Periksa data kelas di menu Siswa." />
 
 		<UAlert
 			v-if="formError"

@@ -25,13 +25,16 @@
 		<template #right>
 			<UColorModeButton v-if="footer?.colorMode" />
 
-			<template v-if="footer?.links">
+			<div
+				v-if="footer?.links"
+				class="flex flex-wrap items-center justify-center lg:justify-end gap-1 max-w-full min-w-0"
+			>
 				<UButton
 					v-for="(link, index) of footer?.links"
 					:key="index"
 					v-bind="{ color: 'neutral', variant: 'ghost', ...link }"
 				/>
-			</template>
+			</div>
 		</template>
 	</UFooter>
 </template>

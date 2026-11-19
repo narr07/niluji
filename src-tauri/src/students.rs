@@ -30,15 +30,7 @@ pub fn list_students(db: &Db) -> Result<Vec<StudentRecord>, String> {
 		.map_err(|e| e.to_string())?;
 	let rows = stmt
 		.query_map([], |r| {
-			let id: i64 = r.get(0)?;
-			let nisn: String = r.get(1)?;
-			let raw_pin: String = r.get(5)?;
-			let pin = if raw_pin.trim().is_empty() {
-				db::generate_pin_from_seed(id, &nisn)
-			} else {
-				raw_pin
-			};
-			Ok(StudentRecord { id, nisn, name: r.get(2)?, class: r.get(3)?, school: r.get(4)?, pin })
+			Ok(StudentRecord { id: r.get(0)?, nisn: r.get(1)?, name: r.get(2)?, class: r.get(3)?, school: r.get(4)?, pin: r.get(5)? })
 		})
 		.map_err(|e| e.to_string())?;
 	rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
@@ -62,15 +54,7 @@ pub fn students_by_school(db: &Db, school: &str) -> Result<Vec<StudentRecord>, S
 		.map_err(|e| e.to_string())?;
 	let rows = stmt
 		.query_map(params![school], |r| {
-			let id: i64 = r.get(0)?;
-			let nisn: String = r.get(1)?;
-			let raw_pin: String = r.get(5)?;
-			let pin = if raw_pin.trim().is_empty() {
-				db::generate_pin_from_seed(id, &nisn)
-			} else {
-				raw_pin
-			};
-			Ok(StudentRecord { id, nisn, name: r.get(2)?, class: r.get(3)?, school: r.get(4)?, pin })
+			Ok(StudentRecord { id: r.get(0)?, nisn: r.get(1)?, name: r.get(2)?, class: r.get(3)?, school: r.get(4)?, pin: r.get(5)? })
 		})
 		.map_err(|e| e.to_string())?;
 	rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
@@ -97,8 +81,8 @@ fn upsert_students(db: &Db, records: &[TarikSiswaRow]) -> Result<usize, String> 
 	let tx = conn.transaction().map_err(|e| e.to_string())?;
 
 	let mut count = 0usize;
-	for (i, r) in records.iter().enumerate() {
-		let pin = db::generate_random_pin(i as u64 + 1);
+	for r in records {
+		let pin = db::generate_random_pin();
 		tx.execute(
 			"INSERT INTO students (nisn, name, class, school, pin) VALUES (?1, ?2, ?3, ?4, ?5)
 			 ON CONFLICT(nisn) DO UPDATE SET name = excluded.name, class = excluded.class, school = excluded.school,
@@ -126,7 +110,15 @@ pub async fn list_schools_from_source(csv_url: &str) -> Result<Vec<String>, Stri
 	Ok(seen.into_iter().collect())
 }
 
+// Data siswa hanya boleh ditarik dari Google Sheets yang dipublikasikan lewat HTTPS.
+fn is_allowed_source(csv_url: &str) -> bool {
+	reqwest::Url::parse(csv_url).is_ok_and(|url| url.scheme() == "https" && url.host_str() == Some("docs.google.com"))
+}
+
 async fn fetch_csv(csv_url: &str) -> Result<Vec<TarikSiswaRow>, String> {
+	if !is_allowed_source(csv_url) {
+		return Err("Sumber data siswa harus berupa tautan Google Sheets (https://docs.google.com).".to_string());
+	}
 	let response = reqwest::get(csv_url).await.map_err(|e| format!("Gagal mengambil data: {e}"))?;
 	if !response.status().is_success() {
 		return Err(format!("Gagal mengambil data: server merespons status {}", response.status()));
@@ -167,7 +159,7 @@ pub fn list_classes(db: &Db) -> Result<Vec<String>, String> {
 
 pub fn create_student(db: &Db, nisn: String, name: String, class: Option<String>) -> Result<i64, String> {
 	let conn = db.lock().unwrap();
-	let pin = db::generate_random_pin(1);
+	let pin = db::generate_random_pin();
 	conn.execute(
 		"INSERT INTO students (nisn, name, class, pin) VALUES (?1, ?2, ?3, ?4)",
 		params![nisn.trim(), name.trim(), class, pin]
@@ -204,8 +196,8 @@ pub fn regenerate_student_pins(db: &Db, class: Option<String>) -> Result<usize, 
 		mapped.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())?
 	};
 
-	for (idx, id) in ids.iter().enumerate() {
-		let pin = db::generate_random_pin((idx as u64).wrapping_add(*id as u64));
+	for id in &ids {
+		let pin = db::generate_random_pin();
 		tx.execute("UPDATE students SET pin = ?1 WHERE id = ?2", params![pin, id]).map_err(|e| e.to_string())?;
 	}
 
@@ -249,14 +241,14 @@ pub fn import_students_rows(db: &Db, rows: Vec<StudentImportRow>) -> Result<Stud
 	let tx = conn.transaction().map_err(|e| e.to_string())?;
 
 	let mut students_imported = 0usize;
-	for (i, row) in rows.iter().enumerate() {
+	for row in &rows {
 		let nisn = row.nisn.trim();
 		let name = row.name.trim();
 		if nisn.is_empty() || name.is_empty() {
 			continue;
 		}
 		let class = row.class.as_deref().map(str::trim).filter(|c| !c.is_empty());
-		let pin = db::generate_random_pin(i as u64 + 10);
+		let pin = db::generate_random_pin();
 
 		tx.execute(
 			"INSERT INTO students (nisn, name, class, pin) VALUES (?1, ?2, ?3, ?4)
@@ -276,6 +268,15 @@ pub fn import_students_rows(db: &Db, rows: Vec<StudentImportRow>) -> Result<Stud
 mod tests {
 	use super::*;
 	use std::io::Write;
+
+	#[test]
+	fn student_source_must_be_google_sheets_over_https() {
+		assert!(is_allowed_source("https://docs.google.com/spreadsheets/d/e/x/pub?output=csv"));
+		assert!(!is_allowed_source("http://docs.google.com/x"));
+		assert!(!is_allowed_source("https://docs.google.com.evil.test/x"));
+		assert!(!is_allowed_source("https://127.0.0.1/x"));
+		assert!(!is_allowed_source("file:///C:/x.csv"));
+	}
 
 	#[test]
 	fn imports_students_from_csv_and_generates_pins() {

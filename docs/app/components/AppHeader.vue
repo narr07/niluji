@@ -3,6 +3,11 @@
 
 	const navigation = inject<Ref<ContentNavigationItem[]>>("navigation");
 	const { header } = useAppConfig();
+
+	// Tautan berlabel hanya muat di layar lebar. Di HP tautan itu pindah ke menu,
+	// dan header hanya menyisakan tombol ikon supaya halaman tidak melebar.
+	const labeledLinks = computed(() => (header?.links || []).filter(link => "label" in link && link.label));
+	const iconLinks = computed(() => (header?.links || []).filter(link => !("label" in link) || !link.label));
 </script>
 
 <template>
@@ -32,18 +37,32 @@
 				class="lg:hidden"
 			/>
 
-			<template v-if="header?.links">
-				<UButton
-					v-for="(link, index) of header.links"
-					:key="index"
-					v-bind="{ color: 'neutral', variant: 'ghost', ...link }"
-				/>
-			</template>
+			<UButton
+				v-for="(link, index) of labeledLinks"
+				:key="`label-${index}`"
+				class="hidden lg:inline-flex"
+				v-bind="link"
+			/>
+
+			<UButton
+				v-for="(link, index) of iconLinks"
+				:key="`icon-${index}`"
+				v-bind="link"
+			/>
 
 			<UColorModeButton v-if="header?.colorMode" />
 		</template>
 
 		<template #body>
+			<div class="flex flex-col gap-1 mb-4 pb-4 border-b border-default">
+				<UButton
+					v-for="(link, index) of labeledLinks"
+					:key="`menu-${index}`"
+					class="justify-start"
+					v-bind="link"
+				/>
+			</div>
+
 			<UContentNavigation
 				highlight
 				:navigation="navigation"

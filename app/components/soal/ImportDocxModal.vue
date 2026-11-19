@@ -153,6 +153,7 @@
 		pilihan_b: "",
 		pilihan_c: "",
 		pilihan_d: "",
+		pilihan_e: "",
 		kunci_jawaban: "",
 		catatanJawabanEsai: ""
 	});
@@ -165,6 +166,7 @@
 		editForm.pilihan_b = row.pilihan_b;
 		editForm.pilihan_c = row.pilihan_c;
 		editForm.pilihan_d = row.pilihan_d;
+		editForm.pilihan_e = row.pilihan_e;
 		editForm.kunci_jawaban = row.kunci_jawaban;
 		editForm.catatanJawabanEsai = row.catatanJawabanEsai ?? "";
 		editRowOpen.value = true;
@@ -189,6 +191,7 @@
 		row.pilihan_b = editForm.pilihan_b.trim();
 		row.pilihan_c = editForm.pilihan_c.trim();
 		row.pilihan_d = editForm.pilihan_d.trim();
+		row.pilihan_e = editForm.pilihan_e.trim();
 		row.kunci_jawaban = editForm.kunci_jawaban.trim();
 		row.catatanJawabanEsai = editForm.catatanJawabanEsai.trim() || undefined;
 		row.valid = true;
@@ -210,6 +213,7 @@
 			pilihan_b: "",
 			pilihan_c: "",
 			pilihan_d: "",
+			pilihan_e: "",
 			kunci_jawaban: "",
 			valid: false,
 			alasanInvalid: "Soal manual, belum diisi"
@@ -254,7 +258,7 @@
 							optionB: row.tipe === "pg" ? row.pilihan_b : "",
 							optionC: row.tipe === "pg" ? (row.pilihan_c || undefined) : undefined,
 							optionD: row.tipe === "pg" ? (row.pilihan_d || undefined) : undefined,
-							optionE: undefined,
+							optionE: row.tipe === "pg" ? (row.pilihan_e || undefined) : undefined,
 							correctOption: row.tipe === "pg" ? row.kunci_jawaban.trim().toUpperCase() : ""
 						}
 					});
@@ -394,10 +398,10 @@
 							<template #pilihan-cell="{ row }">
 								<ul v-if="row.original.tipe === 'pg'" class="space-y-0.5 text-xs">
 									<li
-										v-for="(opt, idx) in [row.original.pilihan_a, row.original.pilihan_b, row.original.pilihan_c, row.original.pilihan_d]"
+										v-for="(opt, idx) in [row.original.pilihan_a, row.original.pilihan_b, row.original.pilihan_c, row.original.pilihan_d, row.original.pilihan_e].filter((value, position) => position < 4 || value)"
 										:key="idx"
-										:class="row.original.kunci_jawaban.trim().toUpperCase() === 'ABCD'[idx] ? 'text-success font-medium' : ''">
-										{{ "abcd"[idx] }}. {{ opt || "(kosong)" }}
+										:class="row.original.kunci_jawaban.trim().toUpperCase() === 'ABCDE'[idx] ? 'text-success font-medium' : ''">
+										{{ "abcde"[idx] }}. {{ opt || "(kosong)" }}
 									</li>
 								</ul>
 								<span v-else class="text-muted line-clamp-2 text-xs">{{ row.original.catatanJawabanEsai || "-" }}</span>
@@ -459,9 +463,12 @@
 						<UFormField label="Pilihan D (opsional)">
 							<UInput v-model="editForm.pilihan_d" class="w-full" />
 						</UFormField>
+						<UFormField label="Pilihan E (opsional)">
+							<UInput v-model="editForm.pilihan_e" class="w-full" />
+						</UFormField>
 					</div>
 					<UFormField label="Kunci Jawaban">
-						<USelectMenu v-model="editForm.kunci_jawaban" :items="['A', 'B', 'C', 'D']" placeholder="Pilih kunci" />
+						<USelectMenu v-model="editForm.kunci_jawaban" :items="['A', 'B', 'C', 'D', 'E']" placeholder="Pilih kunci" />
 					</UFormField>
 				</template>
 				<UFormField v-else label="Catatan Jawaban Esai (opsional)">

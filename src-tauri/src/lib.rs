@@ -11,6 +11,7 @@ mod exam_session;
 mod exams;
 mod export;
 mod import;
+mod rate_limit;
 mod server;
 mod settings;
 mod students;
@@ -178,7 +179,8 @@ async fn update_exam(
 }
 
 #[tauri::command]
-async fn delete_exam(id: i64, db: tauri::State<'_, db::Db>) -> Result<(), String> {
+async fn delete_exam(id: i64, db: tauri::State<'_, db::Db>, data_dir: tauri::State<'_, DataDir>) -> Result<(), String> {
+	backup::backup_before_change(&db, &data_dir.0)?;
 	exams::delete_exam(&db, id)
 }
 
@@ -188,8 +190,21 @@ async fn list_exam_sessions(db: tauri::State<'_, db::Db>) -> Result<Vec<exam_ses
 }
 
 #[tauri::command]
-async fn reset_exam_session(session_id: i64, db: tauri::State<'_, db::Db>) -> Result<(), String> {
+async fn reset_exam_session(session_id: i64, db: tauri::State<'_, db::Db>, data_dir: tauri::State<'_, DataDir>) -> Result<(), String> {
+	backup::backup_before_change(&db, &data_dir.0)?;
 	exam_session::reset(&db, session_id)
+}
+
+#[tauri::command]
+async fn regrade_exam_sessions(
+	class: Option<String>,
+	subject_id: i64,
+	jenis: Option<String>,
+	db: tauri::State<'_, db::Db>,
+	data_dir: tauri::State<'_, DataDir>
+) -> Result<usize, String> {
+	backup::backup_before_change(&db, &data_dir.0)?;
+	exam_session::regrade(&db, class, subject_id, jenis)
 }
 
 #[tauri::command]
@@ -266,6 +281,11 @@ async fn regenerate_student_pins(class: Option<String>, db: tauri::State<'_, db:
 }
 
 #[tauri::command]
+async fn count_legacy_student_pins(db: tauri::State<'_, db::Db>) -> Result<usize, String> {
+	db::count_legacy_pins(&db)
+}
+
+#[tauri::command]
 async fn list_schools(db: tauri::State<'_, db::Db>) -> Result<Vec<String>, String> {
 	students::list_schools(&db)
 }
@@ -311,13 +331,12 @@ struct DataDir(std::path::PathBuf);
 #[tauri::command]
 async fn backup_now(db: tauri::State<'_, db::Db>, data_dir: tauri::State<'_, DataDir>) -> Result<backup::BackupInfo, String> {
 	let path = backup::backup_now(&db, &data_dir.0)?;
-	let metadata = std::fs::metadata(&path).map_err(|e| e.to_string())?;
-	Ok(backup::BackupInfo {
-		file_name: path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default(),
-		path: path.to_string_lossy().to_string(),
-		size_bytes: metadata.len(),
-		created_at: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64
-	})
+	backup::describe(&path)
+}
+
+#[tauri::command]
+async fn restore_backup(file_name: String, db: tauri::State<'_, db::Db>, data_dir: tauri::State<'_, DataDir>) -> Result<(), String> {
+	backup::restore_backup(&db, &data_dir.0, &file_name)
 }
 
 #[tauri::command]
@@ -404,7 +423,8 @@ async fn update_subject(id: i64, name: String, code: Option<String>, db: tauri::
 }
 
 #[tauri::command]
-async fn delete_subject(id: i64, db: tauri::State<'_, db::Db>) -> Result<(), String> {
+async fn delete_subject(id: i64, db: tauri::State<'_, db::Db>, data_dir: tauri::State<'_, DataDir>) -> Result<(), String> {
+	backup::backup_before_change(&db, &data_dir.0)?;
 	exams::delete_subject(&db, id)
 }
 
@@ -481,11 +501,17 @@ pub fn run() {
 			let data_dir = app.path().app_data_dir().expect("no app data dir");
 			let db = db::open(&data_dir);
 
-			// Backup sekali tiap aplikasi dibuka — cukup buat jaga-jaga kalau ada apa-apa di
-			// sesi berjalan, tanpa perlu penjadwal terpisah. Kegagalan backup TIDAK boleh
-			// menghentikan aplikasi (mis. disk penuh) — cuma dicatat ke konsol.
-			if let Err(e) = backup::backup_now(&db, &data_dir) {
-				eprintln!("Backup otomatis saat start gagal: {e}");
+			// Backup harian dibuat saat aplikasi dibuka lalu diperbarui tiap jam selama aplikasi
+			// berjalan. Kegagalan backup tidak boleh menghentikan ujian, jadi cukup dicatat.
+			{
+				let db = db.clone();
+				let data_dir = data_dir.clone();
+				std::thread::spawn(move || loop {
+					if let Err(e) = backup::backup_daily(&db, &data_dir) {
+						eprintln!("Backup otomatis gagal: {e}");
+					}
+					std::thread::sleep(std::time::Duration::from_secs(60 * 60));
+				});
 			}
 
 			// Debug builds read the live `dist/` folder directly so `bun run generate` is reflected
@@ -496,6 +522,17 @@ pub fn run() {
 			let static_dir = app.path().resource_dir().expect("no resource dir").join("dist");
 			let uploads_dir = uploads::resolve_dir(&data_dir);
 			std::fs::create_dir_all(&uploads_dir).expect("failed to create uploads dir");
+
+			// Sesi yang ditinggalkan siswa dikumpulkan otomatis setelah waktunya habis.
+			{
+				let db = db.clone();
+				std::thread::spawn(move || loop {
+					if let Err(e) = exam_session::finalize_expired(&db) {
+						eprintln!("Pengumpulan otomatis gagal: {e}");
+					}
+					std::thread::sleep(std::time::Duration::from_secs(30));
+				});
+			}
 
 			let port_state: server::PortState = Default::default();
 			let login_state: server::LoginState = Default::default();
@@ -515,10 +552,6 @@ pub fn run() {
 			Ok(())
 		})
 		.plugin(tauri_plugin_shell::init())
-		.plugin(tauri_plugin_notification::init())
-		.plugin(tauri_plugin_os::init())
-		.plugin(tauri_plugin_fs::init())
-		.plugin(tauri_plugin_store::Builder::new().build())
 		.plugin(tauri_plugin_dialog::init())
 		.plugin(tauri_plugin_http::init())
 		.invoke_handler(tauri::generate_handler![
@@ -537,6 +570,7 @@ pub fn run() {
 			delete_exam,
 			list_exam_sessions,
 			reset_exam_session,
+			regrade_exam_sessions,
 			unlock_exam_session_device,
 			add_exam_session_time,
 			force_submit_exam_session,
@@ -550,6 +584,7 @@ pub fn run() {
 			update_student,
 			delete_student,
 			regenerate_student_pins,
+			count_legacy_student_pins,
 			list_schools,
 			students_by_school,
 			tarik_data_siswa,
@@ -561,6 +596,7 @@ pub fn run() {
 			save_question_image,
 			backup_now,
 			list_backups,
+			restore_backup,
 			load_image_data_url,
 			save_question_image_bytes,
 			export_jenis_soal,

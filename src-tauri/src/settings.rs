@@ -9,21 +9,34 @@ pub struct SchoolInfo {
 	pub npsn: String,
 	pub address: String,
 	pub principal: String,
-	// Gerbang fitur Export bank soal — supaya tidak sembarang guru di komputer yang sama bisa
-	// mengekspor. Diset & diganti sendiri lewat form Data Sekolah ini.
+	// Gerbang fitur Export bank soal. Kosong berarti export belum bisa dipakai.
 	pub export_pin: String
 }
 
 pub fn get_school(db: &Db) -> Result<SchoolInfo, String> {
 	db.lock()
 		.unwrap()
-		.query_row("SELECT name, npsn, address, principal, export_pin FROM school WHERE id = 1", [], |r| {
+		.query_row("SELECT name, npsn, address, principal, COALESCE(export_pin, '') FROM school WHERE id = 1", [], |r| {
 			Ok(SchoolInfo { name: r.get(0)?, npsn: r.get(1)?, address: r.get(2)?, principal: r.get(3)?, export_pin: r.get(4)? })
 		})
 		.map_err(|e| e.to_string())
 }
 
+fn validate_export_pin(pin: &str) -> Result<(), String> {
+	if pin.is_empty() {
+		return Ok(());
+	}
+	if pin.chars().count() < 4 {
+		return Err("PIN Export minimal 4 karakter.".to_string());
+	}
+	if pin == "1234" {
+		return Err("PIN Export 1234 terlalu mudah ditebak, pakai PIN lain.".to_string());
+	}
+	Ok(())
+}
+
 pub fn update_school(db: &Db, info: SchoolInfo) -> Result<(), String> {
+	validate_export_pin(info.export_pin.trim())?;
 	db.lock()
 		.unwrap()
 		.execute(
@@ -243,6 +256,7 @@ mod tests {
 
 		let info = get_school(&db).unwrap();
 		assert_eq!(info.name, "Nama Sekolah");
+		assert_eq!(info.export_pin, "", "instalasi baru tidak punya PIN export bawaan");
 
 		update_school(
 			&db,
@@ -257,6 +271,11 @@ mod tests {
 		.unwrap();
 		let updated = get_school(&db).unwrap();
 		assert_eq!(updated.name, "SDN Uji Coba");
+		assert_eq!(updated.export_pin, "9999");
+		for weak in ["123", "1234"] {
+			let info = SchoolInfo { export_pin: weak.into(), ..get_school(&db).unwrap() };
+			assert!(update_school(&db, info).is_err(), "{weak}");
+		}
 
 		let classes = list_classes_full(&db).unwrap();
 		assert_eq!(classes.len(), 3);

@@ -18,10 +18,17 @@ export interface HasilSessionRow {
 	score: number | null
 	essayScore?: number | null
 	finalScore?: number | null
+	essayPending?: number
+	autoSubmitted?: boolean
 }
 
+const finalScoreText = (s: HasilSessionRow) => {
+	if (s.finalScore !== null && s.finalScore !== undefined) return s.finalScore.toFixed(0);
+	return s.submittedAt && s.essayPending ? "Menunggu nilai esai" : "-";
+};
+
 const statusText = (s: HasilSessionRow) => {
-	if (s.submittedAt) return "Selesai";
+	if (s.submittedAt) return s.autoSubmitted ? "Selesai otomatis" : "Selesai";
 	if (s.pgTotal > 0 && s.pgAnswered >= s.pgTotal && s.totalQuestions > s.pgTotal) return "PG selesai, lanjut esai";
 	if (s.pgTotal > 0 && s.pgAnswered < s.pgTotal) return `Mengerjakan PG (${s.pgAnswered}/${s.pgTotal})`;
 	return "Sedang mengerjakan";
@@ -37,9 +44,9 @@ const toRow = (s: HasilSessionRow) => [
 	s.examTitle,
 	`${s.answeredCount}/${s.totalQuestions}`,
 	statusText(s),
-	s.score === null || s.score === undefined ? "-" : s.score.toFixed(0),
+	s.score === null || s.score === undefined || s.pgTotal === 0 ? "-" : s.score.toFixed(0),
 	s.essayScore === null || s.essayScore === undefined ? "-" : s.essayScore.toFixed(0),
-	(s.finalScore ?? s.score) === null || (s.finalScore ?? s.score) === undefined ? "-" : (s.finalScore ?? s.score)!.toFixed(0)
+	finalScoreText(s)
 ];
 
 const sheetBytes = (rows: (string | number)[][]): Uint8Array => {
@@ -127,7 +134,8 @@ export const useHasilExport = () => {
 
 	const answerResult = (item: AnswerDetail) => {
 		if (item.questionType === "essay") {
-			return item.essayScore === null ? "Belum dinilai" : `${item.essayScore}/${item.maxScore}`;
+			if (item.essayScore !== null) return `${item.essayScore}/${item.maxScore}`;
+			return item.studentAnswer?.trim() ? "Belum dinilai" : "Tidak dijawab";
 		}
 		return item.isCorrect ? "Benar" : "Salah";
 	};

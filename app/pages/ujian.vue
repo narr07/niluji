@@ -71,10 +71,15 @@
 	const deleteExam = async (exam: Exam) => {
 		const ok = await confirmDelete({
 			title: `Hapus ujian "${exam.title}"?`,
-			description: "Semua sesi & hasil siswa untuk ujian ini juga akan terhapus."
+			description: "Ujian yang sudah punya hasil siswa tidak bisa dihapus sebelum hasilnya di-reset."
 		});
 		if (!ok) return;
-		await invoke("delete_exam", { id: exam.id });
+		try {
+			await invoke("delete_exam", { id: exam.id });
+		} catch (error) {
+			useToast().add({ title: "Ujian tidak dihapus", description: String(error), icon: "lucide:x", color: "error" });
+			return;
+		}
 		if (editingExam.value?.id === exam.id) editingExam.value = null;
 		await loadData();
 	};

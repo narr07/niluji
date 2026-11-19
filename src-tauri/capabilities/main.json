@@ -3,8 +3,7 @@
 	"identifier": "main",
 	"description": "Capabilities for the app window",
 	"windows": [
-		"main",
-		"secondary"
+		"main"
 	],
 	"permissions": [
 		"core:path:default",
@@ -15,42 +14,21 @@
 		"core:menu:default",
 		"core:tray:default",
 		"shell:allow-open",
-		{
-			"identifier": "shell:allow-execute",
-			"allow": [
-				{
-					"name": "exec-sh",
-					"cmd": "sh",
-					"args": [
-						"-c",
-						{
-							"validator": "\\S+"
-						}
-					],
-					"sidecar": false
-				}
-			]
-		},
-		"notification:default",
-		"os:allow-platform",
-		"os:allow-arch",
-		"os:allow-family",
-		"os:allow-version",
-		"os:allow-locale",
-		"fs:allow-document-read",
-		"fs:allow-document-write",
-		"store:default",
 		"dialog:allow-open",
 		"dialog:allow-save",
 		{
 			"identifier": "http:default",
 			"allow": [
-				{ "url": "https://raw.githubusercontent.com/*" },
-				{ "url": "https://docs.google.com/*" },
-				{ "url": "https://api.github.com/*" }
+				{
+					"url": "https://raw.githubusercontent.com/*"
+				},
+				{
+					"url": "https://docs.google.com/*"
+				},
+				{
+					"url": "https://api.github.com/*"
+				}
 			]
-		},
-		"core:webview:allow-create-webview",
-		"core:webview:allow-create-webview-window"
+		}
 	]
 }

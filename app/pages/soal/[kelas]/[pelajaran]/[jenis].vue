@@ -91,12 +91,20 @@
 	const deleteQuestion = async (question: QuestionSummary) => {
 		const ok = await confirmDelete({ title: "Hapus soal ini?", description: stripSoalMarkdown(question.questionText) });
 		if (!ok) return;
-		await invoke("delete_question", { id: question.id });
-		await loadData();
+		await deleteManyQuestions([question.id]);
 	};
 
 	const deleteManyQuestions = async (ids: number[]) => {
-		await Promise.all(ids.map((id) => invoke("delete_question", { id })));
+		const results = await Promise.allSettled(ids.map((id) => invoke("delete_question", { id })));
+		const failed = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");
+		if (failed.length) {
+			useToast().add({
+				title: `${failed.length} soal tidak dihapus`,
+				description: String(failed[0]!.reason),
+				icon: "lucide:triangle-alert",
+				color: "warning"
+			});
+		}
 		await loadData();
 	};
 

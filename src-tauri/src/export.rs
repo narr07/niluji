@@ -1,4 +1,4 @@
-use crate::db::Db;
+use crate::db::{secrets_match, Db};
 use rusqlite::params;
 use serde::Serialize;
 use std::path::Path;
@@ -35,9 +35,12 @@ pub fn export_jenis_soal(
 	let conn = db.lock().unwrap();
 
 	let export_pin: String = conn
-		.query_row("SELECT export_pin FROM school WHERE id = 1", [], |r| r.get(0))
+		.query_row("SELECT COALESCE(export_pin, '') FROM school WHERE id = 1", [], |r| r.get(0))
 		.map_err(|e| e.to_string())?;
-	if pin.trim() != export_pin.trim() {
+	if export_pin.trim().is_empty() {
+		return Err("PIN Export belum diatur. Isi dulu di Pengaturan > Data Sekolah.".to_string());
+	}
+	if !secrets_match(pin.trim(), export_pin.trim()) {
 		return Err("PIN salah.".to_string());
 	}
 
@@ -162,4 +165,36 @@ pub fn export_jenis_soal(
 		questions_exported: question_rows.len(),
 		images_exported
 	})
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn export_requires_a_configured_pin() {
+		let nanos = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+		let dir = std::env::temp_dir().join(format!("niluji_export_test_{}_{nanos}", std::process::id()));
+		let db = crate::db::open(&dir);
+		let subject = {
+			let conn = db.lock().unwrap();
+			conn.execute("INSERT INTO subjects (name) VALUES ('Uji Export')", []).unwrap();
+			let subject = conn.last_insert_rowid();
+			conn.execute(
+				"INSERT INTO questions (subject_id, class, jenis, question_text, answer_key) VALUES (?1, '6', 'STS', 'Soal', 'A')",
+				params![subject]
+			)
+			.unwrap();
+			subject
+		};
+		let output = dir.join("hasil");
+		let run = |pin: &str| export_jenis_soal(&db, &dir, output.to_str().unwrap(), "6", subject, "STS", pin);
+
+		assert!(run("1234").unwrap_err().contains("belum diatur"));
+		db.lock().unwrap().execute("UPDATE school SET export_pin = '8642'", []).unwrap();
+		assert_eq!(run("1234").unwrap_err(), "PIN salah.");
+		assert_eq!(run("8642").unwrap().questions_exported, 1);
+		drop(db);
+		let _ = std::fs::remove_dir_all(&dir);
+	}
 }

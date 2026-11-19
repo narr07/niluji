@@ -1,6 +1,8 @@
 <script lang="ts" setup>
 	import { invoke } from "@tauri-apps/api/core";
 
+	const horizontalBars = Orientation.Horizontal;
+
 	const props = defineProps<{
 		kelas: string
 		subjectId: number | undefined
@@ -97,7 +99,7 @@
 				:categories="categories"
 				:height="questionChartHeight"
 				:stacked="true"
-				orientation="horizontal"
+				:orientation="horizontalBars"
 				x-axis="label"
 				:y-axis="['benar', 'salah']" />
 			<div v-else class="flex flex-col items-center gap-2 py-10 text-muted">
@@ -171,7 +173,7 @@
 				:categories="categories"
 				:height="studentChartHeight"
 				:stacked="true"
-				orientation="horizontal"
+				:orientation="horizontalBars"
 				x-axis="label"
 				:y-axis="['benar', 'salah']" />
 			<div v-else class="flex flex-col items-center gap-2 py-10 text-muted">

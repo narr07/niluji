@@ -32,9 +32,6 @@ export default defineNuxtConfig({
 		autoImportPath: "@/assets/"
 	},
 	ssr: false,
-	dir: {
-		modules: "app/modules"
-	},
 	imports: {
 		presets: [
 			{

@@ -45,7 +45,7 @@
 			<UFormField label="Alamat" class="sm:col-span-2">
 				<UTextarea v-model="form.address" :rows="2" />
 			</UFormField>
-			<UFormField label="PIN Export Bank Soal" description="Diminta setiap kali ada yang mau export bank soal ke file, biar tidak sembarang orang bisa export.">
+			<UFormField label="PIN Export Bank Soal" description="Wajib diisi sebelum bank soal bisa diekspor. Minimal 4 karakter dan tidak boleh 1234.">
 				<UInput v-model="form.exportPin" />
 			</UFormField>
 			<div class="sm:col-span-2">

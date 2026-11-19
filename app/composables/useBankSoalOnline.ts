@@ -8,7 +8,7 @@ import * as XLSX from "xlsx";
 export const CDN_BASE = "https://raw.githubusercontent.com/narr07/niluji/main/db-soal";
 export const CDN_HEALTHCHECK_URL = "https://raw.githubusercontent.com/";
 export const ONLINE_CLASSES = ["kelas_4", "kelas_5", "kelas_6"] as const;
-export const ONLINE_CLASS_ITEMS = ONLINE_CLASSES.map((value) => ({
+export const ONLINE_CLASS_ITEMS = ONLINE_CLASSES.map((value): { label: string, value: string } => ({
 	label: `Kelas ${value.replace("kelas_", "")}`,
 	value
 }));
@@ -29,10 +29,12 @@ export interface BankSoalOnlineRow {
 	pilihan_b: string
 	pilihan_c: string
 	pilihan_d: string
+	pilihan_e?: string
 	pilihan_a_gambar?: string
 	pilihan_b_gambar?: string
 	pilihan_c_gambar?: string
 	pilihan_d_gambar?: string
+	pilihan_e_gambar?: string
 	kunci_jawaban: string
 	skor: number | string
 	nama_file_gambar: string
@@ -97,8 +99,9 @@ const parseRows = (sheet: XLSX.WorkSheet, folderPath: string, tipe: "pg" | "esai
 		const pilihan_b = tipe === "pg" ? textValue(raw.answer_b) : "";
 		const pilihan_c = tipe === "pg" ? textValue(raw.answer_c) : "";
 		const pilihan_d = tipe === "pg" ? textValue(raw.answer_d) : "";
+		const pilihan_e = tipe === "pg" ? textValue(raw.answer_e) : "";
 		const kunci_jawaban = tipe === "pg" ? textValue(raw.correct_answer) : "";
-		const filledChoices = [pilihan_a, pilihan_b, pilihan_c, pilihan_d]
+		const filledChoices = [pilihan_a, pilihan_b, pilihan_c, pilihan_d, pilihan_e]
 			.map((value, choiceIndex) => ({ key: String.fromCharCode(97 + choiceIndex), value }))
 			.filter((choice) => choice.value);
 		const invalidReasons: string[] = [];
@@ -126,6 +129,7 @@ const parseRows = (sheet: XLSX.WorkSheet, folderPath: string, tipe: "pg" | "esai
 			pilihan_b,
 			pilihan_c,
 			pilihan_d,
+			pilihan_e,
 			kunci_jawaban,
 			skor: raw.score === "" || raw.score === undefined ? 1 : (raw.score as number | string),
 			nama_file_gambar,
@@ -255,7 +259,7 @@ export const parseSoalMarkdown = (text: string, folderPath: string): { jenis: st
 			content = content.slice(imgMatch[0].length);
 		}
 
-		const optionMatches = [...content.matchAll(/^-\s*([A-D])\.\s*(.*)$/gm)];
+		const optionMatches = [...content.matchAll(/^-\s*([A-E])\.\s*(.*)$/gm)];
 		const kunciMatch = content.match(/^Kunci:\s*(.+)$/m);
 		const skorMatch = content.match(/^Skor:\s*([\d.]+)$/m);
 
@@ -270,7 +274,7 @@ export const parseSoalMarkdown = (text: string, folderPath: string): { jenis: st
 		for (const om of optionMatches) {
 			const key = om[1]!.toLowerCase();
 			let rawOpt = om[2]!.trim();
-			const optImgMatch = rawOpt.match(/\s*!\[opsi-[A-D]]\(gambar\/([^)]+)\)\s*$/i);
+			const optImgMatch = rawOpt.match(/\s*!\[opsi-[A-E]]\(gambar\/([^)]+)\)\s*$/i);
 			if (optImgMatch) {
 				pilihanGambar[key] = optImgMatch[1]!;
 				rawOpt = rawOpt.slice(0, optImgMatch.index).trim();
@@ -280,12 +284,13 @@ export const parseSoalMarkdown = (text: string, folderPath: string): { jenis: st
 		const kunci_jawaban = kunciMatch ? kunciMatch[1]!.trim() : "";
 		const skor = skorMatch ? Number(skorMatch[1]) : 1;
 
-		const filledChoices = ["a", "b", "c", "d"].filter((k) => Boolean(pilihan[k] || pilihanGambar[k]));
+		const filledChoices = ["a", "b", "c", "d", "e"].filter((k) => Boolean(pilihan[k] || pilihanGambar[k]));
 		const invalidReasons: string[] = [];
 		if (!soal) invalidReasons.push("teks soal kosong");
 		if (tipe === "pg") {
 			if (filledChoices.length < 2) invalidReasons.push("kurang dari 2 pilihan terisi");
 			if (!kunci_jawaban) invalidReasons.push("kunci jawaban kosong");
+			else if (!filledChoices.includes(kunci_jawaban.toLowerCase())) invalidReasons.push("kunci jawaban tidak cocok dengan pilihan yang terisi");
 		}
 
 		const nama_file_gambar = imageFile ?? "";
@@ -301,10 +306,12 @@ export const parseSoalMarkdown = (text: string, folderPath: string): { jenis: st
 			pilihan_b: pilihan.b ?? "",
 			pilihan_c: pilihan.c ?? "",
 			pilihan_d: pilihan.d ?? "",
+			pilihan_e: pilihan.e ?? "",
 			...(pilihanGambar.a ? { pilihan_a_gambar: pilihanGambar.a } : {}),
 			...(pilihanGambar.b ? { pilihan_b_gambar: pilihanGambar.b } : {}),
 			...(pilihanGambar.c ? { pilihan_c_gambar: pilihanGambar.c } : {}),
 			...(pilihanGambar.d ? { pilihan_d_gambar: pilihanGambar.d } : {}),
+			...(pilihanGambar.e ? { pilihan_e_gambar: pilihanGambar.e } : {}),
 			kunci_jawaban,
 			skor,
 			nama_file_gambar,

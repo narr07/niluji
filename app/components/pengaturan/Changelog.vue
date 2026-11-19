@@ -9,10 +9,26 @@
 
 	const riwayat: ChangelogEntry[] = [
 		{
+			title: "Keamanan Ujian, Ketepatan Nilai & Perlindungan Hasil",
+			date: "2026-11-19",
+			badge: "v1.3.0",
+			badgeColor: "success",
+			perubahan: [
+				"Setiap sesi siswa kini punya token rahasia, sehingga siswa tidak bisa mengubah atau mengumpulkan ujian siswa lain.",
+				"Ujian baru mewajibkan PIN, siswa hanya bisa masuk ke ujian kelasnya, dan percobaan login yang salah dibatasi.",
+				"Bobot nilai dipakai persis seperti yang diisi guru, dan Nilai Akhir menunggu sampai semua jawaban esai dinilai.",
+				"Jawaban terakhir dikirim dulu sebelum ujian dikumpulkan, dan pengumpulan dicoba ulang saat koneksi terganggu.",
+				"Hasil ujian tidak berubah saat Bank Soal diedit. Tombol Nilai Ulang tersedia bila kunci jawaban perlu dibetulkan.",
+				"Backup harian disimpan untuk 14 hari pemakaian, gambar ikut dicadangkan, dan database bisa dipulihkan dari menu Fitur.",
+				"Sesi yang ditinggalkan siswa dikumpulkan otomatis, dan pengawas tetap bisa membukanya lagi dengan tambahan waktu.",
+				"PIN Export kini harus ditentukan sendiri oleh sekolah, dan impor Word mendukung opsi E."
+			]
+		},
+		{
 			title: "Keamanan Sesi, Kartu Peserta & Peningkatan UI CBT",
 			date: "2026-10-31",
 			badge: "v1.1.0",
-			badgeColor: "success",
+			badgeColor: "primary",
 			perubahan: [
 				"Kartu Peserta Ujian & PIN 6 Digit: setiap siswa otomatis memiliki PIN unik dan dapat dicetak bersama QR Code akses lokal.",
 				"Kunci Perangkat (Single-Device Lock): mencegah satu akun siswa dikerjakan dari 2 perangkat sekaligus, dilengkapi tombol Buka Kunci Perangkat bagi pengawas.",

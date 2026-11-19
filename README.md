@@ -28,12 +28,14 @@
 
 - **Satu Laptop Proktor = Server Ujian Lengkap**: Aplikasi desktop Tauri menjalankan server HTTP tertanam (`axum`) di jaringan lokal (`http://IP-LOKAL/cbt`).
 - **Tanpa Internet & Tanpa Instalasi di HP Siswa**: Siswa cukup terhubung ke WiFi/hotspot lokal yang sama dan membuka alamat ujian melalui browser HP atau laptop.
-- **Database SQLite Lokal Tahan Gangguan**: Seluruh data siswa, bank soal, gambar, sesi ujian, dan nilai disimpan di SQLite lokal dengan mode `WAL`, `busy_timeout`, serta **Auto-Backup 14 Hari**.
+- **Database SQLite Lokal Tahan Gangguan**: Seluruh data siswa, bank soal, gambar, sesi ujian, dan nilai disimpan di SQLite lokal dengan mode `WAL`, `busy_timeout`, serta **backup harian yang disimpan untuk 14 hari pemakaian** dan bisa dipulihkan dari aplikasi.
 
 ## Fitur Utama
 
 - **Keamanan Ujian Berlapis**:
-  - **PIN Peserta 6 Digit** otomatis untuk setiap siswa.
+  - **PIN Peserta 6 Digit** otomatis untuk setiap siswa dan wajib secara bawaan pada ujian baru.
+  - **Token Sesi Rahasia** sehingga siswa tidak bisa mengubah atau mengumpulkan ujian siswa lain.
+  - **Pembatasan Percobaan** untuk login, token, dan PIN yang salah.
   - **Token Ujian Dinamis** yang dapat diputar pengawas kapan saja.
   - **Kunci Perangkat (*Single-Device Lock*)** mencegah satu akun dibuka di dua HP bersamaan.
   - **Server-Side Timer** memastikan sisa waktu ujian dihitung dari server dan tidak bisa dimanipulasi dari jam HP siswa.
@@ -42,8 +44,8 @@
   - **Buka Kunci Perangkat** (*Unlock Device*) bila HP siswa kehabisan baterai.
   - **Tambah Waktu (`+10 Menit`)** atau **Paksa Kumpul** langsung dari layar proktor.
 - **Bank Soal Multi-Format & Bergambar**:
-  - Impor soal dari **Microsoft Word (`.docx`)**, **Excel (`.xlsx`)**, **CSV**, maupun **Bundel Markdown (`.zip`)** lengkap dengan gambar di tengah soal dan gambar pada opsi jawaban A–E.
-  - **Tarik & Bagikan Bank Soal Online** terproteksi PIN lewat repositori GitHub.
+  - Impor soal dari **Microsoft Word (`.docx`)**, **Excel (`.xlsx`)**, **CSV**, maupun **Markdown (`.md` + folder `gambar/`)** lengkap dengan gambar di tengah soal dan gambar pada opsi jawaban A–E.
+  - **Tarik & Bagikan Bank Soal Online** lewat repositori GitHub. Ekspor dibatasi PIN, dan file hasilnya memuat kunci jawaban.
 - **Cetak Kartu Peserta QR + PIN**:
   - Cetak kartu peserta ujian satu kelas sekaligus siap gunting lengkap dengan QR Code server lokal.
 - **Portal CBT Siswa Ergonomis**:
@@ -90,8 +92,18 @@ bun run dev
 # Build aplikasi desktop lokal
 bun run tauri:build
 
-# Rilis versi baru otomatis ke GitHub Releases & GitHub Pages
-bun run release
+# Pemeriksaan yang sama dengan CI
+bun run lint
+bun run typecheck
+bun run test
+bun run generate
+bun run clippy
+bun run test:rust
+
+# Rilis: naikkan versi, commit, lalu push tag v* untuk memicu GitHub Actions
+bun run bump
+git tag vX.Y.Z
+git push origin main vX.Y.Z
 ```
 
 ---

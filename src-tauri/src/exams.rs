@@ -42,7 +42,20 @@ pub fn update_subject(db: &Db, id: i64, name: String, code: Option<String>) -> R
 }
 
 pub fn delete_subject(db: &Db, id: i64) -> Result<(), String> {
-	db.lock().unwrap().execute("DELETE FROM subjects WHERE id = ?1", params![id]).map_err(|e| e.to_string())?;
+	let conn = db.lock().unwrap();
+	let sessions: i64 = conn
+		.query_row(
+			"SELECT COUNT(*) FROM exam_sessions es JOIN exams e ON e.id = es.exam_id WHERE e.subject_id = ?1",
+			params![id],
+			|r| r.get(0)
+		)
+		.map_err(|e| e.to_string())?;
+	if sessions > 0 {
+		return Err(format!(
+			"Mata pelajaran ini sudah punya {sessions} hasil ujian siswa, jadi tidak bisa dihapus. Hasilnya harus di-reset lebih dulu di menu Hasil Ujian."
+		));
+	}
+	conn.execute("DELETE FROM subjects WHERE id = ?1", params![id]).map_err(|e| e.to_string())?;
 	Ok(())
 }
 
@@ -115,6 +128,14 @@ pub fn list_exams(db: &Db) -> Result<Vec<ExamSummary>, String> {
 
 // Dipanggil di awal create_exam/update_exam supaya guru tidak bisa menyimpan jadwal yang
 // mustahil (durasi negatif/nol, atau ujian "selesai" sebelum "mulai").
+fn normalize_token(token: &str) -> Result<String, String> {
+	let token = token.trim().to_uppercase();
+	if token.chars().count() < 4 {
+		return Err("Token ujian minimal 4 karakter.".to_string());
+	}
+	Ok(token)
+}
+
 fn validate_schedule(duration: i64, scheduled_at: i64, window_end: i64, pg_weight: f64) -> Result<(), String> {
 	if duration <= 0 {
 		return Err("Durasi ujian harus lebih dari 0 menit.".to_string());
@@ -157,9 +178,10 @@ pub fn create_exam(
 	pg_weight: Option<f64>
 ) -> Result<i64, String> {
 	let rand_opts = randomize_options.unwrap_or(true);
-	let req_pin = require_pin.unwrap_or(false);
+	let req_pin = require_pin.unwrap_or(true);
 	let weight = pg_weight.unwrap_or(100.0);
 	validate_schedule(duration, scheduled_at, window_end, weight)?;
+	let token = normalize_token(&token)?;
 
 	let conn = db.lock().unwrap();
 	conn.execute(
@@ -173,7 +195,7 @@ pub fn create_exam(
 			duration,
 			scheduled_at,
 			window_end,
-			token.trim(),
+			token,
 			randomize_pg as i64,
 			randomize_essay as i64,
 			rand_opts as i64,
@@ -207,6 +229,7 @@ pub fn update_exam(
 	let req_pin = require_pin.unwrap_or(false);
 	let weight = pg_weight.unwrap_or(100.0);
 	validate_schedule(duration, scheduled_at, window_end, weight)?;
+	let token = normalize_token(&token)?;
 
 	db.lock()
 		.unwrap()
@@ -221,7 +244,7 @@ pub fn update_exam(
 				duration,
 				scheduled_at,
 				window_end,
-				token.trim(),
+				token,
 				randomize_pg as i64,
 				randomize_essay as i64,
 				rand_opts as i64,
@@ -235,7 +258,15 @@ pub fn update_exam(
 }
 
 pub fn delete_exam(db: &Db, id: i64) -> Result<(), String> {
-	db.lock().unwrap().execute("DELETE FROM exams WHERE id = ?1", params![id]).map_err(|e| e.to_string())?;
+	let conn = db.lock().unwrap();
+	let sessions: i64 =
+		conn.query_row("SELECT COUNT(*) FROM exam_sessions WHERE exam_id = ?1", params![id], |r| r.get(0)).map_err(|e| e.to_string())?;
+	if sessions > 0 {
+		return Err(format!(
+			"Ujian ini sudah punya {sessions} hasil siswa, jadi tidak bisa dihapus. Hasilnya harus di-reset lebih dulu di menu Hasil Ujian."
+		));
+	}
+	conn.execute("DELETE FROM exams WHERE id = ?1", params![id]).map_err(|e| e.to_string())?;
 	Ok(())
 }
 
@@ -283,6 +314,38 @@ mod tests {
 
 		drop(db);
 		let _ = std::fs::remove_dir_all(&dir);
+	}
+
+	#[test]
+	fn exam_and_subject_with_results_cannot_be_deleted() {
+		let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
+		let dir = std::env::temp_dir().join(format!("niluji_exam_delete_test_{}_{nanos}", std::process::id()));
+		let db = crate::db::open(&dir);
+		let subject = create_subject(&db, "Uji Hapus".into(), None).unwrap();
+		let exam = create_exam(&db, subject, None, None, "U".into(), 30, 1, 2, "abcd12".into(), true, true, None, None, None).unwrap();
+		assert_eq!(list_exams(&db).unwrap()[0].token, "ABCD12");
+		assert!(list_exams(&db).unwrap()[0].require_pin, "ujian baru wajib PIN secara bawaan");
+		db.lock()
+			.unwrap()
+			.execute(
+				"INSERT INTO exam_sessions (exam_id, student_nisn, student_name, question_ids, started_at) VALUES (?1, '1', 'A', '', 1)",
+				params![exam]
+			)
+			.unwrap();
+
+		assert!(delete_exam(&db, exam).unwrap_err().contains("hasil siswa"));
+		assert!(delete_subject(&db, subject).unwrap_err().contains("hasil ujian"));
+		db.lock().unwrap().execute("DELETE FROM exam_sessions", []).unwrap();
+		delete_exam(&db, exam).unwrap();
+		delete_subject(&db, subject).unwrap();
+		drop(db);
+		let _ = std::fs::remove_dir_all(&dir);
+	}
+
+	#[test]
+	fn short_tokens_are_rejected() {
+		assert!(normalize_token(" abc ").is_err());
+		assert_eq!(normalize_token(" abcd ").unwrap(), "ABCD");
 	}
 
 	#[test]

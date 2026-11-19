@@ -1,5 +1,7 @@
 # Laporan Analisis Teknis & Evaluasi Arsitektur Platform NILUJI
 
+> **Catatan:** dokumen ini menggambarkan kondisi v1.0.1 dan sebagian isinya sudah tidak berlaku. Perubahan terbaru ada di [CHANGELOG.md](CHANGELOG.md).
+
 Dokumen ini memuat audit teknis komprehensif terhadap platform **NILUJI** (v1.0.1), mencakup arsitektur sistem, efisiensi tumpukan teknologi (*tech stack*), evaluasi fitur, analisis kelebihan dan kekurangan, serta rekomendasi mitigasi risiko dan pengembangan lanjutan.
 
 ---

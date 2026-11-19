@@ -62,10 +62,15 @@
 	const remove = async (s: SubjectRecord) => {
 		const ok = await confirmDelete({
 			title: `Hapus mata pelajaran "${s.name}"?`,
-			description: "Semua soal & ujian untuk mata pelajaran ini juga akan terhapus."
+			description: "Semua soal dan ujian mata pelajaran ini ikut terhapus. Mata pelajaran yang sudah punya hasil ujian tidak bisa dihapus."
 		});
 		if (!ok) return;
-		await invoke("delete_subject", { id: s.id });
+		try {
+			await invoke("delete_subject", { id: s.id });
+		} catch (error) {
+			useToast().add({ title: "Mata pelajaran tidak dihapus", description: String(error), icon: "lucide:x", color: "error" });
+			return;
+		}
 		await load();
 	};
 

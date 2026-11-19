@@ -57,6 +57,7 @@
 		path: string
 		sizeBytes: number
 		createdAt: number
+		kind: "harian" | "manual" | "sebelum-perubahan"
 	}
 
 	const toast = useToast();
@@ -70,6 +71,44 @@
 
 	const formatSize = (bytes: number) => `${(bytes / 1024).toFixed(0)} KB`;
 	const formatDate = (unixSeconds: number) => new Date(unixSeconds * 1000).toLocaleString("id-ID");
+
+	const kindLabel: Record<BackupInfo["kind"], string> = {
+		"harian": "Harian",
+		"manual": "Manual",
+		"sebelum-perubahan": "Sebelum perubahan"
+	};
+	const selectedBackup = ref<string>();
+	const restoring = ref(false);
+	const backupItems = computed(() => backups.value.map((b) => ({
+		label: `${kindLabel[b.kind]} · ${formatDate(b.createdAt)} · ${formatSize(b.sizeBytes)}`,
+		value: b.fileName
+	})));
+
+	const restoreSelected = async () => {
+		const fileName = selectedBackup.value;
+		if (!fileName) return;
+		const ok = await confirmDelete({
+			title: "Pulihkan database dari backup ini?",
+			description: "Semua data saat ini diganti dengan isi backup. Salinan kondisi sekarang dibuat otomatis lebih dulu, jadi langkah ini masih bisa dibatalkan.",
+			confirmLabel: "Pulihkan"
+		});
+		if (!ok) return;
+		restoring.value = true;
+		try {
+			await invoke("restore_backup", { fileName });
+			toast.add({ title: "Database dipulihkan", icon: "lucide:check", color: "success" });
+			reloadNuxtApp({ force: true });
+		} catch (error) {
+			toast.add({
+				title: "Pemulihan gagal",
+				description: error instanceof Error ? error.message : String(error),
+				icon: "lucide:x",
+				color: "error"
+			});
+		} finally {
+			restoring.value = false;
+		}
+	};
 
 	const loadBackups = async () => {
 		backups.value = await invoke<BackupInfo[]>("list_backups");
@@ -144,7 +183,8 @@
 				description="Kebalikan dari Tarik Soal Online: keluarkan bank soal menjadi file (Markdown + folder gambar) untuk diunggah ke repo GitHub."
 				icon="i-lucide-upload">
 				<p class="text-xs text-muted mt-2">
-					Dibatasi PIN (default 1234, ganti lewat Pengaturan &gt; Data Sekolah).
+					Atur PIN Export dulu di Pengaturan &gt; Data Sekolah. File hasil export memuat kunci jawaban,
+					jadi jangan unggah soal yang masih akan diujikan ke repo publik.
 					<a
 						href="/templates/contoh-soal-markdown.md"
 						download
@@ -163,7 +203,7 @@
 
 			<UPageCard
 				title="Backup Database"
-				description="Database (soal, siswa, hasil ujian) otomatis dibackup tiap kali aplikasi dibuka. 14 backup terakhir disimpan."
+				description="Backup harian dibuat saat aplikasi dibuka dan diperbarui tiap jam, disimpan untuk 14 hari pemakaian. Gambar soal ikut dicadangkan."
 				icon="i-lucide-database-backup">
 				<p v-if="latestBackup" class="text-xs text-muted mt-2">
 					Backup terakhir: {{ formatDate(latestBackup.createdAt) }} ({{ formatSize(latestBackup.sizeBytes) }}), {{ backups.length }} backup tersimpan
@@ -177,6 +217,27 @@
 					@click="backupNow">
 					Backup Sekarang
 				</UButton>
+
+				<div v-if="backupItems.length" class="mt-4 space-y-2 border-t border-default pt-3">
+					<UFormField label="Pulihkan dari backup">
+						<USelectMenu
+							v-model="selectedBackup"
+							:items="backupItems"
+							value-key="value"
+							placeholder="Pilih backup"
+							class="w-full" />
+					</UFormField>
+					<UButton
+						icon="lucide:history"
+						variant="soft"
+						color="warning"
+						size="sm"
+						:loading="restoring"
+						:disabled="!selectedBackup"
+						@click="restoreSelected">
+						Pulihkan
+					</UButton>
+				</div>
 			</UPageCard>
 		</div>
 	</div>

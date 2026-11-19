@@ -128,12 +128,12 @@
 
 		<UTable v-model:sorting="sorting" :data="students" :columns="columns">
 			<template #select-header>
-				<UCheckbox :model-value="allSelected" :indeterminate="someSelected" @update:model-value="toggleAll" />
+				<UCheckbox :model-value="allSelected" :indeterminate="someSelected" @update:model-value="(v) => toggleAll(v === true)" />
 			</template>
 			<template #select-cell="{ row }">
 				<UCheckbox
 					:model-value="selected.includes(row.original.id)"
-					@update:model-value="(v: boolean) => toggleOne(row.original.id, v)" />
+					@update:model-value="(v) => toggleOne(row.original.id, v === true)" />
 			</template>
 			<template #empty>
 				<div class="text-center py-10 text-muted">

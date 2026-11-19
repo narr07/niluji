@@ -235,6 +235,7 @@
 					const optionBImage = row.pilihan_b_gambar ? await downloadRemoteImage(row.pilihan_b_gambar) : undefined;
 					const optionCImage = row.pilihan_c_gambar ? await downloadRemoteImage(row.pilihan_c_gambar) : undefined;
 					const optionDImage = row.pilihan_d_gambar ? await downloadRemoteImage(row.pilihan_d_gambar) : undefined;
+					const optionEImage = row.pilihan_e_gambar ? await downloadRemoteImage(row.pilihan_e_gambar) : undefined;
 
 					await invoke("create_question", {
 						input: {
@@ -249,11 +250,12 @@
 							optionB: row.tipe === "pg" ? row.pilihan_b : "",
 							optionC: row.tipe === "pg" ? (row.pilihan_c || undefined) : undefined,
 							optionD: row.tipe === "pg" ? (row.pilihan_d || undefined) : undefined,
-							optionE: undefined,
+							optionE: row.tipe === "pg" ? (row.pilihan_e || undefined) : undefined,
 							optionAImage,
 							optionBImage,
 							optionCImage,
 							optionDImage,
+							optionEImage,
 							correctOption: row.tipe === "pg" ? row.kunci_jawaban.trim().toUpperCase() : ""
 						}
 					});

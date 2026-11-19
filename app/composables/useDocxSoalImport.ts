@@ -9,6 +9,7 @@ export interface DocxImportRow {
 	pilihan_b: string
 	pilihan_c: string
 	pilihan_d: string
+	pilihan_e: string
 	kunci_jawaban: string
 	catatanJawabanEsai?: string
 	imageFileName?: string
@@ -72,14 +73,34 @@ const isQuestionStart = (p: Para, questionListKey: string | null) =>
 	/^\s*\d+[.)]\s/.test(p.text) || (p.listKey !== null && p.listKey === questionListKey);
 const stripLeadingNumber = (text: string) => text.replace(/^\s*\d+[.)]\s*/, "").trim();
 
-// Tiga pola pilihan yang benar-benar ditemukan di file soal STS asli — file cetak selalu ada
-// variasi formatnya, jadi dicoba berurutan dari yang paling ketat ke yang paling longgar.
-const splitOptions = (lines: string[]): { soalLines: string[], options: [string, string, string, string] | null } => {
+type DocxOptions = [string, string, string, string, string];
+
+const OPTION_E_LINE = /^\s*e\s*[.)]\s*(.+)$/i;
+// Sebelum huruf "e" wajib ada spasi, supaya akhir kata seperti "kode." tidak terbaca sebagai opsi E.
+const OPTION_E_INLINE = /^(.*?)\s+e\s*[.)]\s*(.*)$/i;
+
+const splitOptionE = (text: string): [string, string] => {
+	const match = text.match(OPTION_E_INLINE);
+	return match ? [match[1]!.trim(), match[2]!.trim()] : [text.trim(), ""];
+};
+
+// Pola pilihan yang benar-benar ditemukan di file soal STS asli — file cetak selalu ada variasi
+// formatnya, jadi dicoba berurutan dari yang paling ketat ke yang paling longgar. Opsi E boleh
+// berada di akhir deretan atau di baris sendiri.
+export const splitOptions = (allLines: string[]): { soalLines: string[], options: DocxOptions | null } => {
+	const ownLineE = allLines[allLines.length - 1]?.match(OPTION_E_LINE);
+	const lines = ownLineE ? allLines.slice(0, -1) : allLines;
+	const standaloneE = ownLineE?.[1]?.trim() ?? "";
+
 	const last = lines[lines.length - 1] ?? "";
-	// Pola 1: satu baris "a. xxx b. xxx c. xxx d. xxx"
+	// Pola 1: satu baris "a. xxx b. xxx c. xxx d. xxx e. xxx"
 	const singleLine = last.match(/^\s*a\s*[.)]\s*(.*?)\s*b\s*[.)]\s*(.*?)\s*c\s*[.)]\s*(.*?)\s*d\s*[.)]\s*(.*?)\s*$/i);
 	if (singleLine) {
-		return { soalLines: lines.slice(0, -1), options: [singleLine[1]!, singleLine[2]!, singleLine[3]!, singleLine[4]!] };
+		const [optionD, inlineE] = splitOptionE(singleLine[4]!);
+		return {
+			soalLines: lines.slice(0, -1),
+			options: [singleLine[1]!, singleLine[2]!, singleLine[3]!, optionD, standaloneE || inlineE]
+		};
 	}
 
 	// Pola 2: dua baris terakhir "kiri<spasi>c/d. kanan" (label kiri opsional). Jarak antar
@@ -95,19 +116,23 @@ const splitOptions = (lines: string[]): { soalLines: string[], options: [string,
 		const row1 = split2(line1, "a", "c");
 		const row2 = split2(line2, "b", "d");
 		if (row1 && row2 && row1[0] && row2[0]) {
-			return { soalLines: lines.slice(0, -2), options: [row1[0], row2[0], row1[1], row2[1]] };
+			const [optionC, inlineE] = splitOptionE(row1[1]);
+			return { soalLines: lines.slice(0, -2), options: [row1[0], row2[0], optionC, row2[1], standaloneE || inlineE] };
 		}
 	}
 
-	// Pola 3: tanpa label huruf sama sekali — 4 baris terakhir masing-masing satu pilihan polos
+	// Pola 3: 4 baris terakhir masing-masing satu pilihan, dengan atau tanpa label huruf
 	if (lines.length >= 4) {
 		const lastFour = lines.slice(-4).map((l) => l.trim());
 		if (lastFour.every((l) => l.length > 0 && l.length < 120)) {
-			return { soalLines: lines.slice(0, -4), options: lastFour as [string, string, string, string] };
+			const labels = ["a", "b", "c", "d"];
+			const labeled = lastFour.every((l, i) => new RegExp(`^${labels[i]}\\s*[.)]\\s*\\S`, "i").test(l));
+			const texts = labeled ? lastFour.map((l) => l.replace(/^[a-d]\s*[.)]\s*/i, "")) : lastFour;
+			return { soalLines: lines.slice(0, -4), options: [texts[0]!, texts[1]!, texts[2]!, texts[3]!, standaloneE] };
 		}
 	}
 
-	return { soalLines: lines, options: null };
+	return { soalLines: allLines, options: null };
 };
 
 const normalizeAnswer = (v: string) => v.trim().toLowerCase().replace(/[^a-z]/g, "");
@@ -168,11 +193,11 @@ export const parseKunciJawabanDocx = async (bytes: Uint8Array): Promise<KunciJaw
 		const num = Number(pgTexts[i]);
 		if (!Number.isInteger(num) || num <= 0) continue;
 		const answer = pgTexts[i + 1]!;
-		if (/^[a-dA-D]$/.test(answer.trim())) pg.set(num, answer.trim().toUpperCase());
+		if (/^[a-eA-E]$/.test(answer.trim())) pg.set(num, answer.trim().toUpperCase());
 	}
 	// Gaya "1. a" (nomor dan huruf digabung satu paragraf, tanpa tabel sama sekali).
 	for (const t of pgTexts) {
-		const m = t.trim().match(/^(\d+)\s*[.)]\s*([a-dA-D])$/);
+		const m = t.trim().match(/^(\d+)\s*[.)]\s*([a-eA-E])$/);
 		if (m) pg.set(Number(m[1]), m[2]!.toUpperCase());
 	}
 
@@ -255,13 +280,13 @@ export const parseNaskahSoalDocx = async (
 
 		const invalidReasons: string[] = [];
 		let soal: string;
-		let options: [string, string, string, string] | null = null;
+		let options: DocxOptions | null = null;
 
 		if (isPg) {
 			const split = splitOptions(lines);
 			soal = split.soalLines.join(" ").trim();
 			options = split.options;
-			if (!options) invalidReasons.push("pilihan A-D tidak terbaca otomatis, isi manual");
+			if (!options) invalidReasons.push("pilihan jawaban tidak terbaca otomatis, isi manual");
 		} else {
 			soal = lines.join(" ").trim();
 		}
@@ -272,7 +297,7 @@ export const parseNaskahSoalDocx = async (
 			if (!kunciJawaban) {
 				invalidReasons.push("kunci jawaban tidak ditemukan di file kunci untuk nomor ini");
 			} else {
-				const idx = ["a", "b", "c", "d"].indexOf(normalizeAnswer(kunciJawaban));
+				const idx = ["a", "b", "c", "d", "e"].indexOf(normalizeAnswer(kunciJawaban));
 				if (idx === -1 || !options[idx]) invalidReasons.push("kunci jawaban tidak cocok dengan pilihan yang ada");
 			}
 		}
@@ -286,6 +311,7 @@ export const parseNaskahSoalDocx = async (
 			pilihan_b: options?.[1] ?? "",
 			pilihan_c: options?.[2] ?? "",
 			pilihan_d: options?.[3] ?? "",
+			pilihan_e: options?.[4] ?? "",
 			kunci_jawaban: kunciJawaban,
 			catatanJawabanEsai: !isPg ? kunci.esai.get(number) : undefined,
 			imageFileName,

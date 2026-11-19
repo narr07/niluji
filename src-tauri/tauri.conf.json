@@ -39,7 +39,7 @@
 		"devUrl": "http://localhost:3000"
 	},
 	"productName": "Niluji",
-	"version": "1.0.1",
+	"version": "1.3.0",
 	"identifier": "com.narr07.niluji",
 	"plugins": {},
 	"app": {
@@ -62,7 +62,7 @@
 				"img-src": "'self' data: blob: https://raw.githubusercontent.com",
 				"style-src": "'self' 'unsafe-inline'",
 				"font-src": "'self' data:",
-				"script-src": "'self' 'unsafe-inline'"
+				"script-src": "'self'"
 			}
 		}
 	}

@@ -9,6 +9,7 @@
 	interface QuestionView { id: number, questionText: string, questionType: string, image: string | null, options: OptionView[] }
 	interface JoinResponse {
 		sessionId: number
+		sessionToken: string
 		examTitle: string
 		durationSeconds: number
 		startedAt: number
@@ -16,7 +17,6 @@
 		deviceToken: string
 		pgSubmittedAt: number | null
 		submittedAt: number | null
-		score: number | null
 		questions: QuestionView[]
 		answers: Record<number, string>
 		doubtful: Record<number, boolean>
@@ -24,6 +24,12 @@
 	interface AnswerResponse {
 		remainingSeconds: number
 	}
+
+	const REQUEST_TIMEOUT_MS = 10_000;
+	const ESSAY_SAVE_DELAY_MS = 600;
+	const SUBMIT_RETRY_MS = 3000;
+	// Lebih pendek dari masa tenggang 60 detik di server, supaya jawaban terakhir masih diterima.
+	const FLUSH_TIMEOUT_MS = 40_000;
 
 	const route = useRoute();
 	const stage = ref<"login" | "token" | "exam" | "pg-checkpoint" | "done">("login");
@@ -37,12 +43,15 @@
 	const error = ref("");
 
 	const sessionId = ref(0);
+	const sessionToken = ref("");
+	const presenceToken = ref("");
+	const finishMessage = ref("");
+	const finishError = ref("");
 	const examTitle = ref("");
 	const questions = ref<QuestionView[]>([]);
 	const answers = ref<Record<number, string>>({});
 	const doubtful = ref<Record<number, boolean>>({});
 	const remaining = ref(0);
-	const score = ref<number | null>(null);
 	const pgSubmittedAt = ref<number | null>(null);
 
 	const fontScale = ref<"sm" | "base" | "lg">("base");
@@ -52,9 +61,11 @@
 		return "text-base";
 	});
 
-	const saveStatus = ref<Record<number, "saved" | "saving" | "error">>({});
-	const hasPendingSaves = computed(() => Object.values(saveStatus.value).some((s) => s !== "saved"));
+	const saveStatus = ref<Record<number, AnswerSaveStatus>>({});
+	const rejectedSaves = ref(new Map<number, string>());
+	const hasPendingSaves = computed(() => Object.values(saveStatus.value).some((s) => s === "saving" || s === "error"));
 	const hasErrorSaves = computed(() => Object.values(saveStatus.value).some((s) => s === "error"));
+	const rejectedMessages = computed(() => [...new Set(rejectedSaves.value.values())]);
 
 	const pgQuestions = computed(() => questions.value.filter((q) => q.questionType !== "essay"));
 	const essayQuestions = computed(() => questions.value.filter((q) => q.questionType === "essay"));
@@ -89,6 +100,8 @@
 	};
 
 	let timer: ReturnType<typeof setInterval>;
+	let finishing = false;
+	let timeIsUp = false;
 
 	const formatTime = (secs: number) => {
 		const m = Math.max(0, Math.floor(secs / 60));
@@ -101,24 +114,65 @@
 		const key = "niluji-device-token";
 		let existing = window.localStorage.getItem(key);
 		if (!existing) {
-			existing = `dev-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+			const bytes = window.crypto.getRandomValues(new Uint8Array(16));
+			existing = `dev-${Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("")}`;
 			window.localStorage.setItem(key, existing);
 		}
 		return existing;
 	};
 
+	const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+	const postJson = async (path: string, body: unknown) => {
+		const controller = new AbortController();
+		const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+		try {
+			return await fetch(path, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(body),
+				signal: controller.signal
+			});
+		} finally {
+			clearTimeout(timeout);
+		}
+	};
+
+	const isRetryableStatus = (status: number) => status >= 500 || status === 408 || status === 429;
+
+	const sendAnswer = async (questionId: number, draft: AnswerDraft): Promise<AnswerSendResult> => {
+		const res = await postJson("/api/exam/answer", {
+			sessionId: sessionId.value,
+			sessionToken: sessionToken.value,
+			questionId,
+			optionKey: draft.value,
+			isDoubtful: draft.doubtful
+		});
+		if (res.ok) {
+			const data = (await res.json().catch(() => null)) as AnswerResponse | null;
+			if (data && typeof data.remainingSeconds === "number") remaining.value = data.remainingSeconds;
+			return { status: "saved" };
+		}
+		if (isRetryableStatus(res.status)) return { status: "retry" };
+		return { status: "rejected", message: await res.text() };
+	};
+
+	const answerQueue = new AnswerSaveQueue(sendAnswer, (questionId, status, message) => {
+		saveStatus.value[questionId] = status;
+		if (status === "rejected") rejectedSaves.value.set(questionId, message ?? "Jawaban ditolak server.");
+		else rejectedSaves.value.delete(questionId);
+	});
+
 	const doLogin = async () => {
 		loading.value = true;
 		error.value = "";
 		try {
-			const res = await fetch("/api/login", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ nisn: nisn.value, name: name.value })
-			});
+			const res = await postJson("/api/login", { nisn: nisn.value, name: name.value });
+			if (res.status === 429) throw new Error(await res.text());
 			if (!res.ok) throw new Error("NISN atau nama tidak cocok dengan data peserta");
-			const data = await res.json() as { name: string };
+			const data = await res.json() as { name: string, presenceToken: string };
 			name.value = data.name;
+			presenceToken.value = data.presenceToken;
 			stage.value = "token";
 		} catch (e) {
 			error.value = e instanceof Error ? e.message : "Gagal masuk";
@@ -127,41 +181,66 @@
 		}
 	};
 
+	// Terus mencoba selama gangguannya sementara, karena server menerima pengumpulan berulang.
+	const postUntilAccepted = async (path: string) => {
+		for (;;) {
+			try {
+				const res = await postJson(path, { sessionId: sessionId.value, sessionToken: sessionToken.value });
+				if (res.ok) return true;
+				if (!isRetryableStatus(res.status)) {
+					finishError.value = await res.text();
+					return false;
+				}
+			} catch {
+				// Gangguan jaringan, dicoba lagi di bawah.
+			}
+			finishMessage.value = "Koneksi terganggu, mencoba mengirim lagi...";
+			await wait(SUBMIT_RETRY_MS);
+		}
+	};
+
 	const doSubmit = async () => {
-		if (stage.value !== "exam") return;
+		if (finishing || (stage.value !== "exam" && stage.value !== "pg-checkpoint")) return;
+		finishing = true;
 		clearInterval(timer);
 		submitting.value = true;
+		finishError.value = "";
+		finishMessage.value = "Menyimpan jawaban terakhir...";
 		try {
-			const res = await fetch("/api/exam/submit", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ sessionId: sessionId.value })
-			});
-			const data = await res.json() as { score: number };
-			score.value = data.score;
-			stage.value = "done";
+			await answerQueue.flush(FLUSH_TIMEOUT_MS);
+			finishMessage.value = "Mengumpulkan ujian...";
+			if (await postUntilAccepted("/api/exam/submit")) {
+				answerQueue.reset();
+				stage.value = "done";
+			}
 		} finally {
+			finishing = false;
 			submitting.value = false;
+			finishMessage.value = "";
 		}
 	};
 
 	const doSubmitPg = async () => {
-		if (stage.value !== "exam") return;
+		if (finishing || stage.value !== "exam") return;
+		finishing = true;
 		submitting.value = true;
+		finishError.value = "";
+		finishMessage.value = "Menyimpan jawaban Pilihan Ganda...";
 		try {
-			await fetch("/api/exam/submit-pg", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ sessionId: sessionId.value })
-			});
-			pgSubmittedAt.value = Math.floor(Date.now() / 1000);
-			if (hasEssay.value) {
+			if (!await answerQueue.flush(FLUSH_TIMEOUT_MS)) {
+				finishError.value = "Masih ada jawaban yang belum tersimpan. Periksa koneksi WiFi lalu coba lagi.";
+				return;
+			}
+			finishMessage.value = "Mengunci jawaban Pilihan Ganda...";
+			if (await postUntilAccepted("/api/exam/submit-pg")) {
+				pgSubmittedAt.value = Math.floor(Date.now() / 1000);
 				stage.value = "pg-checkpoint";
-			} else {
-				await doSubmit();
 			}
 		} finally {
+			finishing = false;
 			submitting.value = false;
+			finishMessage.value = "";
+			if (timeIsUp) void doSubmit();
 		}
 	};
 
@@ -169,21 +248,24 @@
 		stage.value = "exam";
 	};
 
+	const backToToken = () => {
+		clearInterval(timer);
+		answerQueue.reset();
+		finishError.value = "";
+		stage.value = "token";
+	};
+
 	const doJoin = async () => {
 		loading.value = true;
 		error.value = "";
 		try {
 			const deviceToken = getOrCreateDeviceToken();
-			const res = await fetch("/api/exam/join", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					token: token.value,
-					nisn: nisn.value,
-					name: name.value,
-					pin: pin.value.trim() || undefined,
-					deviceToken
-				})
+			const res = await postJson("/api/exam/join", {
+				token: token.value,
+				nisn: nisn.value,
+				name: name.value,
+				pin: pin.value.trim() || undefined,
+				deviceToken
 			});
 			if (!res.ok) throw new Error(await res.text());
 			const data = await res.json() as JoinResponse;
@@ -192,7 +274,14 @@
 				window.localStorage.setItem("niluji-device-token", data.deviceToken);
 			}
 
+			answerQueue.reset();
+			saveStatus.value = {};
+			rejectedSaves.value.clear();
+			finishError.value = "";
+			timeIsUp = false;
+
 			sessionId.value = data.sessionId;
+			sessionToken.value = data.sessionToken;
 			examTitle.value = data.examTitle;
 			questions.value = data.questions;
 			pgSubmittedAt.value = data.pgSubmittedAt;
@@ -200,22 +289,20 @@
 			doubtful.value = { ...(data.doubtful ?? {}) };
 
 			if (data.submittedAt) {
-				score.value = data.score;
 				stage.value = "done";
 				return;
 			}
 
-			remaining.value = typeof data.remainingSeconds === "number"
-				? data.remainingSeconds
-				: Math.max(0, data.durationSeconds - (Math.floor(Date.now() / 1000) - data.startedAt));
+			remaining.value = data.remainingSeconds;
 			stage.value = "exam";
 
 			clearInterval(timer);
 			timer = setInterval(() => {
 				remaining.value -= 1;
 				if (remaining.value <= 0) {
-					if (!pgSubmittedAt.value && hasEssay.value) doSubmitPg();
-					else doSubmit();
+					timeIsUp = true;
+					clearInterval(timer);
+					void doSubmit();
 				}
 			}, 1000);
 		} catch (e) {
@@ -225,73 +312,46 @@
 		}
 	};
 
-	const saveAnswer = async (questionId: number, optionKey: string, isDoubtfulVal?: boolean) => {
-		saveStatus.value[questionId] = "saving";
-		try {
-			const res = await fetch("/api/exam/answer", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					sessionId: sessionId.value,
-					questionId,
-					optionKey,
-					isDoubtful: isDoubtfulVal ?? Boolean(doubtful.value[questionId])
-				})
-			});
-			if (!res.ok) throw new Error(`status ${res.status}`);
-			const data = (await res.json().catch(() => null)) as AnswerResponse | null;
-			if (data && typeof data.remainingSeconds === "number") {
-				remaining.value = data.remainingSeconds;
-			}
-			if ((answers.value[questionId] ?? "") === optionKey) {
-				saveStatus.value[questionId] = "saved";
-			}
-		} catch {
-			if ((answers.value[questionId] ?? "") !== optionKey) return;
-			saveStatus.value[questionId] = "error";
-			setTimeout(() => {
-				if ((answers.value[questionId] ?? "") === optionKey) {
-					saveAnswer(questionId, optionKey, doubtful.value[questionId]);
-				}
-			}, 4000);
-		}
-	};
-
 	const setAnswer = (questionId: number, optionKey: string) => {
 		answers.value[questionId] = optionKey;
-		saveAnswer(questionId, optionKey, doubtful.value[questionId]);
+		const isEssay = questions.value.find((q) => q.id === questionId)?.questionType === "essay";
+		answerQueue.set(
+			questionId,
+			{ value: optionKey, doubtful: Boolean(doubtful.value[questionId]) },
+			isEssay ? ESSAY_SAVE_DELAY_MS : 0
+		);
 	};
 
 	const toggleDoubtful = (questionId: number) => {
 		const next = !doubtful.value[questionId];
 		doubtful.value[questionId] = next;
-		const currentOpt = answers.value[questionId] ?? "";
-		saveAnswer(questionId, currentOpt, next);
+		answerQueue.set(questionId, { value: answers.value[questionId] ?? "", doubtful: next });
 	};
 
 	const optionDisplayLetter = (idx: number) => String.fromCharCode(65 + idx);
 
 	const doLogout = async () => {
-		await fetch("/api/logout", {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ nisn: nisn.value })
-		});
+		await postJson("/api/logout", { nisn: nisn.value, presenceToken: presenceToken.value }).catch(() => null);
+		answerQueue.reset();
 		nisn.value = "";
 		name.value = "";
 		token.value = "";
 		pin.value = "";
+		sessionId.value = 0;
+		sessionToken.value = "";
+		presenceToken.value = "";
 		questions.value = [];
 		pgSubmittedAt.value = null;
 		answers.value = {};
 		doubtful.value = {};
 		saveStatus.value = {};
-		score.value = null;
+		rejectedSaves.value.clear();
 		stage.value = "login";
 	};
 
 	const onKeydown = (ev: KeyboardEvent) => {
 		if (stage.value !== "exam" || viewMode.value !== "satu" || !currentQuestion.value) return;
+		if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
 		const target = ev.target as HTMLElement | null;
 		if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) {
 			return;
@@ -325,6 +385,7 @@
 
 	onUnmounted(() => {
 		clearInterval(timer);
+		answerQueue.reset();
 		if (typeof window !== "undefined") {
 			window.removeEventListener("keydown", onKeydown);
 		}
@@ -427,12 +488,12 @@
 						class="w-full font-mono uppercase" />
 				</UFormField>
 
-				<UFormField label="PIN Kartu Peserta" description="Isi 6 digit PIN pada kartu peserta (jika diwajibkan pengawas).">
+				<UFormField label="PIN Kartu Peserta" description="Isi 6 digit PIN yang tertera pada kartu peserta.">
 					<UInput
 						v-model="pin"
 						size="xl"
 						color="primary"
-						placeholder="6 digit PIN (opsional)"
+						placeholder="6 digit PIN"
 						maxlength="6"
 						inputmode="numeric"
 						autocomplete="off"
@@ -475,6 +536,21 @@
 			<p class="text-muted mb-6 text-sm leading-relaxed">
 				Jawaban Pilihan Ganda kamu sudah dikunci dan tersimpan di server. Waktu ujian tetap berjalan, silakan lanjutkan ke sesi Esai sekarang.
 			</p>
+
+			<UAlert
+				v-if="finishMessage"
+				color="info"
+				variant="subtle"
+				:title="finishMessage"
+				class="mb-4 text-left" />
+			<UAlert
+				v-if="finishError"
+				color="error"
+				variant="subtle"
+				title="Pengumpulan belum berhasil"
+				:description="finishError"
+				:actions="[{ label: 'Masuk Ulang', color: 'error', variant: 'soft', onClick: backToToken }]"
+				class="mb-4 text-left" />
 
 			<UButton
 				block
@@ -814,6 +890,34 @@
 				icon="lucide:refresh-cw"
 				title="Menyimpan jawaban ke server..."
 				description="Koneksi sempat melambat atau terputus. Sistem sedang mencoba lagi secara otomatis. Tunggu sampai status menjadi Tersimpan sebelum menekan Selesai."
+				class="mb-3" />
+
+			<UAlert
+				v-if="rejectedMessages.length"
+				color="error"
+				variant="subtle"
+				icon="lucide:circle-alert"
+				title="Sebagian jawaban ditolak server"
+				:description="rejectedMessages.join(' ')"
+				class="mb-3" />
+
+			<UAlert
+				v-if="finishMessage"
+				color="info"
+				variant="subtle"
+				icon="lucide:loader-circle"
+				:title="finishMessage"
+				description="Jangan tutup halaman ini."
+				class="mb-3" />
+
+			<UAlert
+				v-if="finishError"
+				color="error"
+				variant="subtle"
+				icon="lucide:circle-alert"
+				title="Pengumpulan belum berhasil"
+				:description="finishError"
+				:actions="[{ label: 'Masuk Ulang', color: 'error', variant: 'soft', onClick: backToToken }]"
 				class="mb-3" />
 
 			<UButton

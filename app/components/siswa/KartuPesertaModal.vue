@@ -47,6 +47,11 @@
 	const qrDataUrl = ref("");
 	const filterClass = ref(props.defaultClass || "ALL");
 	const regenerating = ref(false);
+	const legacyPinCount = ref(0);
+
+	const loadLegacyPinCount = async () => {
+		legacyPinCount.value = isTauri() ? await invoke<number>("count_legacy_student_pins") : 0;
+	};
 
 	const classOptions = computed(() => {
 		const unique = [...new Set(props.students.map((s) => s.class).filter((c): c is string => !!c))].sort();
@@ -68,6 +73,7 @@
 				invoke<ServerInfo>("get_server_info")
 			]);
 			school.value = sInfo;
+			await loadLegacyPinCount();
 			if (srv.lanIp && srv.port) {
 				const portSuffix = srv.port === 80 ? "" : `:${srv.port}`;
 				joinUrl.value = `http://${srv.lanIp}${portSuffix}/cbt`;
@@ -112,6 +118,7 @@
 				icon: "lucide:check",
 				color: "success"
 			});
+			await loadLegacyPinCount();
 			emit("regenerated");
 		} finally {
 			regenerating.value = false;
@@ -133,6 +140,15 @@
 		:ui="{ content: 'max-w-4xl' }">
 		<template #body>
 			<div class="space-y-4">
+				<UAlert
+					v-if="legacyPinCount"
+					color="warning"
+					variant="subtle"
+					icon="lucide:shield-alert"
+					class="print:hidden"
+					:title="`${legacyPinCount} siswa masih memakai PIN versi lama`"
+					description="PIN ini bisa ditebak dari NISN. Klik Acak Ulang PIN untuk semua kelas, lalu cetak ulang kartu sebelum ujian berikutnya." />
+
 				<div class="flex flex-wrap items-center justify-between gap-3 print:hidden">
 					<div class="flex items-center gap-2">
 						<USelectMenu

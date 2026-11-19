@@ -461,7 +461,14 @@ pub fn update_question(db: &Db, id: i64, input: QuestionInput) -> Result<(), Str
 }
 
 pub fn delete_question(db: &Db, id: i64) -> Result<(), String> {
-	db.lock().unwrap().execute("DELETE FROM questions WHERE id = ?1", params![id]).map_err(|e| e.to_string())?;
+	let conn = db.lock().unwrap();
+	let sessions: i64 = conn
+		.query_row("SELECT COUNT(*) FROM exam_session_questions WHERE question_id = ?1", params![id], |r| r.get(0))
+		.map_err(|e| e.to_string())?;
+	if sessions > 0 {
+		return Err(format!("Soal ini sudah dipakai di {sessions} sesi ujian, jadi tidak bisa dihapus."));
+	}
+	conn.execute("DELETE FROM questions WHERE id = ?1", params![id]).map_err(|e| e.to_string())?;
 	Ok(())
 }
 
@@ -536,6 +543,36 @@ mod tests {
 		assert_eq!(jenis_from_default, "Latihan");
 
 		drop(conn);
+		drop(db);
+		let _ = std::fs::remove_dir_all(&dir);
+	}
+
+	#[test]
+	fn question_used_by_a_session_cannot_be_deleted() {
+		let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
+		let dir = std::env::temp_dir().join(format!("niluji_question_delete_test_{}_{nanos}", std::process::id()));
+		let db = crate::db::open(&dir);
+		let (used, unused) = {
+			let conn = db.lock().unwrap();
+			conn.execute("INSERT INTO subjects (name) VALUES ('Uji Soal')", []).unwrap();
+			let subject = conn.last_insert_rowid();
+			conn.execute("INSERT INTO questions (subject_id, question_text) VALUES (?1, 'A')", params![subject]).unwrap();
+			let used = conn.last_insert_rowid();
+			conn.execute("INSERT INTO questions (subject_id, question_text) VALUES (?1, 'B')", params![subject]).unwrap();
+			let unused = conn.last_insert_rowid();
+			conn.execute("INSERT INTO exams (subject_id, title, token) VALUES (?1, 'U', 'SOAL01')", params![subject]).unwrap();
+			let exam = conn.last_insert_rowid();
+			conn.execute(
+				"INSERT INTO exam_sessions (exam_id, student_nisn, student_name, question_ids, started_at) VALUES (?1, '1', 'A', ?2, 1)",
+				params![exam, used.to_string()]
+			)
+			.unwrap();
+			crate::exam_session::snapshot_session(&conn, conn.last_insert_rowid(), &[used]).unwrap();
+			(used, unused)
+		};
+
+		assert!(delete_question(&db, used).unwrap_err().contains("sesi ujian"));
+		delete_question(&db, unused).unwrap();
 		drop(db);
 		let _ = std::fs::remove_dir_all(&dir);
 	}

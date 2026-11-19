@@ -96,7 +96,7 @@
 		{ tanya: "Ujian belum bisa dibuat?", jawab: "Periksa kembali apakah mata pelajaran dan jenis soalnya sudah memiliki butir soal di Bank Soal (langkah 4)." },
 		{ tanya: "Siswa tidak bisa login?", jawab: "Pastikan NISN dan nama siswa sudah terdaftar di menu Siswa pada kelas yang sesuai." },
 		{ tanya: "Siswa pindah HP karena baterai habis?", jawab: "Buka menu Hasil Ujian pada paket ujian tersebut, lalu klik ikon Buka Kunci Perangkat pada baris nama siswa." },
-		{ tanya: "Bagaimana cara menggabungkan nilai PG dan Esai?", jawab: "Atur persentase Bobot Nilai PG saat membuat/mengedit ujian. Begitu esai dinilai di halaman Detail Siswa, Nilai Akhir terhitung otomatis." }
+		{ tanya: "Bagaimana cara menggabungkan nilai PG dan Esai?", jawab: "Atur persentase Bobot Nilai PG saat membuat/mengedit ujian. Nilai Akhir muncul setelah semua jawaban esai dinilai di halaman Detail Siswa. Bobot 100% berarti Nilai Akhir hanya dari PG." }
 	];
 </script>
 
