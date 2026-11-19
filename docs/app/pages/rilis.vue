@@ -38,10 +38,34 @@
 
 	const fallbackReleases: LocalChangelogItem[] = [
 		{
+			version: "v1.3.0",
+			title: "Keamanan Ujian, Ketepatan Nilai & Perlindungan Hasil",
+			date: "2026-11-19",
+			badgeColor: "success",
+			htmlUrl: "https://github.com/narr07/niluji/releases/tag/v1.3.0",
+			assets: [
+				{ label: "Niluji_1.3.0_x64-setup.exe", icon: "i-lucide-monitor", url: "https://github.com/narr07/niluji/releases/download/v1.3.0/Niluji_1.3.0_x64-setup.exe" },
+				{ label: "Niluji_1.3.0_x64_en-US.msi", icon: "i-lucide-monitor", url: "https://github.com/narr07/niluji/releases/download/v1.3.0/Niluji_1.3.0_x64_en-US.msi" },
+				{ label: "Niluji_1.3.0_amd64.deb", icon: "i-lucide-terminal", url: "https://github.com/narr07/niluji/releases/download/v1.3.0/Niluji_1.3.0_amd64.deb" },
+				{ label: "Niluji_1.3.0_amd64.AppImage", icon: "i-lucide-terminal", url: "https://github.com/narr07/niluji/releases/download/v1.3.0/Niluji_1.3.0_amd64.AppImage" },
+				{ label: "Niluji_1.3.0_aarch64.dmg", icon: "i-lucide-laptop", url: "https://github.com/narr07/niluji/releases/download/v1.3.0/Niluji_1.3.0_aarch64.dmg" },
+				{ label: "Niluji_1.3.0_x64.dmg", icon: "i-lucide-laptop", url: "https://github.com/narr07/niluji/releases/download/v1.3.0/Niluji_1.3.0_x64.dmg" }
+			],
+			highlights: [
+				"Setiap sesi siswa punya token rahasia, sehingga siswa tidak bisa mengubah atau mengumpulkan ujian siswa lain.",
+				"Ujian baru mewajibkan PIN, siswa hanya bisa masuk ke ujian kelasnya, dan percobaan login yang salah dibatasi.",
+				"Bobot nilai dipakai persis seperti yang diisi guru, dan Nilai Akhir menunggu sampai semua jawaban esai dinilai.",
+				"Hasil ujian tidak berubah saat Bank Soal diedit. Tombol Nilai Ulang tersedia bila kunci jawaban perlu dibetulkan.",
+				"Backup harian 14 hari, backup otomatis sebelum perubahan penting, dan pemulihan database dari menu Fitur.",
+				"Sesi yang ditinggalkan siswa dikumpulkan otomatis, dan pengawas bisa membukanya lagi dengan tambahan waktu.",
+				"PIN Export ditentukan sendiri oleh sekolah, dan impor Word mendukung opsi E."
+			]
+		},
+		{
 			version: "v1.0.1",
 			title: "Perbaikan Stabilitas, Impor Markdown & Backup Otomatis",
 			date: "2026-09-22",
-			badgeColor: "success",
+			badgeColor: "primary",
 			htmlUrl: "https://github.com/narr07/niluji/releases/tag/v1.0.1",
 			assets: [
 				{ label: "Niluji_1.0.1_x64-setup.exe", icon: "i-lucide-monitor", url: "https://github.com/narr07/niluji/releases/download/v1.0.1/Niluji_1.0.1_x64-setup.exe" },

@@ -215,7 +215,7 @@ Lengkap untuk Guru, Pengawas, maupun Siswa
       variant: ghost
       icon: i-lucide-globe
   title: Siap menyelenggarakan ujian sekolah tanpa kendala sinyal?
-  description: Gratis dan bersumber terbuka (MIT License). Unduh installer Windows dan mulai ujian pertama Anda dalam 10 menit.
+  description: Gratis dan bersumber terbuka (MIT License). Unduh installer untuk Windows, Linux, atau macOS dan mulai ujian pertama Anda dalam 10 menit.
   class: dark:bg-neutral-950
   ---
 
