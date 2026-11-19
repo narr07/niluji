@@ -296,8 +296,20 @@ async fn students_by_school(school: String, db: tauri::State<'_, db::Db>) -> Res
 }
 
 #[tauri::command]
-async fn tarik_data_siswa(csv_url: String, school: String, db: tauri::State<'_, db::Db>) -> Result<usize, String> {
-	students::tarik_data_siswa(&db, &csv_url, &school).await
+async fn preview_tarik_siswa(csv_url: String, school: String, db: tauri::State<'_, db::Db>) -> Result<Vec<students::TarikPreviewRow>, String> {
+	students::preview_tarik_siswa(&db, &csv_url, &school).await
+}
+
+#[tauri::command]
+async fn simpan_tarik_siswa(
+	csv_url: String,
+	school: String,
+	nisns: Vec<String>,
+	db: tauri::State<'_, db::Db>,
+	data_dir: tauri::State<'_, DataDir>
+) -> Result<usize, String> {
+	backup::backup_before_change(&db, &data_dir.0)?;
+	students::simpan_tarik_siswa(&db, &csv_url, &school, &nisns).await
 }
 
 #[tauri::command]
@@ -587,7 +599,8 @@ pub fn run() {
 			count_legacy_student_pins,
 			list_schools,
 			students_by_school,
-			tarik_data_siswa,
+			preview_tarik_siswa,
+			simpan_tarik_siswa,
 			list_schools_from_source,
 			get_question,
 			create_question,

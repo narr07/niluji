@@ -1,0 +1,14 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+html,
+body {
+	overscroll-behavior: none;
+	-webkit-tap-highlight-color: transparent;
+}
+
+/* Beri ruang untuk poni dan bilah navigasi di HP. */
+.safe-area {
+	padding-top: max(1rem, env(safe-area-inset-top));
+	padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}

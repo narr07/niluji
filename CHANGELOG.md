@@ -1,5 +1,22 @@
 # Catatan Perubahan
 
+## Belum dirilis
+
+### Tarik Data Siswa
+
+- Data dari Google Sheets kini ditampilkan sebagai pratinjau dulu dan tidak langsung disimpan.
+- Setiap siswa diberi status Baru, Berubah, Sama, atau Tidak valid. Untuk siswa yang berubah, data lamanya ikut ditampilkan.
+- Guru memilih siswa yang disimpan. Baris tidak valid (NISN atau nama kosong, NISN dobel) tidak bisa disimpan.
+- Backup database dibuat otomatis sebelum menyimpan.
+
+### Aplikasi Android untuk siswa
+
+- Aplikasi baru **NILUJI Siswa** di folder `apk-siswa/`: masuk ujian dengan memindai QR kartu peserta, hanya membuka server ujian yang dipilih, dan memakai mode ujian Android (blokir tangkapan layar, layar tetap menyala, penyematan aplikasi, konfirmasi tombol kembali).
+
+### Pengembangan
+
+- Test server tidak lagi sesekali gagal karena dua test berbagi folder database yang sama.
+
 ## v1.3.0 (2026-11-19)
 
 Perubahan ini berfokus pada keamanan ujian, ketepatan nilai, dan keselamatan data. Nomor v1.1.0 dan v1.2.0 dilewati karena tag tersebut sudah ada di repositori tanpa rilis yang terbit.

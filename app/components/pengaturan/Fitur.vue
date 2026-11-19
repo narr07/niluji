@@ -44,7 +44,8 @@
 			icon: "i-lucide-users",
 			ringkasan: "Tarik data siswa dari spreadsheet online sekolah, tanpa input manual atau CSV.",
 			isi: [
-				"Ketik nama sekolah (bisa cari sebagian nama, lalu pilih yang persis dari daftar), klik Tarik Data Siswa.",
+				"Ketik nama sekolah (bisa cari sebagian nama, lalu pilih yang persis dari daftar), klik Lihat Pratinjau. Belum ada data yang disimpan.",
+				"Periksa status tiap siswa (Baru, Berubah, Sama, Tidak valid), hapus centang yang tidak ingin disimpan, lalu klik Simpan. Backup dibuat otomatis sebelum menyimpan.",
 				"Ada kesalahan nama atau NISN di data sumbernya? Klik \"Buka & Edit Data Sumber\" untuk membetulkan langsung di spreadsheet, lalu tarik ulang."
 			]
 		}

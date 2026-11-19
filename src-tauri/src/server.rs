@@ -372,8 +372,11 @@ mod tests {
 	}
 
 	fn test_app() -> TestApp {
+		// Jam Windows kasar, jadi dua test paralel bisa mendapat waktu yang sama. Penghitung menjamin folder unik.
+		static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+		let seq = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 		let nanos = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
-		let dir = std::env::temp_dir().join(format!("niluji_server_test_{}_{nanos}", std::process::id()));
+		let dir = std::env::temp_dir().join(format!("niluji_server_test_{}_{seq}_{nanos}", std::process::id()));
 		let db = db::open(&dir);
 		let question_id = {
 			let conn = db.lock().unwrap();

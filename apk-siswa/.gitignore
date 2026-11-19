@@ -1,0 +1,22 @@
+node_modules
+.DS_Store
+*.log*
+.data
+.nuxt
+.nitro
+.cache
+.output
+dist
+.env
+.env.*
+.eslintcache
+
+# Rust dan Tauri
+src-tauri/target
+src-tauri/gen/schemas
+
+# Kunci tanda tangan APK tidak pernah masuk repositori
+*.jks
+*.keystore
+keystore.properties
+

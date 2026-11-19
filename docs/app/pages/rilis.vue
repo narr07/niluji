@@ -49,7 +49,8 @@
 				{ label: "Niluji_1.3.0_amd64.deb", icon: "i-lucide-terminal", url: "https://github.com/narr07/niluji/releases/download/v1.3.0/Niluji_1.3.0_amd64.deb" },
 				{ label: "Niluji_1.3.0_amd64.AppImage", icon: "i-lucide-terminal", url: "https://github.com/narr07/niluji/releases/download/v1.3.0/Niluji_1.3.0_amd64.AppImage" },
 				{ label: "Niluji_1.3.0_aarch64.dmg", icon: "i-lucide-laptop", url: "https://github.com/narr07/niluji/releases/download/v1.3.0/Niluji_1.3.0_aarch64.dmg" },
-				{ label: "Niluji_1.3.0_x64.dmg", icon: "i-lucide-laptop", url: "https://github.com/narr07/niluji/releases/download/v1.3.0/Niluji_1.3.0_x64.dmg" }
+				{ label: "Niluji_1.3.0_x64.dmg", icon: "i-lucide-laptop", url: "https://github.com/narr07/niluji/releases/download/v1.3.0/Niluji_1.3.0_x64.dmg" },
+				{ label: "NILUJI-Siswa-0.1.0.apk", icon: "i-lucide-smartphone", url: "https://github.com/narr07/niluji/releases/download/v1.3.0/NILUJI-Siswa-0.1.0.apk" }
 			],
 			highlights: [
 				"Setiap sesi siswa punya token rahasia, sehingga siswa tidak bisa mengubah atau mengumpulkan ujian siswa lain.",
@@ -132,9 +133,20 @@
 		return match?.url || "https://github.com/narr07/niluji/releases/latest";
 	});
 
+	// Aplikasi Android untuk siswa dicari di rilis terbaru yang memuatnya, terpisah dari installer pengawas.
+	const studentApk = computed(() => {
+		for (const release of liveReleases.value) {
+			const apk = release.assets.find(a => /\.apk$/i.test(a.label));
+			if (apk) return { ...apk, version: release.version };
+		}
+		return null;
+	});
+
 	onMounted(async () => {
 		const ua = navigator.userAgent.toLowerCase();
-		if (ua.includes("linux")) detectedOs.value = "linux";
+		// User agent Android juga memuat kata "linux". Installer pengawas tidak untuk HP, jadi Android memakai pilihan bawaan.
+		if (ua.includes("android")) detectedOs.value = "windows";
+		else if (ua.includes("linux")) detectedOs.value = "linux";
 		else if (ua.includes("mac")) detectedOs.value = "macos";
 		else detectedOs.value = "windows";
 
@@ -151,14 +163,16 @@
 					.filter(l => l.length > 0 && !l.startsWith("#"));
 
 				const assets = (rel.assets || [])
-					.filter(a => /\.(exe|msi|deb|AppImage|dmg)$/i.test(a.name))
+					.filter(a => /\.(exe|msi|deb|AppImage|dmg|apk)$/i.test(a.name))
 					.map(a => ({
 						label: a.name,
 						icon: a.name.endsWith(".exe") || a.name.endsWith(".msi")
 							? "i-lucide-monitor"
 							: a.name.endsWith(".dmg")
 								? "i-lucide-laptop"
-								: "i-lucide-terminal",
+								: a.name.endsWith(".apk")
+									? "i-lucide-smartphone"
+									: "i-lucide-terminal",
 						url: a.browser_download_url
 					}));
 
@@ -236,6 +250,41 @@
 						variant="outline"
 						to="https://github.com/narr07/niluji/releases"
 						target="_blank"
+					/>
+				</div>
+			</div>
+		</UCard>
+
+		<!-- Aplikasi Android untuk siswa -->
+		<UCard v-if="studentApk">
+			<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+				<div class="flex items-start gap-3">
+					<UIcon
+						name="i-lucide-smartphone"
+						class="size-6 text-primary shrink-0 mt-0.5"
+					/>
+					<div class="space-y-1">
+						<p class="font-semibold text-highlighted">
+							Aplikasi Android untuk siswa (opsional)
+						</p>
+						<p class="text-sm text-muted">
+							Pasang di HP siswa untuk masuk ujian dengan memindai QR kartu peserta. Server ujian tetap di komputer pengawas.
+						</p>
+					</div>
+				</div>
+				<div class="flex flex-wrap gap-2 shrink-0">
+					<UButton
+						:label="`Unduh APK (${studentApk.version})`"
+						icon="i-lucide-download"
+						:to="studentApk.url"
+						target="_blank"
+					/>
+					<UButton
+						label="Panduan"
+						color="neutral"
+						variant="outline"
+						icon="i-lucide-book-open"
+						to="/panduan-siswa/aplikasi-android"
 					/>
 				</div>
 			</div>

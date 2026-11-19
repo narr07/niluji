@@ -1,0 +1,8 @@
+{
+	"$schema": "../gen/schemas/mobile-schema.json",
+	"identifier": "mobile",
+	"description": "Kamera untuk memindai QR kartu peserta, khusus Android dan iOS.",
+	"platforms": ["android", "iOS"],
+	"windows": ["main"],
+	"permissions": ["barcode-scanner:default"]
+}

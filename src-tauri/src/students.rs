@@ -132,20 +132,139 @@ async fn fetch_csv(csv_url: &str) -> Result<Vec<TarikSiswaRow>, String> {
 		.collect()
 }
 
-// Ambil CSV yang dipublish dari Google Sheets, filter baris sesuai nama sekolah, lalu simpan/update
-// ke database lokal. `school` di sini harus nama sekolah yang PERSIS (dipilih dari dropdown hasil
-// list_schools_from_source, bukan sekadar potongan kata) — supaya sekolah dengan nama mirip (mis.
-// "SD NEGERI CIPINANG I" vs "SD NEGERI CIPINANG II") tidak ketarik gabung jadi satu.
-pub async fn tarik_data_siswa(db: &Db, csv_url: &str, school: &str) -> Result<usize, String> {
-	let rows = fetch_csv(csv_url).await?;
-	let school_trimmed = school.trim();
-	let matched: Vec<TarikSiswaRow> = rows.into_iter().filter(|row| row.school.trim().eq_ignore_ascii_case(school_trimmed)).collect();
+// Status satu siswa di pratinjau "Tarik Data Siswa", dibandingkan dengan database lokal.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TarikStatus {
+	Baru,
+	Berubah,
+	Sama,
+	TidakValid
+}
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TarikPreviewRow {
+	pub nisn: String,
+	pub name: String,
+	pub class: String,
+	pub status: TarikStatus,
+	pub old_name: Option<String>,
+	pub old_class: Option<String>,
+	pub note: Option<String>
+}
+
+struct LocalStudent {
+	name: String,
+	class: Option<String>,
+	school: Option<String>
+}
+
+// Baris sumber untuk satu sekolah. `school` harus nama yang PERSIS (dipilih dari dropdown hasil
+// list_schools_from_source), supaya "SD NEGERI CIPINANG I" dan "... II" tidak tergabung.
+async fn fetch_school_rows(csv_url: &str, school: &str) -> Result<Vec<TarikSiswaRow>, String> {
+	let school_trimmed = school.trim();
+	let matched: Vec<TarikSiswaRow> = fetch_csv(csv_url)
+		.await?
+		.into_iter()
+		.filter(|row| row.school.trim().eq_ignore_ascii_case(school_trimmed))
+		.collect();
 	if matched.is_empty() {
 		return Err(format!("Nama sekolah \"{school_trimmed}\" tidak ditemukan di sumber data."));
 	}
+	Ok(matched)
+}
 
-	upsert_students(db, &matched)
+fn local_students(db: &Db) -> Result<std::collections::HashMap<String, LocalStudent>, String> {
+	let conn = db.lock().unwrap();
+	let mut stmt = conn.prepare("SELECT nisn, name, class, school FROM students").map_err(|e| e.to_string())?;
+	let rows = stmt
+		.query_map([], |r| Ok((r.get::<_, String>(0)?, LocalStudent { name: r.get(1)?, class: r.get(2)?, school: r.get(3)? })))
+		.map_err(|e| e.to_string())?;
+	rows.collect::<Result<_, _>>().map_err(|e| e.to_string())
+}
+
+// Membandingkan baris sumber dengan database lokal tanpa mengubah apa pun.
+fn compare_with_local(rows: &[TarikSiswaRow], local: &std::collections::HashMap<String, LocalStudent>) -> Vec<TarikPreviewRow> {
+	let mut seen = std::collections::HashSet::new();
+	let mut out: Vec<TarikPreviewRow> = rows
+		.iter()
+		.map(|row| {
+			let nisn = row.nisn.trim().to_string();
+			let name = row.name.trim().to_string();
+			let class = row.class.trim().to_string();
+			let school = row.school.trim();
+			let invalid = |note: &str| TarikPreviewRow {
+				nisn: nisn.clone(),
+				name: name.clone(),
+				class: class.clone(),
+				status: TarikStatus::TidakValid,
+				old_name: None,
+				old_class: None,
+				note: Some(note.to_string())
+			};
+			if nisn.is_empty() {
+				return invalid("NISN kosong");
+			}
+			if name.is_empty() {
+				return invalid("Nama kosong");
+			}
+			if !seen.insert(nisn.clone()) {
+				return invalid("NISN dobel di data sumber");
+			}
+			let (status, old_name, old_class) = match local.get(&nisn) {
+				None => (TarikStatus::Baru, None, None),
+				Some(existing) => {
+					let same_name = existing.name.trim() == name;
+					let same_class = existing.class.as_deref().map(str::trim).unwrap_or_default() == class;
+					let same_school = existing.school.as_deref().map(str::trim).unwrap_or_default() == school;
+					if same_name && same_class && same_school {
+						(TarikStatus::Sama, None, None)
+					} else {
+						(TarikStatus::Berubah, (!same_name).then(|| existing.name.clone()), (!same_class).then(|| existing.class.clone().unwrap_or_default()))
+					}
+				}
+			};
+			TarikPreviewRow { nisn, name, class, status, old_name, old_class, note: None }
+		})
+		.collect();
+	out.sort_by(|a, b| a.class.cmp(&b.class).then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase())));
+	out
+}
+
+// Langkah 1: ambil data sumber dan tampilkan perbedaannya. Tidak ada yang disimpan.
+pub async fn preview_tarik_siswa(db: &Db, csv_url: &str, school: &str) -> Result<Vec<TarikPreviewRow>, String> {
+	let rows = fetch_school_rows(csv_url, school).await?;
+	let local = local_students(db)?;
+	Ok(compare_with_local(&rows, &local))
+}
+
+// Langkah 2: simpan hanya NISN yang dipilih guru. Data diambil ulang dari sumber, bukan dari UI,
+// dan baris yang tidak valid tetap dilewati walaupun ikut terkirim.
+pub async fn simpan_tarik_siswa(db: &Db, csv_url: &str, school: &str, nisns: &[String]) -> Result<usize, String> {
+	if nisns.is_empty() {
+		return Err("Pilih minimal satu siswa untuk disimpan.".to_string());
+	}
+	let rows = fetch_school_rows(csv_url, school).await?;
+	let local = local_students(db)?;
+	let valid: std::collections::HashSet<String> = compare_with_local(&rows, &local)
+		.into_iter()
+		.filter(|row| row.status != TarikStatus::TidakValid)
+		.map(|row| row.nisn)
+		.collect();
+	let chosen: std::collections::HashSet<&str> = nisns.iter().map(|n| n.trim()).collect();
+	let mut taken = std::collections::HashSet::new();
+	let selected: Vec<TarikSiswaRow> = rows
+		.into_iter()
+		.filter(|row| {
+			let nisn = row.nisn.trim();
+			chosen.contains(nisn) && valid.contains(nisn) && taken.insert(nisn.to_string())
+		})
+		.collect();
+	if selected.is_empty() {
+		return Err("Siswa yang dipilih tidak ditemukan lagi di data sumber. Muat ulang pratinjau.".to_string());
+	}
+	upsert_students(db, &selected)
 }
 
 // Classes are managed centrally in the "classes" table (see Pengaturan > Data Kelas),
@@ -268,6 +387,51 @@ pub fn import_students_rows(db: &Db, rows: Vec<StudentImportRow>) -> Result<Stud
 mod tests {
 	use super::*;
 	use std::io::Write;
+
+	fn source(nisn: &str, name: &str, class: &str) -> TarikSiswaRow {
+		TarikSiswaRow { nisn: nisn.into(), name: name.into(), class: class.into(), school: "SD CONTOH".into() }
+	}
+
+	#[test]
+	fn preview_marks_new_changed_same_and_invalid_rows() {
+		let mut local = std::collections::HashMap::new();
+		local.insert("111".to_string(), LocalStudent { name: "Andi".into(), class: Some("6".into()), school: Some("SD CONTOH".into()) });
+		local.insert("222".to_string(), LocalStudent { name: "Budi".into(), class: Some("5".into()), school: Some("SD CONTOH".into()) });
+		let rows = vec![
+			source(" 111 ", "Andi ", "6"),
+			source("222", "Budi Santoso", "6"),
+			source("333", "Citra", "4"),
+			source("", "Tanpa NISN", "4"),
+			source("444", "  ", "4"),
+			source("333", "Citra Kembar", "4")
+		];
+		let preview = compare_with_local(&rows, &local);
+		let find = |nisn: &str, name: &str| preview.iter().find(|r| r.nisn == nisn && r.name == name).unwrap();
+		assert_eq!(find("111", "Andi").status, TarikStatus::Sama);
+		let changed = find("222", "Budi Santoso");
+		assert_eq!(changed.status, TarikStatus::Berubah);
+		assert_eq!(changed.old_name.as_deref(), Some("Budi"));
+		assert_eq!(changed.old_class.as_deref(), Some("5"));
+		assert_eq!(find("333", "Citra").status, TarikStatus::Baru);
+		assert_eq!(find("", "Tanpa NISN").status, TarikStatus::TidakValid);
+		assert_eq!(find("444", "").status, TarikStatus::TidakValid);
+		let duplicate = find("333", "Citra Kembar");
+		assert_eq!(duplicate.status, TarikStatus::TidakValid);
+		assert_eq!(duplicate.note.as_deref(), Some("NISN dobel di data sumber"));
+	}
+
+	#[test]
+	fn preview_does_not_write_to_the_database() {
+		let dir = std::env::temp_dir().join(format!("niluji-tarik-{}", std::process::id()));
+		let db = crate::db::open(&dir);
+		let before = list_students(&db).unwrap().len();
+		let local = local_students(&db).unwrap();
+		let preview = compare_with_local(&[source("999", "Baru Sekali", "1")], &local);
+		assert_eq!(preview[0].status, TarikStatus::Baru);
+		assert_eq!(list_students(&db).unwrap().len(), before);
+		drop(db);
+		let _ = std::fs::remove_dir_all(&dir);
+	}
 
 	#[test]
 	fn student_source_must_be_google_sheets_over_https() {

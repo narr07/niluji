@@ -9,26 +9,45 @@
 	const CONNECTION_CHECK_URL = "https://docs.google.com/";
 	const EDIT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1p4_wCArJP0p2Ap70UUx3hcIXZLgP7cZumF2AJNQN-LY/edit?gid=0#gid=0";
 
-	interface StudentPreview {
-		id: number
+	type TarikStatus = "baru" | "berubah" | "sama" | "tidak_valid";
+	type StatusFilter = TarikStatus | "semua";
+
+	interface TarikPreviewRow {
 		nisn: string
 		name: string
-		class: string | null
+		class: string
+		status: TarikStatus
+		oldName: string | null
+		oldClass: string | null
+		note: string | null
 	}
+
+	const STATUS_INFO: Record<TarikStatus, { label: string, color: "success" | "warning" | "neutral" | "error" }> = {
+		baru: { label: "Baru", color: "success" },
+		berubah: { label: "Berubah", color: "warning" },
+		sama: { label: "Sama", color: "neutral" },
+		tidak_valid: { label: "Tidak valid", color: "error" }
+	};
 
 	const school = ref("");
 	const sourceSchools = ref<string[]>([]);
 	const loadingSchools = ref(false);
 	const schoolsError = ref("");
 	const loading = ref(false);
+	const saving = ref(false);
+	const confirmOpen = ref(false);
 	const errorMessage = ref("");
-	const resultCount = ref<number | null>(null);
-	const preview = ref<StudentPreview[]>([]);
+	const rows = ref<TarikPreviewRow[]>([]);
+	const previewSchool = ref("");
+	const selected = ref(new Set<string>());
+	const statusFilter = ref<StatusFilter>("semua");
 
-	const previewColumns: TableColumn<StudentPreview>[] = [
+	const columns: TableColumn<TarikPreviewRow>[] = [
+		{ id: "select", header: "Pilih" },
+		{ id: "status", header: "Status" },
 		{ accessorKey: "nisn", header: "NISN" },
-		{ accessorKey: "name", header: "Nama" },
-		{ accessorKey: "class", header: "Kelas" }
+		{ id: "name", header: "Nama" },
+		{ id: "class", header: "Kelas" }
 	];
 
 	const checkingConnection = ref(false);
@@ -38,6 +57,50 @@
 
 	const canFetch = computed(() => connectionStatus.value === "online");
 	const toast = useToast();
+
+	const counts = computed(() => {
+		const result: Record<TarikStatus, number> = { baru: 0, berubah: 0, sama: 0, tidak_valid: 0 };
+		for (const row of rows.value) result[row.status]++;
+		return result;
+	});
+	const filterItems = computed(() => [
+		{ value: "semua" as const, label: `Semua (${rows.value.length})` },
+		...(Object.keys(STATUS_INFO) as TarikStatus[]).map((status) => ({ value: status, label: `${STATUS_INFO[status].label} (${counts.value[status]})` }))
+	]);
+	const visibleRows = computed(() => (statusFilter.value === "semua" ? rows.value : rows.value.filter((row) => row.status === statusFilter.value)));
+	const selectableVisible = computed(() => visibleRows.value.filter((row) => row.status !== "tidak_valid"));
+	const allVisibleSelected = computed(() => selectableVisible.value.length > 0 && selectableVisible.value.every((row) => selected.value.has(row.nisn)));
+	const selectedRows = computed(() => rows.value.filter((row) => selected.value.has(row.nisn)));
+	const selectedSummary = computed(() => ({
+		baru: selectedRows.value.filter((row) => row.status === "baru").length,
+		berubah: selectedRows.value.filter((row) => row.status === "berubah").length,
+		sama: selectedRows.value.filter((row) => row.status === "sama").length
+	}));
+
+	const toggleRow = (row: TarikPreviewRow, value: boolean | "indeterminate") => {
+		const next = new Set(selected.value);
+		if (value === true) next.add(row.nisn);
+		else next.delete(row.nisn);
+		selected.value = next;
+	};
+	const toggleVisible = () => {
+		const next = new Set(selected.value);
+		const select = !allVisibleSelected.value;
+		for (const row of selectableVisible.value) {
+			if (select) next.add(row.nisn);
+			else next.delete(row.nisn);
+		}
+		selected.value = next;
+	};
+
+	// Pratinjau berlaku untuk satu sekolah saja. Ganti sekolah berarti pratinjau lama dibuang.
+	watch(school, (value) => {
+		if (previewSchool.value && value.trim() !== previewSchool.value) {
+			rows.value = [];
+			selected.value = new Set();
+			previewSchool.value = "";
+		}
+	});
 
 	const refreshAndReload = async () => {
 		await refreshConnection();
@@ -75,7 +138,8 @@
 		}
 	};
 
-	const tarik = async () => {
+	// Langkah 1: ambil data dan bandingkan dengan database. Belum ada yang disimpan.
+	const ambilPratinjau = async () => {
 		const target = school.value.trim();
 		if (!target) {
 			errorMessage.value = "Isi nama sekolah dulu.";
@@ -88,18 +152,33 @@
 
 		loading.value = true;
 		errorMessage.value = "";
-		resultCount.value = null;
-		preview.value = [];
 		try {
-			const count = await invoke<number>("tarik_data_siswa", { csvUrl: CSV_URL, school: target });
-			resultCount.value = count;
-			preview.value = await invoke<StudentPreview[]>("students_by_school", { school: target });
-			toast.add({ title: "Tarik data selesai", description: `${count} siswa berhasil ditarik untuk ${target}.`, icon: "lucide:check", color: "success" });
+			rows.value = await invoke<TarikPreviewRow[]>("preview_tarik_siswa", { csvUrl: CSV_URL, school: target });
+			previewSchool.value = target;
+			statusFilter.value = "semua";
+			// Hanya siswa baru dan yang berubah yang terpilih otomatis.
+			selected.value = new Set(rows.value.filter((row) => row.status === "baru" || row.status === "berubah").map((row) => row.nisn));
 		} catch (error) {
+			rows.value = [];
+			previewSchool.value = "";
 			errorMessage.value = error instanceof Error ? error.message : String(error);
-			toast.add({ title: "Tarik data gagal", description: errorMessage.value, icon: "lucide:x", color: "error" });
 		} finally {
 			loading.value = false;
+		}
+	};
+
+	// Langkah 2: simpan siswa yang dipilih setelah guru memeriksa pratinjau.
+	const simpan = async () => {
+		saving.value = true;
+		try {
+			const count = await invoke<number>("simpan_tarik_siswa", { csvUrl: CSV_URL, school: previewSchool.value, nisns: [...selected.value] });
+			confirmOpen.value = false;
+			toast.add({ title: "Data siswa disimpan", description: `${count} siswa dari ${previewSchool.value} tersimpan ke database lokal.`, icon: "lucide:check", color: "success" });
+			await ambilPratinjau();
+		} catch (error) {
+			toast.add({ title: "Gagal menyimpan", description: error instanceof Error ? error.message : String(error), icon: "lucide:x", color: "error" });
+		} finally {
+			saving.value = false;
 		}
 	};
 
@@ -116,7 +195,7 @@
 				Tarik Data Siswa
 			</h2>
 			<p class="text-sm text-muted mt-1">
-				Ambil data siswa dari sumber online, difilter berdasarkan nama sekolah, lalu disimpan ke database lokal.
+				Ambil data siswa dari sumber online, periksa pratinjaunya, lalu pilih siswa yang disimpan ke database lokal.
 			</p>
 		</div>
 
@@ -172,11 +251,11 @@
 			</UFormField>
 
 			<UButton
-				icon="lucide:cloud-download"
+				icon="lucide:eye"
 				:loading="loading"
-				:disabled="!canFetch || loadingSchools"
-				@click="tarik">
-				Tarik Data Siswa
+				:disabled="!canFetch || loadingSchools || saving"
+				@click="ambilPratinjau">
+				Lihat Pratinjau
 			</UButton>
 		</div>
 
@@ -193,14 +272,117 @@
 			variant="subtle"
 			title="Gagal menarik data"
 			:description="errorMessage" />
-		<UAlert
-			v-if="resultCount !== null"
-			color="success"
-			variant="subtle"
-			:title="`Berhasil menarik ${resultCount} siswa untuk sekolah ini.`" />
 
-		<div v-if="preview.length" class="overflow-x-auto rounded-lg border border-default max-h-96">
-			<UTable :data="preview" :columns="previewColumns" />
-		</div>
+		<template v-if="rows.length">
+			<UAlert
+				color="neutral"
+				variant="subtle"
+				icon="lucide:eye"
+				:title="`Pratinjau ${rows.length} siswa dari ${previewSchool}. Belum ada yang disimpan.`"
+				description="Siswa baru dan yang datanya berubah sudah dipilih. Siswa yang sama dengan database tidak perlu disimpan ulang, dan baris tidak valid tidak bisa dipilih." />
+
+			<div class="flex flex-wrap items-center justify-between gap-3">
+				<div class="flex flex-wrap gap-1.5">
+					<UButton
+						v-for="item in filterItems"
+						:key="item.value"
+						size="sm"
+						:color="item.value === 'semua' ? 'neutral' : STATUS_INFO[item.value].color"
+						:variant="statusFilter === item.value ? 'solid' : 'soft'"
+						@click="statusFilter = item.value">
+						{{ item.label }}
+					</UButton>
+				</div>
+				<div class="flex flex-wrap items-center gap-2">
+					<UButton
+						size="sm"
+						variant="ghost"
+						color="neutral"
+						:disabled="!selectableVisible.length"
+						@click="toggleVisible">
+						{{ allVisibleSelected ? "Batal pilih yang tampil" : "Pilih semua yang tampil" }}
+					</UButton>
+					<UButton
+						icon="lucide:database"
+						:disabled="!selected.size"
+						:loading="saving"
+						@click="confirmOpen = true">
+						Simpan {{ selected.size }} Siswa
+					</UButton>
+				</div>
+			</div>
+
+			<div class="overflow-x-auto rounded-lg border border-default max-h-[28rem] overflow-y-auto">
+				<UTable :data="visibleRows" :columns="columns">
+					<template #select-cell="{ row }">
+						<UCheckbox
+							:model-value="selected.has(row.original.nisn)"
+							:disabled="row.original.status === 'tidak_valid'"
+							:aria-label="`Pilih ${row.original.name || row.original.nisn}`"
+							@update:model-value="(value) => toggleRow(row.original, value)" />
+					</template>
+					<template #status-cell="{ row }">
+						<UBadge :color="STATUS_INFO[row.original.status].color" variant="subtle">
+							{{ STATUS_INFO[row.original.status].label }}
+						</UBadge>
+						<p v-if="row.original.note" class="text-xs text-error mt-1">
+							{{ row.original.note }}
+						</p>
+					</template>
+					<template #nisn-cell="{ row }">
+						<span class="font-mono">{{ row.original.nisn || "(kosong)" }}</span>
+					</template>
+					<template #name-cell="{ row }">
+						<p>{{ row.original.name || "(kosong)" }}</p>
+						<p v-if="row.original.oldName" class="text-xs text-muted line-through">
+							{{ row.original.oldName }}
+						</p>
+					</template>
+					<template #class-cell="{ row }">
+						<p>{{ row.original.class || "-" }}</p>
+						<p v-if="row.original.oldClass !== null" class="text-xs text-muted line-through">
+							{{ row.original.oldClass || "(kosong)" }}
+						</p>
+					</template>
+				</UTable>
+			</div>
+		</template>
+
+		<UModal v-model:open="confirmOpen" title="Simpan data siswa?" :description="`Dari ${previewSchool}`">
+			<template #body>
+				<ul class="space-y-2 text-sm">
+					<li v-if="selectedSummary.baru" class="flex gap-2">
+						<UIcon name="lucide:user-plus" class="size-4 mt-0.5 text-success shrink-0" />
+						<span>{{ selectedSummary.baru }} siswa baru ditambahkan dan dibuatkan PIN kartu peserta.</span>
+					</li>
+					<li v-if="selectedSummary.berubah" class="flex gap-2">
+						<UIcon name="lucide:pencil" class="size-4 mt-0.5 text-warning shrink-0" />
+						<span>{{ selectedSummary.berubah }} siswa diperbarui nama, kelas, atau sekolahnya. PIN kartu yang sudah dicetak tidak berubah.</span>
+					</li>
+					<li v-if="selectedSummary.sama" class="flex gap-2">
+						<UIcon name="lucide:equal" class="size-4 mt-0.5 text-muted shrink-0" />
+						<span>{{ selectedSummary.sama }} siswa sama dengan database, disimpan ulang tanpa perubahan.</span>
+					</li>
+					<li class="flex gap-2 text-muted">
+						<UIcon name="lucide:database-backup" class="size-4 mt-0.5 shrink-0" />
+						<span>Backup database dibuat otomatis sebelum menyimpan, jadi perubahan ini bisa dipulihkan dari Tentang &gt; Fitur.</span>
+					</li>
+				</ul>
+			</template>
+			<template #footer>
+				<div class="flex justify-end gap-2 w-full">
+					<UButton
+						color="neutral"
+						variant="ghost"
+						:disabled="saving"
+						@click="confirmOpen = false">
+						Batal
+					</UButton>
+					<UButton icon="lucide:database" :loading="saving" @click="simpan">
+						Simpan {{ selected.size }} Siswa
+					</UButton>
+				</div>
+			</template>
+		</UModal>
 	</div>
 </template>
