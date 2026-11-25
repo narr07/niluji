@@ -4,9 +4,11 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-pub const ERR_IDENTITY: &str = "NISN atau nama tidak cocok";
+pub const ERR_IDENTITY: &str = "NISN tidak terdaftar sebagai peserta ujian";
 pub const ERR_EXAM_TOKEN: &str = "Token ujian tidak ditemukan";
-pub const ERR_PIN: &str = "PIN Kartu Peserta salah atau belum diisi.";
+pub const ERR_PIN: &str = "PIN Kartu Peserta salah.";
+// Bukan tebakan yang gagal: siswa cukup diminta mengisi PIN, jadi tidak dihitung pembatas percobaan.
+pub const ERR_PIN_REQUIRED: &str = "Ujian ini wajib PIN. Isi 6 digit PIN yang tertera di kartu pesertamu.";
 pub const ERR_SESSION: &str = "Sesi ujian tidak valid. Masuk ulang memakai token ujian.";
 pub const ERR_SUBMITTED: &str = "Ujian sudah dikirim, jawaban tidak bisa diubah lagi";
 pub const ERR_TIME_UP: &str = "Waktu pengerjaan ujian telah habis";
@@ -325,7 +327,6 @@ pub fn join(
 	db: &Db,
 	token: &str,
 	nisn: &str,
-	name: &str,
 	pin: Option<&str>,
 	device_token: Option<&str>
 ) -> Result<JoinResponse, String> {
@@ -334,8 +335,8 @@ pub fn join(
 
 	let (student_name, student_class, stored_pin): (String, Option<String>, String) = conn
 		.query_row(
-			"SELECT name, class, COALESCE(pin, '') FROM students WHERE nisn = ?1 AND name = ?2 COLLATE NOCASE",
-			params![nisn, name.trim()],
+			"SELECT name, class, COALESCE(pin, '') FROM students WHERE nisn = ?1",
+			params![nisn],
 			|r| Ok((r.get(0)?, r.get(1)?, r.get(2)?))
 		)
 		.map_err(|_| ERR_IDENTITY.to_string())?;
@@ -343,8 +344,12 @@ pub fn join(
 	let exam = find_exam(&conn, token)?;
 
 	if exam.require_pin {
+		let given = pin.unwrap_or("").trim();
+		if given.is_empty() {
+			return Err(ERR_PIN_REQUIRED.to_string());
+		}
 		let expected = stored_pin.trim();
-		if expected.is_empty() || !secrets_match(pin.unwrap_or("").trim(), expected) {
+		if expected.is_empty() || !secrets_match(given, expected) {
 			return Err(ERR_PIN.to_string());
 		}
 	}
@@ -1131,7 +1136,7 @@ mod tests {
 	}
 
 	fn join_a(f: &Fixture) -> JoinResponse {
-		join(&f.db, "TOK123", "111", "Test Siswa", None, Some("device-A")).unwrap()
+		join(&f.db, "TOK123", "111", None, Some("device-A")).unwrap()
 	}
 
 	#[test]
@@ -1167,7 +1172,7 @@ mod tests {
 	fn another_students_token_cannot_touch_the_session() {
 		let f = setup();
 		let victim = join_a(&f);
-		let other = join(&f.db, "TOK123", "222", "Siswa Lain", None, Some("device-B")).unwrap();
+		let other = join(&f.db, "TOK123", "222", None, Some("device-B")).unwrap();
 		assert_eq!(answer(&f.db, victim.session_id, &other.session_token, f.q1, "B", None).unwrap_err(), ERR_SESSION);
 	}
 
@@ -1197,13 +1202,13 @@ mod tests {
 		let joined = join_a(&f);
 		assert_eq!(joined.device_token, "device-A");
 
-		let err = join(&f.db, "TOK123", "111", "Test Siswa", None, Some("device-B")).unwrap_err();
+		let err = join(&f.db, "TOK123", "111", None, Some("device-B")).unwrap_err();
 		assert!(err.contains("perangkat lain"));
 
 		unlock_device(&f.db, joined.session_id).unwrap();
 		assert_eq!(answer(&f.db, joined.session_id, &joined.session_token, f.q1, "A", None).unwrap_err(), ERR_SESSION);
 
-		let rejoined = join(&f.db, "TOK123", "111", "Test Siswa", None, Some("device-B")).unwrap();
+		let rejoined = join(&f.db, "TOK123", "111", None, Some("device-B")).unwrap();
 		assert_eq!(rejoined.device_token, "device-B");
 		assert_ne!(rejoined.session_token, joined.session_token);
 		answer(&f.db, rejoined.session_id, &rejoined.session_token, f.q1, "A", None).unwrap();
@@ -1223,7 +1228,7 @@ mod tests {
 		answer(&f.db, joined.session_id, &joined.session_token, f.q1, "A", None).unwrap();
 		submit(&f.db, joined.session_id, &joined.session_token).unwrap();
 
-		let later = join(&f.db, "TOK123", "111", "Test Siswa", None, Some("device-X")).unwrap();
+		let later = join(&f.db, "TOK123", "111", None, Some("device-X")).unwrap();
 		assert!(later.submitted_at.is_some());
 		assert!(later.questions.is_empty());
 		assert!(later.answers.is_empty());
@@ -1235,12 +1240,22 @@ mod tests {
 	fn pin_is_enforced_and_missing_pin_fails_closed() {
 		let f = setup();
 		f.db.lock().unwrap().execute("UPDATE exams SET require_pin = 1", []).unwrap();
-		assert_eq!(join(&f.db, "TOK123", "111", "Test Siswa", None, Some("d")).unwrap_err(), ERR_PIN);
-		assert_eq!(join(&f.db, "TOK123", "111", "Test Siswa", Some("000000"), Some("d")).unwrap_err(), ERR_PIN);
-		join(&f.db, "TOK123", "111", "Test Siswa", Some("654321"), Some("d")).unwrap();
+		assert_eq!(join(&f.db, "TOK123", "111", None, Some("d")).unwrap_err(), ERR_PIN_REQUIRED);
+		assert_eq!(join(&f.db, "TOK123", "111", Some("  "), Some("d")).unwrap_err(), ERR_PIN_REQUIRED);
+		assert_eq!(join(&f.db, "TOK123", "111", Some("000000"), Some("d")).unwrap_err(), ERR_PIN);
+		join(&f.db, "TOK123", "111", Some("654321"), Some("d")).unwrap();
 
 		f.db.lock().unwrap().execute("UPDATE students SET pin = '' WHERE nisn = '222'", []).unwrap();
-		assert_eq!(join(&f.db, "TOK123", "222", "Siswa Lain", Some(""), Some("e")).unwrap_err(), ERR_PIN);
+		assert_eq!(join(&f.db, "TOK123", "222", Some("123456"), Some("e")).unwrap_err(), ERR_PIN);
+	}
+
+	#[test]
+	fn nisn_and_token_are_enough_when_pin_is_not_required() {
+		let f = setup();
+		f.db.lock().unwrap().execute("UPDATE exams SET require_pin = 0", []).unwrap();
+		let joined = join(&f.db, "TOK123", " 111 ", None, Some("d")).unwrap();
+		assert!(!joined.questions.is_empty());
+		assert_eq!(join(&f.db, "TOK123", "999", None, Some("d")).unwrap_err(), ERR_IDENTITY);
 	}
 
 	#[test]
@@ -1249,12 +1264,12 @@ mod tests {
 		f.db.lock().unwrap().execute("UPDATE exams SET class = '6'", []).unwrap();
 		f.db.lock().unwrap().execute("UPDATE questions SET class = '6'", []).unwrap();
 
-		let err = join(&f.db, "TOK123", "222", "Siswa Lain", None, Some("d")).unwrap_err();
+		let err = join(&f.db, "TOK123", "222", None, Some("d")).unwrap_err();
 		assert!(err.contains("Kelas 6") && err.contains("Kelas 4"));
 		join_a(&f);
 
 		f.db.lock().unwrap().execute("UPDATE students SET class = NULL WHERE nisn = '222'", []).unwrap();
-		join(&f.db, "TOK123", "222", "Siswa Lain", None, Some("d")).unwrap();
+		join(&f.db, "TOK123", "222", None, Some("d")).unwrap();
 	}
 
 	#[test]
@@ -1262,6 +1277,7 @@ mod tests {
 		assert!(is_credential_error(ERR_PIN));
 		assert!(is_credential_error(ERR_IDENTITY));
 		assert!(is_credential_error(ERR_EXAM_TOKEN));
+		assert!(!is_credential_error(ERR_PIN_REQUIRED));
 		assert!(!is_credential_error("Ujian belum dimulai"));
 	}
 
@@ -1270,13 +1286,13 @@ mod tests {
 		let f = setup();
 		let now = now_secs();
 		f.db.lock().unwrap().execute("UPDATE exams SET scheduled_at = ?1 WHERE token = 'TOK123'", p![now + 3600]).unwrap();
-		assert_eq!(join(&f.db, "TOK123", "111", "Test Siswa", None, None).unwrap_err(), "Ujian belum dimulai");
+		assert_eq!(join(&f.db, "TOK123", "111", None, None).unwrap_err(), "Ujian belum dimulai");
 
 		f.db.lock()
 			.unwrap()
 			.execute("UPDATE exams SET scheduled_at = ?1, window_end = ?2 WHERE token = 'TOK123'", p![now - 7200, now - 3600])
 			.unwrap();
-		assert_eq!(join(&f.db, "TOK123", "111", "Test Siswa", None, None).unwrap_err(), "Waktu ujian sudah berakhir");
+		assert_eq!(join(&f.db, "TOK123", "111", None, None).unwrap_err(), "Waktu ujian sudah berakhir");
 	}
 
 	#[test]

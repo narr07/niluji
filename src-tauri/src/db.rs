@@ -11,12 +11,12 @@ pub fn ping(db: &Db) -> bool {
 	db.lock().unwrap().query_row("SELECT 1", [], |row| row.get::<_, i32>(0)).is_ok()
 }
 
-pub fn find_student(db: &Db, nisn: &str, name: &str) -> Option<String> {
+pub fn find_student(db: &Db, nisn: &str) -> Option<String> {
 	db.lock()
 		.unwrap()
 		.query_row(
-			"SELECT name FROM students WHERE nisn = ?1 AND name = ?2 COLLATE NOCASE",
-			rusqlite::params![nisn.trim(), name.trim()],
+			"SELECT name FROM students WHERE nisn = ?1",
+			rusqlite::params![nisn.trim()],
 			|r| r.get(0),
 		)
 		.ok()

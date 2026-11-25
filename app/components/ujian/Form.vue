@@ -85,7 +85,7 @@
 		randomizePg: true,
 		randomizeEssay: true,
 		randomizeOptions: true,
-		requirePin: true,
+		requirePin: false,
 		pgWeight: 70
 	});
 

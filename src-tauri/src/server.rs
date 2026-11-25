@@ -89,10 +89,10 @@ async fn health(State(state): State<AppState>) -> Json<Value> {
 	Json(json!({ "status": if ok { "ok" } else { "db_error" } }))
 }
 
+// Siswa cukup memakai NISN. Nama tidak lagi diminta, jadi field lain dari klien lama diabaikan.
 #[derive(Deserialize)]
 struct LoginPayload {
-	nisn: String,
-	name: String
+	nisn: String
 }
 
 async fn login(
@@ -104,8 +104,8 @@ async fn login(
 	ensure_not_limited(&state, ip, &payload.nisn)?;
 
 	let db = state.db.clone();
-	let (nisn, name) = (payload.nisn.clone(), payload.name);
-	let found = blocking(move || Ok(db::find_student(&db, &nisn, &name)))
+	let nisn = payload.nisn.clone();
+	let found = blocking(move || Ok(db::find_student(&db, &nisn)))
 		.await
 		.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
@@ -146,7 +146,6 @@ async fn logout(State(state): State<AppState>, Json(payload): Json<LogoutPayload
 struct JoinPayload {
 	token: String,
 	nisn: String,
-	name: String,
 	#[serde(default)]
 	pin: Option<String>,
 	#[serde(default)]
@@ -164,7 +163,7 @@ async fn exam_join(
 	let db = state.db.clone();
 	let nisn = payload.nisn.clone();
 	let result = blocking(move || {
-		exam_session::join(&db, &payload.token, &payload.nisn, &payload.name, payload.pin.as_deref(), payload.device_token.as_deref())
+		exam_session::join(&db, &payload.token, &payload.nisn, payload.pin.as_deref(), payload.device_token.as_deref())
 	})
 	.await;
 
@@ -173,6 +172,8 @@ async fn exam_join(
 			state.limiter.clear_student(ip, &nisn);
 			Ok(Json(joined))
 		}
+		// 428 memberi tahu halaman ujian agar memunculkan kolom PIN, bukan menampilkan kegagalan biasa.
+		Err(message) if message == exam_session::ERR_PIN_REQUIRED => Err((StatusCode::PRECONDITION_REQUIRED, message)),
 		Err(message) => {
 			if exam_session::is_credential_error(&message) {
 				state.limiter.record_failure(ip, &nisn);
@@ -412,8 +413,8 @@ mod tests {
 		(status, serde_json::from_str(&text).unwrap_or(Value::Null), text)
 	}
 
-	async fn join(app: &Router, nisn: &str, name: &str, pin: &str, device: &str) -> Value {
-		let body = json!({ "token": "token1", "nisn": nisn, "name": name, "pin": pin, "deviceToken": device });
+	async fn join(app: &Router, nisn: &str, pin: &str, device: &str) -> Value {
+		let body = json!({ "token": "token1", "nisn": nisn, "pin": pin, "deviceToken": device });
 		let (status, value, text) = post_json(app, "/api/exam/join", body).await;
 		assert_eq!(status, StatusCode::OK, "{text}");
 		value
@@ -422,8 +423,8 @@ mod tests {
 	#[tokio::test]
 	async fn student_cannot_answer_or_submit_for_another_session_over_http() {
 		let t = test_app();
-		let victim = join(&t.app, "111", "Siswa A", "111111", "hp-a").await;
-		let attacker = join(&t.app, "222", "Siswa B", "222222", "hp-b").await;
+		let victim = join(&t.app, "111", "111111", "hp-a").await;
+		let attacker = join(&t.app, "222", "222222", "hp-b").await;
 		let victim_id = victim["sessionId"].as_i64().unwrap();
 
 		let forged = json!({
@@ -449,7 +450,7 @@ mod tests {
 	#[tokio::test]
 	async fn owner_can_finish_the_exam_over_http_and_retry_submit() {
 		let t = test_app();
-		let joined = join(&t.app, "111", "Siswa A", "111111", "hp-a").await;
+		let joined = join(&t.app, "111", "111111", "hp-a").await;
 		assert!(joined["questions"][0].get("answerKey").is_none(), "kunci jawaban tidak boleh dikirim ke siswa");
 
 		let auth = json!({ "sessionId": joined["sessionId"], "sessionToken": joined["sessionToken"] });
@@ -474,21 +475,42 @@ mod tests {
 	#[tokio::test]
 	async fn repeated_wrong_pins_are_throttled() {
 		let t = test_app();
-		let body = json!({ "token": "TOKEN1", "nisn": "111", "name": "Siswa A", "pin": "000000", "deviceToken": "hp" });
+		let body = json!({ "token": "TOKEN1", "nisn": "111", "pin": "000000", "deviceToken": "hp" });
 		let mut last = StatusCode::OK;
 		for _ in 0..8 {
 			last = post_json(&t.app, "/api/exam/join", body.clone()).await.0;
 			assert_ne!(last, StatusCode::OK);
 		}
 		assert_eq!(last, StatusCode::BAD_REQUEST);
-		let correct = json!({ "token": "TOKEN1", "nisn": "111", "name": "Siswa A", "pin": "111111", "deviceToken": "hp" });
+		let correct = json!({ "token": "TOKEN1", "nisn": "111", "pin": "111111", "deviceToken": "hp" });
 		assert_eq!(post_json(&t.app, "/api/exam/join", correct).await.0, StatusCode::TOO_MANY_REQUESTS);
+	}
+
+	#[tokio::test]
+	async fn missing_pin_asks_for_it_without_counting_as_a_failure() {
+		let t = test_app();
+		let body = json!({ "token": "TOKEN1", "nisn": "111", "deviceToken": "hp" });
+		for _ in 0..10 {
+			let (status, _, text) = post_json(&t.app, "/api/exam/join", body.clone()).await;
+			assert_eq!(status, StatusCode::PRECONDITION_REQUIRED);
+			assert_eq!(text, exam_session::ERR_PIN_REQUIRED);
+		}
+		join(&t.app, "111", "111111", "hp").await;
+	}
+
+	#[tokio::test]
+	async fn login_needs_only_the_nisn() {
+		let t = test_app();
+		let (status, login, _) = post_json(&t.app, "/api/login", json!({ "nisn": " 111 " })).await;
+		assert_eq!(status, StatusCode::OK);
+		assert_eq!(login["name"], "Siswa A");
+		assert_eq!(post_json(&t.app, "/api/login", json!({ "nisn": "999" })).await.0, StatusCode::UNAUTHORIZED);
 	}
 
 	#[tokio::test]
 	async fn logout_requires_the_presence_token() {
 		let t = test_app();
-		let login_body = json!({ "nisn": "111", "name": "Siswa A" });
+		let login_body = json!({ "nisn": "111" });
 		let (status, login, _) = post_json(&t.app, "/api/login", login_body).await;
 		assert_eq!(status, StatusCode::OK);
 

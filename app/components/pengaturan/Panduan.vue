@@ -65,7 +65,7 @@
 			judul: "Pantau siswa saat mengerjakan ujian",
 			menu: "Dashboard & Hasil Ujian",
 			isi: [
-				"Siswa membuka alamat ujian di HP atau laptop dalam jaringan WiFi/LAN yang sama tanpa internet, login memakai NISN dan nama, lalu memasukkan token ujian.",
+				"Siswa membuka alamat ujian di HP atau laptop dalam jaringan WiFi/LAN yang sama tanpa internet, login memakai NISN, lalu memasukkan token ujian. PIN Kartu Peserta hanya diminta bila ujian diatur Wajib PIN.",
 				"Sesi ujian siswa otomatis dikunci pada perangkat pertama yang dipakai. Jika HP siswa mati dan harus pindah perangkat, pengawas dapat menekan tombol Buka Kunci Perangkat di tabel Hasil Ujian.",
 				"Pengawas juga dapat memberikan tambahan waktu (+10 menit) atau memaksa selesai (Force Submit) langsung dari tabel Hasil Ujian."
 			]
@@ -94,7 +94,7 @@
 
 	const faq = [
 		{ tanya: "Ujian belum bisa dibuat?", jawab: "Periksa kembali apakah mata pelajaran dan jenis soalnya sudah memiliki butir soal di Bank Soal (langkah 4)." },
-		{ tanya: "Siswa tidak bisa login?", jawab: "Pastikan NISN dan nama siswa sudah terdaftar di menu Siswa pada kelas yang sesuai." },
+		{ tanya: "Siswa tidak bisa login?", jawab: "Pastikan NISN siswa sudah terdaftar di menu Siswa pada kelas yang sesuai, tanpa spasi atau angka yang kurang." },
 		{ tanya: "Siswa pindah HP karena baterai habis?", jawab: "Buka menu Hasil Ujian pada paket ujian tersebut, lalu klik ikon Buka Kunci Perangkat pada baris nama siswa." },
 		{ tanya: "Bagaimana cara menggabungkan nilai PG dan Esai?", jawab: "Atur persentase Bobot Nilai PG saat membuat/mengedit ujian. Nilai Akhir muncul setelah semua jawaban esai dinilai di halaman Detail Siswa. Bobot 100% berarti Nilai Akhir hanya dari PG." }
 	];

@@ -178,7 +178,7 @@ pub fn create_exam(
 	pg_weight: Option<f64>
 ) -> Result<i64, String> {
 	let rand_opts = randomize_options.unwrap_or(true);
-	let req_pin = require_pin.unwrap_or(true);
+	let req_pin = require_pin.unwrap_or(false);
 	let weight = pg_weight.unwrap_or(100.0);
 	validate_schedule(duration, scheduled_at, window_end, weight)?;
 	let token = normalize_token(&token)?;
@@ -324,7 +324,7 @@ mod tests {
 		let subject = create_subject(&db, "Uji Hapus".into(), None).unwrap();
 		let exam = create_exam(&db, subject, None, None, "U".into(), 30, 1, 2, "abcd12".into(), true, true, None, None, None).unwrap();
 		assert_eq!(list_exams(&db).unwrap()[0].token, "ABCD12");
-		assert!(list_exams(&db).unwrap()[0].require_pin, "ujian baru wajib PIN secara bawaan");
+		assert!(!list_exams(&db).unwrap()[0].require_pin, "ujian baru cukup NISN dan token secara bawaan");
 		db.lock()
 			.unwrap()
 			.execute(

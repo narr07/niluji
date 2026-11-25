@@ -38,6 +38,8 @@
 	const name = ref("");
 	const token = ref("");
 	const pin = ref("");
+	// Kolom PIN baru muncul setelah server menjawab bahwa ujian ini wajib PIN.
+	const pinRequired = ref(false);
 	const loading = ref(false);
 	const submitting = ref(false);
 	const error = ref("");
@@ -167,9 +169,9 @@
 		loading.value = true;
 		error.value = "";
 		try {
-			const res = await postJson("/api/login", { nisn: nisn.value, name: name.value });
+			const res = await postJson("/api/login", { nisn: nisn.value.trim() });
 			if (res.status === 429) throw new Error(await res.text());
-			if (!res.ok) throw new Error("NISN atau nama tidak cocok dengan data peserta");
+			if (!res.ok) throw new Error("NISN tidak terdaftar. Periksa lagi angkanya atau tanyakan ke pengawas.");
 			const data = await res.json() as { name: string, presenceToken: string };
 			name.value = data.name;
 			presenceToken.value = data.presenceToken;
@@ -255,6 +257,19 @@
 		stage.value = "token";
 	};
 
+	const changeStudent = () => {
+		pin.value = "";
+		pinRequired.value = false;
+		error.value = "";
+		stage.value = "login";
+	};
+
+	// Token lain berarti ujian lain, yang belum tentu wajib PIN.
+	watch(token, () => {
+		pinRequired.value = false;
+		pin.value = "";
+	});
+
 	const doJoin = async () => {
 		loading.value = true;
 		error.value = "";
@@ -262,11 +277,14 @@
 			const deviceToken = getOrCreateDeviceToken();
 			const res = await postJson("/api/exam/join", {
 				token: token.value,
-				nisn: nisn.value,
-				name: name.value,
+				nisn: nisn.value.trim(),
 				pin: pin.value.trim() || undefined,
 				deviceToken
 			});
+			if (res.status === 428) {
+				pinRequired.value = true;
+				return;
+			}
 			if (!res.ok) throw new Error(await res.text());
 			const data = await res.json() as JoinResponse;
 
@@ -337,6 +355,7 @@
 		name.value = "";
 		token.value = "";
 		pin.value = "";
+		pinRequired.value = false;
 		sessionId.value = 0;
 		sessionToken.value = "";
 		presenceToken.value = "";
@@ -407,7 +426,7 @@
 						Portal Ujian Siswa
 					</h1>
 					<p class="text-xs text-muted">
-						Masukkan NISN dan nama sesuai daftar peserta ujian
+						Masukkan NISN yang tertera di kartu peserta
 					</p>
 				</div>
 			</template>
@@ -419,18 +438,10 @@
 						size="xl"
 						color="primary"
 						placeholder="Contoh: 0123456789"
+						inputmode="numeric"
 						autocomplete="off"
-						class="w-full" />
-				</UFormField>
-
-				<UFormField label="Nama Lengkap" required>
-					<UInput
-						v-model="name"
-						size="xl"
-						color="primary"
-						placeholder="Ketik nama lengkapmu"
-						autocomplete="off"
-						class="w-full" />
+						autofocus
+						class="w-full font-mono tracking-wider" />
 				</UFormField>
 
 				<UButton
@@ -460,19 +471,22 @@
 				<div class="flex items-center justify-between gap-2">
 					<div>
 						<p class="text-xs text-muted uppercase tracking-wider">
-							Peserta Terverifikasi
+							Pastikan ini namamu
 						</p>
 						<h1 class="text-lg font-bold text-highlighted">
-							{{ name }} ({{ nisn }})
+							{{ name }}
 						</h1>
+						<p class="text-xs text-muted font-mono">
+							NISN {{ nisn }}
+						</p>
 					</div>
 					<UButton
 						size="xs"
 						variant="ghost"
 						color="neutral"
 						icon="lucide:arrow-left"
-						@click="stage = 'login'">
-						Ganti
+						@click="changeStudent">
+						Bukan saya
 					</UButton>
 				</div>
 			</template>
@@ -485,10 +499,15 @@
 						color="primary"
 						placeholder="Contoh: MTK6A"
 						autocomplete="off"
+						autofocus
 						class="w-full font-mono uppercase" />
 				</UFormField>
 
-				<UFormField label="PIN Kartu Peserta" description="Isi 6 digit PIN yang tertera pada kartu peserta.">
+				<UFormField
+					v-if="pinRequired"
+					label="PIN Kartu Peserta"
+					required
+					description="Ujian ini wajib PIN. Isi 6 digit PIN yang tertera di kartu pesertamu.">
 					<UInput
 						v-model="pin"
 						size="xl"
@@ -497,6 +516,7 @@
 						maxlength="6"
 						inputmode="numeric"
 						autocomplete="off"
+						autofocus
 						class="w-full font-mono tracking-widest" />
 				</UFormField>
 
