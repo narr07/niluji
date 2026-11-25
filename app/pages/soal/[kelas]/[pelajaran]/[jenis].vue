@@ -46,7 +46,12 @@
 	const loading = ref(false);
 	const formOpen = ref(false);
 	const importOpen = ref(false);
-	const importDocxOpen = ref(false);
+	const importNaskahOpen = ref(false);
+	const importNaskahFormat = ref<"docx" | "pdf">("docx");
+	const openImportNaskah = (format: "docx" | "pdf") => {
+		importNaskahFormat.value = format;
+		importNaskahOpen.value = true;
+	};
 	const importMarkdownOpen = ref(false);
 	const editingId = ref<number | null>(null);
 	const previewOpen = ref(false);
@@ -56,7 +61,8 @@
 	// Satu tombol Import Soal dengan pilihan format, bukan beberapa tombol terpisah —
 	// alur importnya sendiri (modal Word vs CSV/Excel vs Markdown) tidak berubah, cuma pintu masuknya digabung.
 	const importItems = [[
-		{ label: "Dari Naskah Word (.docx)", icon: "lucide:file-text", onSelect: () => (importDocxOpen.value = true) },
+		{ label: "Dari Naskah Word (.docx)", icon: "lucide:file-text", onSelect: () => openImportNaskah("docx") },
+		{ label: "Dari PDF Soal (.pdf)", icon: "lucide:file-scan", onSelect: () => openImportNaskah("pdf") },
 		{ label: "Dari CSV / Excel", icon: "lucide:file-spreadsheet", onSelect: () => (importOpen.value = true) },
 		{ label: "Dari file Markdown (.md)", icon: "lucide:file-code", onSelect: () => (importMarkdownOpen.value = true) }
 	]];
@@ -163,8 +169,9 @@
 		:subject-id="subjectId"
 		@saved="loadData" />
 
-	<SoalImportDocxModal
-		v-model:open="importDocxOpen"
+	<SoalImportNaskahModal
+		v-model:open="importNaskahOpen"
+		:format="importNaskahFormat"
 		:kelas="kelas"
 		:jenis="jenis"
 		:subject-id="subjectId"

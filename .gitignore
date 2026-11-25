@@ -16,6 +16,8 @@ src-tauri/target
 soal-docx/
 Soal docx/
 *.docx
+# Kecuali contoh fiktif yang diunduh guru dari modal Import Word (dibuat oleh scripts/generate-word-templates.ts).
+!public/templates/naskah-soal-word/*.docx
 # Pengaturan lokal Claude Code, spesifik per komputer/user, jangan ikut repo
 .claude/
 

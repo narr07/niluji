@@ -45,7 +45,7 @@
 			isi: [
 				"Pilih kelas, lalu pilih mata pelajaran, atau gunakan pencarian Akses Cepat Paket Soal di bagian bawah halaman Bank Soal.",
 				"Klik Jenis Ujian untuk membuat paket soal baru (contoh: \"UTS Semester 1\", \"Latihan Harian\"). Satu jenis sama dengan satu kumpulan soal yang nantinya dipasangkan ke satu ujian.",
-				"Buka jenis yang baru dibuat, lalu isi soalnya: tambah manual, impor dari Word (.docx), CSV/Excel, Markdown (.md), atau Tarik Soal Online.",
+				"Buka jenis yang baru dibuat, lalu isi soalnya: tambah manual, impor dari Word (.docx), PDF, CSV/Excel, Markdown (.md), atau Tarik Soal Online.",
 				"Soal pilihan ganda dan esai bisa dicampur dalam satu jenis yang sama. Siswa otomatis mengerjakan pilihan ganda dulu, baru lanjut ke sesi esai."
 			]
 		},
