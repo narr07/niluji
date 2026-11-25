@@ -6,7 +6,8 @@ import { getDefaultAttributes } from "eslint-plugin-better-tailwindcss/api/defau
 
 export default withNuxt(
 	{
-		ignores: ["docs/**", "video-tutorial/**", "apk-siswa/**"]
+		// Proyek video (HyperFrames) punya alat dan gaya kodenya sendiri, sama seperti docs dan apk-siswa.
+		ignores: ["docs/**", "video-*/**", "apk-siswa/**"]
 	},
 	{
 		plugins: { style: stylistic },
