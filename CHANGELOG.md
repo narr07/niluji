@@ -1,6 +1,39 @@
 # Catatan Perubahan
 
-## Belum dirilis
+## v1.4.0 (2026-11-26)
+
+Rilis ini menyederhanakan cara siswa masuk ujian dan membuat import naskah soal jauh lebih andal, termasuk import langsung dari PDF.
+
+### Yang perlu dilakukan setelah memperbarui
+
+- **Periksa pengaturan Wajib PIN pada ujian lama.** Ujian yang sudah ada tetap memakai pengaturannya. Bila ingin siswa cukup memakai NISN dan token, matikan **Wajib PIN Kartu** lewat Edit ujian.
+- **Nyalakan Wajib PIN untuk ujian penting** seperti UTS atau UAS. Tanpa PIN, siswa yang tahu NISN temannya dan token ujian bisa masuk atas nama teman itu.
+
+### Login siswa
+
+- Siswa cukup mengetik **NISN**, lalu **Token Ujian**. Nama tidak perlu diketik lagi.
+- Setelah NISN diisi, nama siswa ditampilkan untuk dipastikan. Tombol **Bukan saya** mengembalikan siswa ke isian NISN bila salah ketik.
+- PIN Kartu Peserta kini opsional per ujian. Kolom PIN hanya muncul bila ujiannya diatur **Wajib PIN Kartu**, dan ujian baru tidak mewajibkan PIN secara bawaan.
+- Halaman ujian yang meminta PIN tidak dihitung sebagai percobaan gagal. PIN yang salah tetap dibatasi seperti sebelumnya.
+
+### Import naskah soal dari PDF
+
+- Menu **Import Soal > Dari PDF Soal (.pdf)** membaca PDF berisi teks, misalnya hasil Save as PDF dari Word, tanpa internet.
+- Nomor soal, opsi a-e (satu per baris, berjajar, atau 2×2), bagian PG/uraian, bacaan bersama, tata letak dua kolom, kepala dan nomor halaman, serta gambar soal dikenali otomatis.
+- PDF hasil scan atau foto ditolak dengan pesan yang jelas, karena tidak berisi teks.
+
+### Import naskah soal dari Word
+
+- Import Word memakai pembaca naskah yang sama dengan PDF. Penomoran otomatis Word, opsi di dalam tabel, judul bagian berbahasa Inggris, dan bacaan bersama kini terbaca.
+- File kunci jawaban tidak wajib lagi, dan jumlah soal PG/esai tidak perlu diisi manual.
+- Salah ketik yang umum di naskah dibetulkan lalu dilaporkan, misalnya nomor soal yang tertulis ulang dari 1 atau label opsi a, a, b, c. Label opsi yang tidak bisa dibaca dengan yakin ditandai Cek manual beserta alasannya.
+- Bila file kunci menyebut jumlah soal, NILUJI memberi peringatan kalau jumlah yang terbaca berbeda.
+- Tautan **Contoh Naskah Soal.docx** dan **Contoh Kunci Jawaban.docx** di jendela Import Word kembali berfungsi. Kedua file ini sebelumnya tidak pernah masuk ke repositori.
+
+### Kunci jawaban di tabel pratinjau
+
+- Tabel pratinjau import Word dan PDF punya kolom **Kunci** yang bisa dipilih langsung, jadi naskah tanpa kunci tidak perlu dibuka satu per satu lewat Edit.
+- Kunci bisa berasal dari file kunci terpisah, bagian kunci di akhir naskah, tanda bintang di naskah (`*c.`), atau baris `Kunci: C` di bawah soal.
 
 ### Tarik Data Siswa
 

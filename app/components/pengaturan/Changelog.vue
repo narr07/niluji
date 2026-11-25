@@ -9,10 +9,24 @@
 
 	const riwayat: ChangelogEntry[] = [
 		{
+			title: "Login Siswa Lebih Cepat & Import Soal dari PDF",
+			date: "2026-11-26",
+			badge: "v1.4.0",
+			badgeColor: "success",
+			perubahan: [
+				"Siswa cukup memakai NISN dan Token Ujian. Nama siswa ditampilkan untuk dipastikan, dan PIN Kartu hanya diminta pada ujian yang diatur Wajib PIN.",
+				"Import Soal dari PDF: nomor soal, opsi, bagian PG/uraian, bacaan bersama, tata letak dua kolom, dan gambar soal dikenali otomatis tanpa internet.",
+				"Import Word kini membaca penomoran otomatis Word, opsi di dalam tabel, dan judul berbahasa Inggris. File kunci tidak wajib lagi.",
+				"Salah ketik umum di naskah dibetulkan lalu dilaporkan, dan kunci jawaban bisa dipilih langsung di tabel pratinjau.",
+				"Contoh Naskah Soal dan Kunci Jawaban Word bisa diunduh lagi dari jendela Import Word.",
+				"Aplikasi Android NILUJI Siswa dan pratinjau Tarik Data Siswa sebelum disimpan."
+			]
+		},
+		{
 			title: "Keamanan Ujian, Ketepatan Nilai & Perlindungan Hasil",
 			date: "2026-11-19",
 			badge: "v1.3.0",
-			badgeColor: "success",
+			badgeColor: "primary",
 			perubahan: [
 				"Setiap sesi siswa kini punya token rahasia, sehingga siswa tidak bisa mengubah atau mengumpulkan ujian siswa lain.",
 				"Ujian baru mewajibkan PIN, siswa hanya bisa masuk ke ujian kelasnya, dan percobaan login yang salah dibatasi.",

@@ -26,7 +26,7 @@ export default defineAppConfig({
 		siteName: "Dokumentasi NILUJI"
 	},
 	repository: "narr07/niluji",
-	version: "1.3.0",
+	version: "1.4.0",
 	header: {
 		title: "NILUJI",
 		to: "/",

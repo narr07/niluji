@@ -39,7 +39,7 @@
 		"devUrl": "http://localhost:3000"
 	},
 	"productName": "Niluji",
-	"version": "1.3.0",
+	"version": "1.4.0",
 	"identifier": "com.narr07.niluji",
 	"plugins": {},
 	"app": {
