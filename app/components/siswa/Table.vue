@@ -7,11 +7,14 @@
 		nisn: string
 		name: string
 		class: string | null
+		rombel?: string | null
 		pin?: string
 	}
 
 	const props = defineProps<{
 		students: StudentRecord[]
+		// Tampilkan kolom kelas, untuk daftar siswa yang kelasnya tidak terdaftar.
+		showClass?: boolean
 	}>();
 
 	const emit = defineEmits<{
@@ -49,7 +52,18 @@
 
 	const sorting = ref([{ id: "name", desc: false }]);
 
-	const columns: TableColumn<StudentRecord>[] = [
+	const classColumns = computed<TableColumn<StudentRecord>[]>(() => {
+		const cols: TableColumn<StudentRecord>[] = [];
+		if (props.showClass) {
+			cols.push({ accessorKey: "class", header: "Kelas tercatat", cell: ({ row }) => row.original.class || "(kosong)" });
+		}
+		if (props.showClass || props.students.some((s) => s.rombel?.trim())) {
+			cols.push({ accessorKey: "rombel", header: "Rombel", cell: ({ row }) => row.original.rombel || "-" });
+		}
+		return cols;
+	});
+
+	const baseColumns: TableColumn<StudentRecord>[] = [
 		{ id: "select", header: "", enableSorting: false },
 		{
 			accessorKey: "name",
@@ -94,10 +108,13 @@
 			}
 		}
 	];
+
+	// Nama dan NISN dulu, lalu kelas/rombel, lalu PIN dan aksi.
+	const columns = computed<TableColumn<StudentRecord>[]>(() => [...baseColumns.slice(0, 3), ...classColumns.value, ...baseColumns.slice(3)]);
 </script>
 
 <template>
-	<div class="space-y-3">
+	<div class="flex min-h-64 flex-1 flex-col">
 		<Transition
 			enter-active-class="transition duration-200 ease-out"
 			enter-from-class="opacity-0 translate-y-3"
@@ -126,7 +143,12 @@
 			</UCard>
 		</Transition>
 
-		<UTable v-model:sorting="sorting" :data="students" :columns="columns">
+		<UTable
+			v-model:sorting="sorting"
+			:data="students"
+			:columns="columns"
+			sticky="header"
+			class="min-h-0 flex-1">
 			<template #select-header>
 				<UCheckbox :model-value="allSelected" :indeterminate="someSelected" @update:model-value="(v) => toggleAll(v === true)" />
 			</template>
@@ -137,7 +159,7 @@
 			</template>
 			<template #empty>
 				<div class="text-center py-10 text-muted">
-					Belum ada siswa di kelas ini.
+					{{ showClass ? "Semua siswa sudah berada di kelas terdaftar." : "Belum ada siswa di kelas ini." }}
 				</div>
 			</template>
 		</UTable>

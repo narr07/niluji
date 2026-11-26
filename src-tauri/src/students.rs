@@ -1,6 +1,7 @@
 use crate::db::{self, Db};
 use crate::import::{find_column, read_rows, CLASS_COLS};
-use rusqlite::params;
+use crate::kelas::{match_class, ClassMatch};
+use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 
 const NISN_COLS: &[&str] = &["nisn", "nis"];
@@ -19,21 +20,76 @@ pub struct StudentRecord {
 	pub nisn: String,
 	pub name: String,
 	pub class: Option<String>,
+	pub rombel: Option<String>,
 	pub school: Option<String>,
 	pub pin: String
+}
+
+const STUDENT_COLUMNS: &str = "id, nisn, name, class, rombel, school, COALESCE(pin, '')";
+
+fn student_from_row(r: &rusqlite::Row) -> rusqlite::Result<StudentRecord> {
+	Ok(StudentRecord { id: r.get(0)?, nisn: r.get(1)?, name: r.get(2)?, class: r.get(3)?, rombel: r.get(4)?, school: r.get(5)?, pin: r.get(6)? })
 }
 
 pub fn list_students(db: &Db) -> Result<Vec<StudentRecord>, String> {
 	let conn = db.lock().unwrap();
 	let mut stmt = conn
-		.prepare("SELECT id, nisn, name, class, school, COALESCE(pin, '') FROM students ORDER BY class, name")
+		.prepare(&format!("SELECT {STUDENT_COLUMNS} FROM students ORDER BY class, rombel, name"))
+		.map_err(|e| e.to_string())?;
+	let rows = stmt.query_map([], student_from_row).map_err(|e| e.to_string())?;
+	rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+}
+
+fn registered_classes(conn: &Connection) -> Result<Vec<String>, String> {
+	let mut stmt = conn.prepare("SELECT title FROM classes ORDER BY sort_order, id").map_err(|e| e.to_string())?;
+	let rows = stmt.query_map([], |r| r.get::<_, String>(0)).map_err(|e| e.to_string())?;
+	rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+}
+
+fn class_not_found(raw: &str) -> String {
+	format!("Kelas \"{}\" tidak dikenali. Daftarkan kelasnya di Pengaturan › Data Kelas.", raw.trim())
+}
+
+// Siswa yang kelasnya belum cocok dengan Data Kelas tetapi bisa dicocokkan otomatis, misalnya
+// data lama hasil Tarik Data Siswa yang tersimpan sebagai "IVA".
+fn pending_class_fixes(conn: &Connection) -> Result<Vec<(i64, ClassMatch)>, String> {
+	let registered = registered_classes(conn)?;
+	let mut stmt = conn
+		.prepare("SELECT id, class, rombel FROM students WHERE class IS NOT NULL AND TRIM(class) != ''")
 		.map_err(|e| e.to_string())?;
 	let rows = stmt
-		.query_map([], |r| {
-			Ok(StudentRecord { id: r.get(0)?, nisn: r.get(1)?, name: r.get(2)?, class: r.get(3)?, school: r.get(4)?, pin: r.get(5)? })
-		})
+		.query_map([], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?, r.get::<_, Option<String>>(2)?)))
 		.map_err(|e| e.to_string())?;
-	rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+	let mut fixes = Vec::new();
+	for row in rows {
+		let (id, class, rombel) = row.map_err(|e| e.to_string())?;
+		if registered.iter().any(|r| r == &class) {
+			continue;
+		}
+		let matched = match_class(&class, &registered);
+		if matched.class.is_some() {
+			fixes.push((id, ClassMatch { class: matched.class, rombel: rombel.or(matched.rombel) }));
+		}
+	}
+	Ok(fixes)
+}
+
+pub fn count_pending_class_fixes(db: &Db) -> Result<usize, String> {
+	Ok(pending_class_fixes(&db.lock().unwrap())?.len())
+}
+
+// Membetulkan kelas siswa yang bisa dicocokkan otomatis. Siswa yang tetap tidak cocok dibiarkan
+// dan muncul di menu Siswa sebagai "Kelas tidak terdaftar".
+pub fn fix_student_classes(db: &Db) -> Result<usize, String> {
+	let mut conn = db.lock().unwrap();
+	let fixes = pending_class_fixes(&conn)?;
+	let tx = conn.transaction().map_err(|e| e.to_string())?;
+	for (id, matched) in &fixes {
+		tx.execute("UPDATE students SET class = ?1, rombel = ?2 WHERE id = ?3", params![matched.class, matched.rombel, id])
+			.map_err(|e| e.to_string())?;
+	}
+	tx.commit().map_err(|e| e.to_string())?;
+	Ok(fixes.len())
 }
 
 // Nama sekolah yang sudah pernah ditarik dari sumber online (dipakai sebagai dropdown di UI
@@ -50,13 +106,9 @@ pub fn list_schools(db: &Db) -> Result<Vec<String>, String> {
 pub fn students_by_school(db: &Db, school: &str) -> Result<Vec<StudentRecord>, String> {
 	let conn = db.lock().unwrap();
 	let mut stmt = conn
-		.prepare("SELECT id, nisn, name, class, school, COALESCE(pin, '') FROM students WHERE school = ?1 COLLATE NOCASE ORDER BY class, name")
+		.prepare(&format!("SELECT {STUDENT_COLUMNS} FROM students WHERE school = ?1 COLLATE NOCASE ORDER BY class, rombel, name"))
 		.map_err(|e| e.to_string())?;
-	let rows = stmt
-		.query_map(params![school], |r| {
-			Ok(StudentRecord { id: r.get(0)?, nisn: r.get(1)?, name: r.get(2)?, class: r.get(3)?, school: r.get(4)?, pin: r.get(5)? })
-		})
-		.map_err(|e| e.to_string())?;
+	let rows = stmt.query_map(params![school], student_from_row).map_err(|e| e.to_string())?;
 	rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
 }
 
@@ -78,16 +130,21 @@ struct TarikSiswaRow {
 
 fn upsert_students(db: &Db, records: &[TarikSiswaRow]) -> Result<usize, String> {
 	let mut conn = db.lock().unwrap();
+	let registered = registered_classes(&conn)?;
 	let tx = conn.transaction().map_err(|e| e.to_string())?;
 
 	let mut count = 0usize;
 	for r in records {
+		let matched = match_class(&r.class, &registered);
+		let Some(class) = matched.class else {
+			return Err(class_not_found(&r.class));
+		};
 		let pin = db::generate_random_pin();
 		tx.execute(
-			"INSERT INTO students (nisn, name, class, school, pin) VALUES (?1, ?2, ?3, ?4, ?5)
-			 ON CONFLICT(nisn) DO UPDATE SET name = excluded.name, class = excluded.class, school = excluded.school,
-			 pin = COALESCE(NULLIF(TRIM(students.pin), ''), excluded.pin)",
-			params![r.nisn.trim(), r.name.trim(), r.class.trim(), r.school.trim(), pin]
+			"INSERT INTO students (nisn, name, class, rombel, school, pin) VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+			 ON CONFLICT(nisn) DO UPDATE SET name = excluded.name, class = excluded.class, rombel = excluded.rombel,
+			 school = excluded.school, pin = COALESCE(NULLIF(TRIM(students.pin), ''), excluded.pin)",
+			params![r.nisn.trim(), r.name.trim(), class, matched.rombel, r.school.trim(), pin]
 		)
 		.map_err(|e| e.to_string())?;
 		count += 1;
@@ -147,7 +204,9 @@ pub enum TarikStatus {
 pub struct TarikPreviewRow {
 	pub nisn: String,
 	pub name: String,
+	// Kelas terdaftar hasil pencocokan, atau tulisan aslinya bila tidak cocok.
 	pub class: String,
+	pub rombel: Option<String>,
 	pub status: TarikStatus,
 	pub old_name: Option<String>,
 	pub old_class: Option<String>,
@@ -157,7 +216,18 @@ pub struct TarikPreviewRow {
 struct LocalStudent {
 	name: String,
 	class: Option<String>,
+	rombel: Option<String>,
 	school: Option<String>
+}
+
+// Label kelas untuk ditampilkan: "4 · IVA", atau "4" bila tanpa rombel.
+fn class_label(class: Option<&str>, rombel: Option<&str>) -> String {
+	match (class.map(str::trim).filter(|c| !c.is_empty()), rombel.map(str::trim).filter(|r| !r.is_empty())) {
+		(Some(c), Some(r)) => format!("{c} · {r}"),
+		(Some(c), None) => c.to_string(),
+		(None, Some(r)) => r.to_string(),
+		(None, None) => String::new()
+	}
 }
 
 // Baris sumber untuk satu sekolah. `school` harus nama yang PERSIS (dipilih dari dropdown hasil
@@ -177,27 +247,36 @@ async fn fetch_school_rows(csv_url: &str, school: &str) -> Result<Vec<TarikSiswa
 
 fn local_students(db: &Db) -> Result<std::collections::HashMap<String, LocalStudent>, String> {
 	let conn = db.lock().unwrap();
-	let mut stmt = conn.prepare("SELECT nisn, name, class, school FROM students").map_err(|e| e.to_string())?;
+	let mut stmt = conn.prepare("SELECT nisn, name, class, rombel, school FROM students").map_err(|e| e.to_string())?;
 	let rows = stmt
-		.query_map([], |r| Ok((r.get::<_, String>(0)?, LocalStudent { name: r.get(1)?, class: r.get(2)?, school: r.get(3)? })))
+		.query_map([], |r| {
+			Ok((r.get::<_, String>(0)?, LocalStudent { name: r.get(1)?, class: r.get(2)?, rombel: r.get(3)?, school: r.get(4)? }))
+		})
 		.map_err(|e| e.to_string())?;
 	rows.collect::<Result<_, _>>().map_err(|e| e.to_string())
 }
 
 // Membandingkan baris sumber dengan database lokal tanpa mengubah apa pun.
-fn compare_with_local(rows: &[TarikSiswaRow], local: &std::collections::HashMap<String, LocalStudent>) -> Vec<TarikPreviewRow> {
+fn compare_with_local(
+	rows: &[TarikSiswaRow],
+	local: &std::collections::HashMap<String, LocalStudent>,
+	registered: &[String]
+) -> Vec<TarikPreviewRow> {
 	let mut seen = std::collections::HashSet::new();
 	let mut out: Vec<TarikPreviewRow> = rows
 		.iter()
 		.map(|row| {
 			let nisn = row.nisn.trim().to_string();
 			let name = row.name.trim().to_string();
-			let class = row.class.trim().to_string();
+			let matched = match_class(&row.class, registered);
+			let class = matched.class.clone().unwrap_or_else(|| row.class.trim().to_string());
+			let rombel = matched.rombel.clone();
 			let school = row.school.trim();
 			let invalid = |note: &str| TarikPreviewRow {
 				nisn: nisn.clone(),
 				name: name.clone(),
 				class: class.clone(),
+				rombel: rombel.clone(),
 				status: TarikStatus::TidakValid,
 				old_name: None,
 				old_class: None,
@@ -212,23 +291,29 @@ fn compare_with_local(rows: &[TarikSiswaRow], local: &std::collections::HashMap<
 			if !seen.insert(nisn.clone()) {
 				return invalid("NISN dobel di data sumber");
 			}
+			if matched.class.is_none() {
+				return invalid(&class_not_found(&row.class));
+			}
 			let (status, old_name, old_class) = match local.get(&nisn) {
 				None => (TarikStatus::Baru, None, None),
 				Some(existing) => {
 					let same_name = existing.name.trim() == name;
-					let same_class = existing.class.as_deref().map(str::trim).unwrap_or_default() == class;
+					let old_label = class_label(existing.class.as_deref(), existing.rombel.as_deref());
+					let same_class = old_label == class_label(Some(&class), rombel.as_deref());
 					let same_school = existing.school.as_deref().map(str::trim).unwrap_or_default() == school;
 					if same_name && same_class && same_school {
 						(TarikStatus::Sama, None, None)
 					} else {
-						(TarikStatus::Berubah, (!same_name).then(|| existing.name.clone()), (!same_class).then(|| existing.class.clone().unwrap_or_default()))
+						(TarikStatus::Berubah, (!same_name).then(|| existing.name.clone()), (!same_class).then_some(old_label))
 					}
 				}
 			};
-			TarikPreviewRow { nisn, name, class, status, old_name, old_class, note: None }
+			TarikPreviewRow { nisn, name, class, rombel, status, old_name, old_class, note: None }
 		})
 		.collect();
-	out.sort_by(|a, b| a.class.cmp(&b.class).then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase())));
+	out.sort_by(|a, b| {
+		a.class.cmp(&b.class).then_with(|| a.rombel.cmp(&b.rombel)).then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase()))
+	});
 	out
 }
 
@@ -236,7 +321,8 @@ fn compare_with_local(rows: &[TarikSiswaRow], local: &std::collections::HashMap<
 pub async fn preview_tarik_siswa(db: &Db, csv_url: &str, school: &str) -> Result<Vec<TarikPreviewRow>, String> {
 	let rows = fetch_school_rows(csv_url, school).await?;
 	let local = local_students(db)?;
-	Ok(compare_with_local(&rows, &local))
+	let registered = registered_classes(&db.lock().unwrap())?;
+	Ok(compare_with_local(&rows, &local, &registered))
 }
 
 // Langkah 2: simpan hanya NISN yang dipilih guru. Data diambil ulang dari sumber, bukan dari UI,
@@ -247,7 +333,8 @@ pub async fn simpan_tarik_siswa(db: &Db, csv_url: &str, school: &str, nisns: &[S
 	}
 	let rows = fetch_school_rows(csv_url, school).await?;
 	let local = local_students(db)?;
-	let valid: std::collections::HashSet<String> = compare_with_local(&rows, &local)
+	let registered = registered_classes(&db.lock().unwrap())?;
+	let valid: std::collections::HashSet<String> = compare_with_local(&rows, &local, &registered)
 		.into_iter()
 		.filter(|row| row.status != TarikStatus::TidakValid)
 		.map(|row| row.nisn)
@@ -276,23 +363,27 @@ pub fn list_classes(db: &Db) -> Result<Vec<String>, String> {
 	rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
 }
 
-pub fn create_student(db: &Db, nisn: String, name: String, class: Option<String>) -> Result<i64, String> {
+fn clean_rombel(rombel: Option<String>) -> Option<String> {
+	rombel.map(|r| r.trim().to_string()).filter(|r| !r.is_empty())
+}
+
+pub fn create_student(db: &Db, nisn: String, name: String, class: Option<String>, rombel: Option<String>) -> Result<i64, String> {
 	let conn = db.lock().unwrap();
 	let pin = db::generate_random_pin();
 	conn.execute(
-		"INSERT INTO students (nisn, name, class, pin) VALUES (?1, ?2, ?3, ?4)",
-		params![nisn.trim(), name.trim(), class, pin]
+		"INSERT INTO students (nisn, name, class, rombel, pin) VALUES (?1, ?2, ?3, ?4, ?5)",
+		params![nisn.trim(), name.trim(), class, clean_rombel(rombel), pin]
 	)
 	.map_err(|e| e.to_string())?;
 	Ok(conn.last_insert_rowid())
 }
 
-pub fn update_student(db: &Db, id: i64, nisn: String, name: String, class: Option<String>) -> Result<(), String> {
+pub fn update_student(db: &Db, id: i64, nisn: String, name: String, class: Option<String>, rombel: Option<String>) -> Result<(), String> {
 	db.lock()
 		.unwrap()
 		.execute(
-			"UPDATE students SET nisn = ?1, name = ?2, class = ?3 WHERE id = ?4",
-			params![nisn.trim(), name.trim(), class, id]
+			"UPDATE students SET nisn = ?1, name = ?2, class = ?3, rombel = ?4 WHERE id = ?5",
+			params![nisn.trim(), name.trim(), class, clean_rombel(rombel), id]
 		)
 		.map_err(|e| e.to_string())?;
 	Ok(())
@@ -333,30 +424,44 @@ pub fn regenerate_student_pins(db: &Db, class: Option<String>) -> Result<usize, 
 pub struct StudentImportRow {
 	pub nisn: String,
 	pub name: String,
-	pub class: Option<String>
+	pub class: Option<String>,
+	#[serde(default)]
+	pub rombel: Option<String>,
+	// Diisi saat kelas di file tidak cocok dengan Data Kelas; baris itu harus dibetulkan dulu.
+	#[serde(default)]
+	pub class_note: Option<String>
 }
 
-pub fn parse_students_file(path: &str) -> Result<Vec<StudentImportRow>, String> {
+pub fn parse_students_file(db: &Db, path: &str) -> Result<Vec<StudentImportRow>, String> {
 	let (headers, rows) = read_rows(path)?;
+	let registered = registered_classes(&db.lock().unwrap())?;
 
 	let mut result = Vec::new();
 	for row in &rows {
 		let nisn = find_column(&headers, row, NISN_COLS).unwrap_or_default();
 		let name = find_column(&headers, row, NAME_COLS).unwrap_or_default();
-		let class = find_column(&headers, row, CLASS_COLS);
+		let raw_class = find_column(&headers, row, CLASS_COLS);
+		let matched = raw_class.as_deref().map(|c| match_class(c, &registered));
+		let class_note = match (&raw_class, &matched) {
+			(Some(raw), Some(m)) if m.class.is_none() => Some(class_not_found(raw)),
+			_ => None
+		};
+		let class = matched.as_ref().and_then(|m| m.class.clone()).or(raw_class);
+		let rombel = matched.and_then(|m| m.rombel);
 		// Baris yang dua-duanya kosong biasanya cuma baris kosong di akhir file — dilewati
 		// diam-diam. Baris yang salah satunya saja kosong tetap disertakan supaya kelihatan
 		// di preview dan bisa dibenerin manual, bukan hilang tanpa jejak.
 		if nisn.is_empty() && name.is_empty() {
 			continue;
 		}
-		result.push(StudentImportRow { nisn, name, class });
+		result.push(StudentImportRow { nisn, name, class, rombel, class_note });
 	}
 	Ok(result)
 }
 
 pub fn import_students_rows(db: &Db, rows: Vec<StudentImportRow>) -> Result<StudentImportSummary, String> {
 	let mut conn = db.lock().unwrap();
+	let registered = registered_classes(&conn)?;
 	let tx = conn.transaction().map_err(|e| e.to_string())?;
 
 	let mut students_imported = 0usize;
@@ -366,14 +471,26 @@ pub fn import_students_rows(db: &Db, rows: Vec<StudentImportRow>) -> Result<Stud
 		if nisn.is_empty() || name.is_empty() {
 			continue;
 		}
-		let class = row.class.as_deref().map(str::trim).filter(|c| !c.is_empty());
+		// Kelas dicocokkan sekali lagi di sini, jadi tidak ada siswa yang tersimpan dengan kelas
+		// yang tidak terdaftar walaupun baris dikirim tanpa lewat pratinjau.
+		let raw_class = row.class.as_deref().map(str::trim).filter(|c| !c.is_empty());
+		let (class, rombel) = match raw_class {
+			None => (None, clean_rombel(row.rombel.clone())),
+			Some(raw) => {
+				let matched = match_class(raw, &registered);
+				let Some(class) = matched.class else {
+					return Err(format!("NISN {nisn}: {}", class_not_found(raw)));
+				};
+				(Some(class), clean_rombel(row.rombel.clone()).or(matched.rombel))
+			}
+		};
 		let pin = db::generate_random_pin();
 
 		tx.execute(
-			"INSERT INTO students (nisn, name, class, pin) VALUES (?1, ?2, ?3, ?4)
-			 ON CONFLICT(nisn) DO UPDATE SET name = excluded.name, class = excluded.class,
+			"INSERT INTO students (nisn, name, class, rombel, pin) VALUES (?1, ?2, ?3, ?4, ?5)
+			 ON CONFLICT(nisn) DO UPDATE SET name = excluded.name, class = excluded.class, rombel = excluded.rombel,
 			 pin = COALESCE(NULLIF(TRIM(students.pin), ''), excluded.pin)",
-			params![nisn, name, class, pin]
+			params![nisn, name, class, rombel, pin]
 		)
 		.map_err(|e| e.to_string())?;
 		students_imported += 1;
@@ -392,11 +509,21 @@ mod tests {
 		TarikSiswaRow { nisn: nisn.into(), name: name.into(), class: class.into(), school: "SD CONTOH".into() }
 	}
 
+	fn registered() -> Vec<String> {
+		vec!["4".into(), "5".into(), "6".into()]
+	}
+
+	fn temp_db(tag: &str) -> (Db, std::path::PathBuf) {
+		let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
+		let dir = std::env::temp_dir().join(format!("niluji_students_{tag}_{}_{nanos}", std::process::id()));
+		(crate::db::open(&dir), dir)
+	}
+
 	#[test]
 	fn preview_marks_new_changed_same_and_invalid_rows() {
 		let mut local = std::collections::HashMap::new();
-		local.insert("111".to_string(), LocalStudent { name: "Andi".into(), class: Some("6".into()), school: Some("SD CONTOH".into()) });
-		local.insert("222".to_string(), LocalStudent { name: "Budi".into(), class: Some("5".into()), school: Some("SD CONTOH".into()) });
+		local.insert("111".to_string(), LocalStudent { name: "Andi".into(), class: Some("6".into()), rombel: None, school: Some("SD CONTOH".into()) });
+		local.insert("222".to_string(), LocalStudent { name: "Budi".into(), class: Some("5".into()), rombel: None, school: Some("SD CONTOH".into()) });
 		let rows = vec![
 			source(" 111 ", "Andi ", "6"),
 			source("222", "Budi Santoso", "6"),
@@ -405,7 +532,7 @@ mod tests {
 			source("444", "  ", "4"),
 			source("333", "Citra Kembar", "4")
 		];
-		let preview = compare_with_local(&rows, &local);
+		let preview = compare_with_local(&rows, &local, &registered());
 		let find = |nisn: &str, name: &str| preview.iter().find(|r| r.nisn == nisn && r.name == name).unwrap();
 		assert_eq!(find("111", "Andi").status, TarikStatus::Sama);
 		let changed = find("222", "Budi Santoso");
@@ -426,7 +553,7 @@ mod tests {
 		let db = crate::db::open(&dir);
 		let before = list_students(&db).unwrap().len();
 		let local = local_students(&db).unwrap();
-		let preview = compare_with_local(&[source("999", "Baru Sekali", "1")], &local);
+		let preview = compare_with_local(&[source("999", "Baru Sekali", "4")], &local, &registered());
 		assert_eq!(preview[0].status, TarikStatus::Baru);
 		assert_eq!(list_students(&db).unwrap().len(), before);
 		drop(db);
@@ -454,7 +581,7 @@ mod tests {
 		writeln!(f, "2222222222,Dedi Kurnia,4").unwrap();
 		drop(f);
 
-		let rows = parse_students_file(csv_path.to_str().unwrap()).unwrap();
+		let rows = parse_students_file(&db, csv_path.to_str().unwrap()).unwrap();
 		assert_eq!(rows.len(), 2);
 		let summary = import_students_rows(&db, rows).unwrap();
 		assert_eq!(summary.students_imported, 2);
@@ -469,6 +596,88 @@ mod tests {
 		let classes = list_classes(&db).unwrap();
 		assert_eq!(classes, vec!["4".to_string(), "5".to_string(), "6".to_string()]);
 
+		drop(db);
+		let _ = std::fs::remove_dir_all(&dir);
+	}
+
+	#[test]
+	fn tarik_preview_splits_rombel_from_class_and_rejects_unknown_classes() {
+		let mut local = std::collections::HashMap::new();
+		local.insert("555".to_string(), LocalStudent { name: "Lama".into(), class: Some("IVA".into()), rombel: None, school: Some("SD CONTOH".into()) });
+		let rows = vec![source("111", "Andi", "IVA"), source("222", "Budi", "V"), source("333", "Citra", "IIIA"), source("555", "Lama", "IVA")];
+		let preview = compare_with_local(&rows, &local, &registered());
+		let find = |nisn: &str| preview.iter().find(|r| r.nisn == nisn).unwrap();
+
+		let andi = find("111");
+		assert_eq!((andi.class.as_str(), andi.rombel.as_deref(), andi.status), ("4", Some("IVA"), TarikStatus::Baru));
+		let budi = find("222");
+		assert_eq!((budi.class.as_str(), budi.rombel.as_deref()), ("5", None));
+		let citra = find("333");
+		assert_eq!(citra.status, TarikStatus::TidakValid);
+		assert!(citra.note.as_deref().unwrap().contains("Kelas \"IIIA\" tidak dikenali"));
+		// Data lama yang tersimpan sebagai "IVA" ikut dibetulkan saat ditarik ulang.
+		let lama = find("555");
+		assert_eq!((lama.status, lama.old_class.as_deref()), (TarikStatus::Berubah, Some("IVA")));
+	}
+
+	#[test]
+	fn excel_import_stores_class_and_rombel_and_refuses_unknown_classes() {
+		let (db, dir) = temp_db("excel_rombel");
+		let row = |nisn: &str, class: &str| StudentImportRow { nisn: nisn.into(), name: format!("Siswa {nisn}"), class: Some(class.into()), rombel: None, class_note: None };
+		import_students_rows(&db, vec![row("1", "IVB"), row("2", "Kelas 5"), row("3", "6")]).unwrap();
+		let list = list_students(&db).unwrap();
+		let get = |nisn: &str| list.iter().find(|s| s.nisn == nisn).map(|s| (s.class.clone(), s.rombel.clone())).unwrap();
+		assert_eq!(get("1"), (Some("4".into()), Some("IVB".into())));
+		assert_eq!(get("2"), (Some("5".into()), None));
+		assert_eq!(get("3"), (Some("6".into()), None));
+
+		let err = import_students_rows(&db, vec![row("4", "VIII")]).unwrap_err();
+		assert!(err.contains("NISN 4") && err.contains("VIII"));
+		assert_eq!(list_students(&db).unwrap().len(), 3, "baris berkelas tak dikenal tidak boleh tersimpan");
+		drop(db);
+		let _ = std::fs::remove_dir_all(&dir);
+	}
+
+	#[test]
+	fn old_students_with_rombel_as_class_are_fixed_and_unknown_ones_are_kept() {
+		let (db, dir) = temp_db("fix_classes");
+		db.lock()
+			.unwrap()
+			.execute_batch(
+				"INSERT INTO students (nisn, name, class, pin) VALUES
+				 ('1', 'A', 'IVA', '111111'), ('2', 'B', 'V', '222222'), ('3', 'C', 'Paket B', '333333'), ('4', 'D', '6', '444444');"
+			)
+			.unwrap();
+		assert_eq!(count_pending_class_fixes(&db).unwrap(), 2);
+		assert_eq!(fix_student_classes(&db).unwrap(), 2);
+		assert_eq!(count_pending_class_fixes(&db).unwrap(), 0);
+
+		let list = list_students(&db).unwrap();
+		let get = |nisn: &str| list.iter().find(|s| s.nisn == nisn).map(|s| (s.class.clone(), s.rombel.clone(), s.pin.clone())).unwrap();
+		assert_eq!(get("1"), (Some("4".into()), Some("IVA".into()), "111111".into()), "PIN kartu tidak boleh berubah");
+		assert_eq!(get("2"), (Some("5".into()), None, "222222".into()));
+		assert_eq!(get("3"), (Some("Paket B".into()), None, "333333".into()));
+		assert_eq!(get("4"), (Some("6".into()), None, "444444".into()));
+		drop(db);
+		let _ = std::fs::remove_dir_all(&dir);
+	}
+
+	#[test]
+	fn regenerating_pins_for_a_class_covers_all_its_rombels_only() {
+		let (db, dir) = temp_db("regen_pins");
+		db.lock()
+			.unwrap()
+			.execute_batch(
+				"INSERT INTO students (nisn, name, class, rombel, pin) VALUES
+				 ('1', 'A', '4', 'IVA', '111111'), ('2', 'B', '4', 'IVB', '222222'), ('3', 'C', '5', NULL, '333333');"
+			)
+			.unwrap();
+		assert_eq!(regenerate_student_pins(&db, Some("4".into())).unwrap(), 2);
+		let list = list_students(&db).unwrap();
+		let pin = |nisn: &str| list.iter().find(|s| s.nisn == nisn).unwrap().pin.clone();
+		assert_ne!(pin("1"), "111111");
+		assert_ne!(pin("2"), "222222");
+		assert_eq!(pin("3"), "333333", "kelas lain tidak boleh ikut berubah");
 		drop(db);
 		let _ = std::fs::remove_dir_all(&dir);
 	}

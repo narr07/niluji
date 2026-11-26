@@ -14,6 +14,7 @@
 		nisn: string
 		name: string
 		class: string | null
+		rombel?: string | null
 		pin?: string
 	}
 
@@ -63,10 +64,17 @@
 	const classGroups = computed(() => {
 		const counts = new Map<string, number>();
 		for (const c of classes.value) counts.set(c, 0);
+		let unregistered = 0;
 		for (const s of students.value) {
 			if (s.class && counts.has(s.class)) counts.set(s.class, (counts.get(s.class) ?? 0) + 1);
+			else unregistered++;
 		}
-		return [...counts.entries()].map(([cls, count]) => ({ class: cls, count }));
+		const groups: { class: string, count: number, title?: string, to?: string, warning?: boolean }[] = [...counts.entries()].map(([cls, count]) => ({ class: cls, count }));
+		// Siswa yang kelasnya kosong atau tidak ada di Data Kelas tidak boleh hilang dari pandangan.
+		if (unregistered) {
+			groups.push({ class: KELAS_LAINNYA, count: unregistered, title: "Kelas tidak terdaftar", to: `/siswa/${KELAS_LAINNYA}`, warning: true });
+		}
+		return groups;
 	});
 
 	const loadData = async () => {

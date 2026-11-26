@@ -22,7 +22,20 @@
 		nisn: string
 		name: string
 		class: string
+		rombel: string
+		// Diisi bila kelas di file tidak cocok dengan Data Kelas; baris harus dibetulkan dulu.
+		classNote: string
 	}
+
+	interface ParsedRow {
+		nisn: string
+		name: string
+		class?: string | null
+		rombel?: string | null
+		classNote?: string | null
+	}
+
+	const TANPA_KELAS = "__tanpa";
 
 	const toast = useToast();
 
@@ -33,8 +46,13 @@
 	const parsing = ref(false);
 	const importing = ref(false);
 	const errorMessage = ref("");
+	const registeredClasses = ref<string[]>([]);
+	const classItems = computed(() => [
+		...registeredClasses.value.map((c) => ({ label: `Kelas ${c}`, value: c })),
+		{ label: "Tanpa kelas", value: TANPA_KELAS }
+	]);
 
-	const isValid = (row: ImportRow) => Boolean(row.nisn.trim() && row.name.trim());
+	const isValid = (row: ImportRow) => Boolean(row.nisn.trim() && row.name.trim() && !row.classNote);
 	const validCount = computed(() => rows.value.filter(isValid).length);
 	const selectedCount = computed(() => selectedIds.value.size);
 
@@ -56,6 +74,7 @@
 			rows.value = [];
 			selectedIds.value = new Set();
 			errorMessage.value = "";
+			void invoke<string[]>("list_classes").then((list) => (registeredClasses.value = list));
 		}
 	);
 
@@ -68,8 +87,15 @@
 		rows.value = [];
 		selectedIds.value = new Set();
 		try {
-			const parsed = await invoke<{ nisn: string, name: string, class?: string }[]>("parse_students_file", { path });
-			rows.value = parsed.map((r, i) => ({ id: i + 1, nisn: r.nisn, name: r.name, class: r.class ?? "" }));
+			const parsed = await invoke<ParsedRow[]>("parse_students_file", { path });
+			rows.value = parsed.map((r, i) => ({
+				id: i + 1,
+				nisn: r.nisn,
+				name: r.name,
+				class: r.class ?? "",
+				rombel: r.rombel ?? "",
+				classNote: r.classNote ?? ""
+			}));
 			selectedIds.value = new Set(rows.value.filter(isValid).map((r) => r.id));
 		} catch (error) {
 			errorMessage.value = error instanceof Error ? error.message : String(error);
@@ -101,13 +127,14 @@
 
 	const editRowOpen = ref(false);
 	const editRowId = ref<number | null>(null);
-	const editForm = reactive({ nisn: "", name: "", class: "" });
+	const editForm = reactive({ nisn: "", name: "", class: TANPA_KELAS, rombel: "" });
 
 	const openEditRow = (row: ImportRow) => {
 		editRowId.value = row.id;
 		editForm.nisn = row.nisn;
 		editForm.name = row.name;
-		editForm.class = row.class;
+		editForm.class = registeredClasses.value.includes(row.class) ? row.class : TANPA_KELAS;
+		editForm.rombel = row.rombel;
 		editRowOpen.value = true;
 	};
 
@@ -122,14 +149,16 @@
 
 		row.nisn = editForm.nisn.trim();
 		row.name = editForm.name.trim();
-		row.class = editForm.class.trim();
+		row.class = editForm.class === TANPA_KELAS ? "" : editForm.class;
+		row.rombel = editForm.rombel.trim();
+		row.classNote = "";
 
 		selectedIds.value = new Set([...selectedIds.value, row.id]);
 		editRowOpen.value = false;
 	};
 
 	const addManualRow = () => {
-		const row: ImportRow = { id: rows.value.length ? Math.max(...rows.value.map((r) => r.id)) + 1 : 1, nisn: "", name: "", class: "" };
+		const row: ImportRow = { id: rows.value.length ? Math.max(...rows.value.map((r) => r.id)) + 1 : 1, nisn: "", name: "", class: "", rombel: "", classNote: "" };
 		rows.value = [...rows.value, row];
 		openEditRow(row);
 	};
@@ -142,7 +171,7 @@
 		importing.value = true;
 		try {
 			const summary = await invoke<{ studentsImported: number }>("import_students_rows", {
-				rows: selected.map((r) => ({ nisn: r.nisn.trim(), name: r.name.trim(), class: r.class.trim() || undefined }))
+				rows: selected.map((r) => ({ nisn: r.nisn.trim(), name: r.name.trim(), class: r.class.trim() || undefined, rombel: r.rombel.trim() || undefined }))
 			});
 			toast.add({
 				title: "Import selesai",
@@ -165,8 +194,9 @@
 		<template #body>
 			<div class="space-y-4">
 				<p class="text-sm text-muted">
-					Pilih file CSV atau Excel berisi data siswa (kolom NISN, Nama, Kelas). Data akan ditampilkan dulu
-					sebagai preview yang bisa diperiksa dan diedit sebelum benar-benar disimpan.
+					Pilih file CSV atau Excel berisi data siswa (kolom NISN, Nama, Kelas). Kelas seperti IVA atau 4B
+					otomatis dibaca sebagai Kelas 4 dengan rombelnya. Data ditampilkan dulu sebagai preview yang bisa
+					diperiksa dan diedit sebelum benar-benar disimpan.
 				</p>
 
 				<div
@@ -225,7 +255,10 @@
 								{{ row.original.name || "(kosong)" }}
 							</template>
 							<template #class-cell="{ row }">
-								{{ row.original.class || "-" }}
+								<p>{{ labelKelas(row.original.class, row.original.rombel) }}</p>
+								<p v-if="row.original.classNote" class="text-xs text-error mt-1">
+									{{ row.original.classNote }}
+								</p>
 							</template>
 							<template #status-cell="{ row }">
 								<UBadge :color="isValid(row.original) ? 'success' : 'error'" variant="subtle">
@@ -257,9 +290,14 @@
 				<UFormField label="Nama">
 					<UInput v-model="editForm.name" class="w-full" />
 				</UFormField>
-				<UFormField label="Kelas (opsional)">
-					<UInput v-model="editForm.class" class="w-full" />
-				</UFormField>
+				<div class="grid gap-4 sm:grid-cols-2">
+					<UFormField label="Kelas">
+						<USelect v-model="editForm.class" :items="classItems" class="w-full" />
+					</UFormField>
+					<UFormField label="Rombel" hint="Opsional">
+						<UInput v-model="editForm.rombel" placeholder="IVA" class="w-full" />
+					</UFormField>
+				</div>
 
 				<UButton type="submit" block>
 					Simpan Baris Ini

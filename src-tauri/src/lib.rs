@@ -11,6 +11,7 @@ mod exam_session;
 mod exams;
 mod export;
 mod import;
+mod kelas;
 mod rate_limit;
 mod server;
 mod settings;
@@ -244,8 +245,19 @@ async fn get_exam_analytics(
 }
 
 #[tauri::command]
-async fn parse_students_file(path: String) -> Result<Vec<students::StudentImportRow>, String> {
-	students::parse_students_file(&path)
+async fn parse_students_file(path: String, db: tauri::State<'_, db::Db>) -> Result<Vec<students::StudentImportRow>, String> {
+	students::parse_students_file(&db, &path)
+}
+
+// Mencocokkan ulang kelas siswa yang belum terdaftar ("IVA" -> kelas 4, rombel IVA) setelah
+// database dicadangkan. Dipakai tombol di menu Siswa setelah guru menambah kelas baru.
+#[tauri::command]
+async fn fix_student_classes(db: tauri::State<'_, db::Db>, data_dir: tauri::State<'_, DataDir>) -> Result<usize, String> {
+	if students::count_pending_class_fixes(&db)? == 0 {
+		return Ok(0);
+	}
+	backup::backup_before_change(&db, &data_dir.0)?;
+	students::fix_student_classes(&db)
 }
 
 #[tauri::command]
@@ -262,13 +274,27 @@ async fn list_students(db: tauri::State<'_, db::Db>) -> Result<Vec<students::Stu
 }
 
 #[tauri::command]
-async fn create_student(nisn: String, name: String, class: Option<String>, db: tauri::State<'_, db::Db>) -> Result<i64, String> {
-	students::create_student(&db, nisn, name, class)
+async fn create_student(
+	nisn: String,
+	name: String,
+	class: Option<String>,
+	rombel: Option<String>,
+	db: tauri::State<'_, db::Db>
+) -> Result<i64, String> {
+	students::create_student(&db, nisn, name, class, rombel)
 }
 
 #[tauri::command]
-async fn update_student(id: i64, nisn: String, name: String, class: Option<String>, db: tauri::State<'_, db::Db>) -> Result<(), String> {
-	students::update_student(&db, id, nisn, name, class)
+#[allow(clippy::too_many_arguments)]
+async fn update_student(
+	id: i64,
+	nisn: String,
+	name: String,
+	class: Option<String>,
+	rombel: Option<String>,
+	db: tauri::State<'_, db::Db>
+) -> Result<(), String> {
+	students::update_student(&db, id, nisn, name, class, rombel)
 }
 
 #[tauri::command]
@@ -514,6 +540,22 @@ pub fn run() {
 			let data_dir = app.path().app_data_dir().expect("no app data dir");
 			let db = db::open(&data_dir);
 
+			// Data siswa lama bisa tersimpan dengan kelas seperti "IVA" yang tidak cocok dengan Data
+			// Kelas, sehingga tidak tampil di menu Siswa dan ditolak saat ujian. Kelas itu dicocokkan
+			// otomatis, tetapi hanya setelah database dicadangkan, supaya perubahannya bisa dibatalkan.
+			match students::count_pending_class_fixes(&db) {
+				Ok(0) => {}
+				Ok(_) => match backup::backup_before_change(&db, &data_dir) {
+					Ok(_) => {
+						if let Err(e) = students::fix_student_classes(&db) {
+							eprintln!("Gagal mencocokkan kelas siswa: {e}");
+						}
+					}
+					Err(e) => eprintln!("Kelas siswa tidak dicocokkan karena backup gagal: {e}")
+				},
+				Err(e) => eprintln!("Gagal memeriksa kelas siswa: {e}")
+			}
+
 			// Backup harian dibuat saat aplikasi dibuka lalu diperbarui tiap jam selama aplikasi
 			// berjalan. Kegagalan backup tidak boleh menghentikan ujian, jadi cukup dicatat.
 			{
@@ -596,6 +638,7 @@ pub fn run() {
 			create_student,
 			update_student,
 			delete_student,
+			fix_student_classes,
 			regenerate_student_pins,
 			count_legacy_student_pins,
 			list_schools,

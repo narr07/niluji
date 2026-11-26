@@ -16,6 +16,7 @@
 		nisn: string
 		name: string
 		class: string
+		rombel: string | null
 		status: TarikStatus
 		oldName: string | null
 		oldClass: string | null
@@ -339,7 +340,7 @@
 						</p>
 					</template>
 					<template #class-cell="{ row }">
-						<p>{{ row.original.class || "-" }}</p>
+						<p>{{ labelKelas(row.original.class, row.original.rombel) }}</p>
 						<p v-if="row.original.oldClass !== null" class="text-xs text-muted line-through">
 							{{ row.original.oldClass || "(kosong)" }}
 						</p>

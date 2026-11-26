@@ -269,6 +269,8 @@ pub(crate) fn migrate(conn: &Connection) -> rusqlite::Result<()> {
 	ensure_column(conn, "students", "class", "TEXT")?;
 	ensure_column(conn, "students", "school", "TEXT")?;
 	ensure_column(conn, "students", "pin", "TEXT")?;
+	// Rombel (IVA, IVB) terpisah dari kelas/tingkat (4) — lihat kelas.rs.
+	ensure_column(conn, "students", "rombel", "TEXT")?;
 	ensure_column(conn, "classes", "sort_order", "INTEGER")?;
 	ensure_column(conn, "subjects", "code", "TEXT")?;
 	ensure_column(conn, "questions", "jenis", "TEXT")?;

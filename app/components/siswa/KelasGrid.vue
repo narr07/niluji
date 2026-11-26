@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 	const props = defineProps<{
-		classGroups: { class: string, count: number }[]
+		classGroups: { class: string, count: number, title?: string, to?: string, warning?: boolean }[]
 	}>();
 
 	// Tailwind needs full class names to appear literally in source to generate them,
@@ -22,14 +22,16 @@
 		<UPageCard
 			v-for="c in classGroups"
 			:key="c.class"
-			icon="lucide:users"
-			:title="`Kelas ${c.class}`"
-			:to="`/siswa/${c.class}`"
+			:icon="c.warning ? 'lucide:triangle-alert' : 'lucide:users'"
+			:title="c.title ?? `Kelas ${c.class}`"
+			:to="c.to ?? `/siswa/${c.class}`"
 			variant="subtle"
 			:ui="{
 				container: 'gap-y-1.5',
 				wrapper: 'items-start',
-				leading: 'p-2.5 rounded-full bg-primary/10 ring ring-inset ring-primary/25 flex-col',
+				leading: c.warning
+					? 'p-2.5 rounded-full bg-warning/10 ring ring-inset ring-warning/25 flex-col'
+					: 'p-2.5 rounded-full bg-primary/10 ring ring-inset ring-primary/25 flex-col',
 				title: 'font-normal text-muted text-xs uppercase'
 			}"
 			class="lg:rounded-none first:rounded-l-lg last:rounded-r-lg hover:z-1"
