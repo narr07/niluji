@@ -29,8 +29,9 @@ fn validate_safe_user_file_path(path: &str) -> Result<std::path::PathBuf, String
 		.and_then(|e| e.to_str())
 		.map(|e| e.to_ascii_lowercase())
 		.unwrap_or_default();
+	// Setiap format yang bisa dipilih di jendela import harus ada di sini, termasuk naskah PDF.
 	const ALLOWED: &[&str] = &[
-		"docx", "xlsx", "xls", "csv", "md", "zip", "jpg", "jpeg", "png", "gif", "webp"
+		"docx", "pdf", "xlsx", "xls", "csv", "md", "zip", "jpg", "jpeg", "png", "gif", "webp"
 	];
 	if !ALLOWED.contains(&ext.as_str()) {
 		return Err(format!("Ekstensi file '.{ext}' tidak diizinkan."));
@@ -632,4 +633,23 @@ pub fn run() {
 		])
 		.run(tauri::generate_context!())
 		.expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod tests {
+	use super::validate_safe_user_file_path;
+
+	#[test]
+	fn every_import_format_can_be_read() {
+		for name in ["naskah.docx", "naskah.PDF", "soal.xlsx", "soal.csv", "bank.md", "gambar.png"] {
+			assert!(validate_safe_user_file_path(name).is_ok(), "{name} harus bisa dibaca untuk import");
+		}
+	}
+
+	#[test]
+	fn rejects_parent_dirs_and_other_extensions() {
+		assert!(validate_safe_user_file_path("../rahasia.docx").is_err());
+		assert!(validate_safe_user_file_path("program.exe").is_err());
+		assert!(validate_safe_user_file_path("cbt.sqlite").is_err());
+	}
 }
