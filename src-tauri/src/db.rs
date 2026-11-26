@@ -299,6 +299,9 @@ pub(crate) fn migrate(conn: &Connection) -> rusqlite::Result<()> {
 	// PIN gerbang fitur Export soal. Sengaja tanpa nilai bawaan: export baru bisa dipakai setelah
 	// sekolah menentukan PIN sendiri di Pengaturan > Data Sekolah.
 	ensure_column(conn, "school", "export_pin", "TEXT")?;
+	// Gugus bank soal yang dipilih sekolah ini di Tarik Soal Online (lihat bank_soal.rs).
+	ensure_column(conn, "school", "bank_kecamatan", "TEXT")?;
+	ensure_column(conn, "school", "bank_gugus", "TEXT")?;
 	// Acak urutan soal per siswa saat ujian ini dimulai — dipisah PG dan esai (guru bisa mau
 	// PG-nya diacak tapi esainya tidak, atau sebaliknya). "randomize" (kolom lama, sekarang
 	// tidak dipakai lagi) jadi sumber nilai awal keduanya biar ujian yang sudah dibuat sebelum

@@ -6,6 +6,7 @@ use tauri::{
 use tauri::Manager;
 
 mod backup;
+mod bank_soal;
 mod db;
 mod exam_session;
 mod exams;
@@ -266,6 +267,70 @@ async fn import_students_rows(
 	db: tauri::State<'_, db::Db>
 ) -> Result<students::StudentImportSummary, String> {
 	students::import_students_rows(&db, rows)
+}
+
+// ---------- Bank soal per gugus (lihat bank_soal.rs) ----------
+
+#[tauri::command]
+async fn bank_soal_status() -> Result<serde_json::Value, String> {
+	Ok(serde_json::json!({
+		"tokenTersimpan": bank_soal::has_token(),
+		"repo": format!("{}/{}", bank_soal::REPO_OWNER, bank_soal::REPO_NAME),
+		"semuaGugus": bank_soal::SEMUA_GUGUS
+	}))
+}
+
+#[tauri::command]
+async fn bank_soal_simpan_token(token: String) -> Result<(), String> {
+	bank_soal::save_token(&token).await
+}
+
+#[tauri::command]
+async fn bank_soal_hapus_token() -> Result<(), String> {
+	bank_soal::clear_token()
+}
+
+#[tauri::command]
+async fn bank_soal_katalog_terbaru() -> Result<bank_soal::Katalog, String> {
+	bank_soal::katalog_terbaru().await
+}
+
+#[tauri::command]
+async fn bank_soal_simpan_wilayah(kecamatan: String, gugus: Vec<String>) -> Result<bank_soal::Katalog, String> {
+	bank_soal::simpan_wilayah(&kecamatan, &gugus).await
+}
+
+#[tauri::command]
+async fn bank_soal_rencana(
+	req: bank_soal::PublishRequest,
+	db: tauri::State<'_, db::Db>,
+	uploads_dir: tauri::State<'_, UploadsDir>
+) -> Result<bank_soal::PublishPlan, String> {
+	bank_soal::rencana_publikasi(&db, &uploads_dir.0, &req).await
+}
+
+#[tauri::command]
+async fn bank_soal_publikasikan(
+	req: bank_soal::PublishRequest,
+	db: tauri::State<'_, db::Db>,
+	uploads_dir: tauri::State<'_, UploadsDir>
+) -> Result<bank_soal::PublishResult, String> {
+	bank_soal::publikasikan(&db, &uploads_dir.0, &req).await
+}
+
+#[tauri::command]
+async fn bank_soal_hapus_paket(folder: String) -> Result<bank_soal::Katalog, String> {
+	bank_soal::hapus_paket(&folder).await
+}
+
+#[tauri::command]
+async fn bank_soal_pilihan_sekolah(db: tauri::State<'_, db::Db>) -> Result<bank_soal::PilihanSekolah, String> {
+	bank_soal::pilihan_sekolah(&db)
+}
+
+#[tauri::command]
+async fn bank_soal_simpan_pilihan(pilihan: bank_soal::PilihanSekolah, db: tauri::State<'_, db::Db>) -> Result<(), String> {
+	bank_soal::simpan_pilihan_sekolah(&db, &pilihan)
 }
 
 #[tauri::command]
@@ -639,6 +704,16 @@ pub fn run() {
 			update_student,
 			delete_student,
 			fix_student_classes,
+			bank_soal_status,
+			bank_soal_simpan_token,
+			bank_soal_hapus_token,
+			bank_soal_katalog_terbaru,
+			bank_soal_simpan_wilayah,
+			bank_soal_rencana,
+			bank_soal_publikasikan,
+			bank_soal_hapus_paket,
+			bank_soal_pilihan_sekolah,
+			bank_soal_simpan_pilihan,
 			regenerate_student_pins,
 			count_legacy_student_pins,
 			list_schools,

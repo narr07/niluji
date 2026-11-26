@@ -50,15 +50,6 @@
 		}
 	});
 
-	const folderNameWarning = computed(() => {
-		if (!lastFolder.value) return null;
-		const name = lastFolder.value.split(/[/\\]/).filter(Boolean).pop();
-		if (name && name.toLowerCase() !== "db-soal") {
-			return `Folder tujuan saat ini bernama "${name}", bukan "db-soal". Supaya hasil export ini bisa ditarik sekolah lain lewat Tarik Soal Online setelah di-push, folder tujuannya harus persis folder "db-soal" di dalam clone repo GitHub Niluji kamu.`;
-		}
-		return null;
-	});
-
 	const subjectItems = computed(() => subjects.value.map((s) => ({ label: s.code ? `${s.code} - ${s.name}` : s.name, value: s.id })));
 	const jenisItems = computed(() => jenisOptions.value.map((j) => j.name));
 	const canExport = computed(() => Boolean(kelas.value && subjectId.value && jenis.value && pin.value.trim()));
@@ -143,16 +134,9 @@
 			<div class="space-y-4">
 				<p class="text-sm text-muted">
 					Pilih kelas, mata pelajaran, dan jenis ujian yang mau diekspor ke file Markdown + folder gambar.
-					Pilih folder <strong>db-soal</strong> di dalam clone repo GitHub Niluji kamu sebagai tujuan
-					supaya setelah di-push, hasilnya bisa ditarik sekolah lain lewat Tarik Soal Online.
+					File ini bisa diimpor lagi lewat Import Soal › Dari file Markdown. Untuk membagikan soal ke sekolah
+					se-gugus, pembuat soal memakai Publikasikan Bank Soal Gugus.
 				</p>
-
-				<UAlert
-					v-if="folderNameWarning"
-					color="warning"
-					variant="subtle"
-					title="Cek lagi folder tujuannya"
-					:description="folderNameWarning" />
 
 				<UFormField label="Kelas">
 					<USelectMenu

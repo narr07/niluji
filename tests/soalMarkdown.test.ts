@@ -10,7 +10,7 @@ const soal = (body: string) => `---\nkelas: 6\npelajaran: Uji\njenis: STS\n---\n
 describe("parseSoalMarkdown", () => {
 	it("mempertahankan opsi E beserta gambarnya", () => {
 		const text = soal("Pilih satu\n\n- A. satu\n- B. dua\n- C. tiga\n- D. empat\n- E. lima ![opsi-E](gambar/soal-1-opsi-e.png)\n\nKunci: E\nSkor: 2");
-		const { rows } = parseSoalMarkdown(text, "kelas_6/uji");
+		const { rows } = parseSoalMarkdown(text);
 		expect(rows[0]!.pilihan_e).toBe("lima");
 		expect(rows[0]!.pilihan_e_gambar).toBe("soal-1-opsi-e.png");
 		expect(rows[0]!.valid).toBe(true);
@@ -18,7 +18,7 @@ describe("parseSoalMarkdown", () => {
 	});
 
 	it("menandai kunci yang tidak cocok dengan pilihan", () => {
-		const { rows } = parseSoalMarkdown(soal("Pilih\n\n- A. satu\n- B. dua\n\nKunci: E\nSkor: 1"), "");
+		const { rows } = parseSoalMarkdown(soal("Pilih\n\n- A. satu\n- B. dua\n\nKunci: E\nSkor: 1"));
 		expect(rows[0]!.valid).toBe(false);
 		expect(rows[0]!.alasan_invalid).toContain("kunci");
 	});

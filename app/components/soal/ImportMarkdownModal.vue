@@ -73,7 +73,7 @@
 		try {
 			const bytes = await invoke<number[]>("read_file_bytes", { path });
 			const text = new TextDecoder("utf-8").decode(new Uint8Array(bytes));
-			const { rows: parsedRows } = parseSoalMarkdown(text, "");
+			const { rows: parsedRows } = parseSoalMarkdown(text);
 			rows.value = parsedRows;
 			selectedIds.value = new Set(parsedRows.filter((r) => r.valid).map((r) => r.id));
 		} catch (error) {

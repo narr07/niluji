@@ -33,6 +33,9 @@ calamine = "0.26"
 base64 = "0.22"
 reqwest = "0.12"
 getrandom = "0.2"
+# Token pembuat soal disimpan di penyimpanan kunci sistem operasi (Windows Credential Manager,
+# macOS Keychain, Linux keyutils), tidak di database.
+keyring = { version = "=3.6.3", features = ["windows-native", "apple-native", "linux-native"] }
 
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }

@@ -32,10 +32,10 @@
 			judul: "Tarik Soal Online",
 			menu: "Pengaturan > Tarik Soal Online",
 			icon: "i-lucide-cloud-download",
-			ringkasan: "Tarik bank soal sekolah lain dari repo GitHub NILUJI tanpa impor manual.",
+			ringkasan: "Tarik bank soal gugus yang dipublikasikan pembuat soal, tanpa impor manual.",
 			isi: [
-				"Kalau sekolah sudah punya bank soal yang diunggah ke repo GitHub NILUJI (format Markdown hasil Export), soal itu bisa ditarik langsung.",
-				"Pilih Kelas, Mata Pelajaran, lalu Jenis Ujian (daftarnya diambil otomatis dari file di repo). Klik Ambil & Preview, cek soalnya, lalu Impor ke Bank Soal."
+				"Pilih gugus sekolah (diingat untuk pemakaian berikutnya), lalu Kelas, Mata Pelajaran, dan Jenis Ujian. Soal untuk \"semua gugus\" ikut tampil.",
+				"Klik Ambil & Preview, cek soalnya, pilih mata pelajaran sekolah tempat soal disimpan, lalu Impor ke Bank Soal. Butuh internet hanya saat menarik."
 			]
 		},
 		{
@@ -52,6 +52,12 @@
 	];
 
 	const exportOpen = ref(false);
+	const publikasiOpen = ref(false);
+	// Jendela pembuat soal baru dimuat saat pertama dibuka, lalu tetap terpasang.
+	const publikasiMounted = ref(false);
+	watch(publikasiOpen, (open) => {
+		if (open) publikasiMounted.value = true;
+	});
 
 	interface BackupInfo {
 		fileName: string
@@ -181,7 +187,7 @@
 
 			<UPageCard
 				title="Export Bank Soal"
-				description="Kebalikan dari Tarik Soal Online: keluarkan bank soal menjadi file (Markdown + folder gambar) untuk diunggah ke repo GitHub."
+				description="Keluarkan bank soal menjadi file (Markdown + folder gambar), untuk cadangan atau dibagikan sebagai file."
 				icon="i-lucide-upload">
 				<p class="text-xs text-muted mt-2">
 					Atur PIN Export dulu di Pengaturan &gt; Data Sekolah. File hasil export memuat kunci jawaban,
@@ -199,6 +205,23 @@
 					class="mt-3"
 					@click="exportOpen = true">
 					Export Bank Soal
+				</UButton>
+			</UPageCard>
+
+			<UPageCard
+				title="Publikasikan Bank Soal Gugus"
+				description="Khusus pembuat soal: terbitkan paket soal per gugus supaya sekolah bisa menariknya lewat Tarik Soal Online."
+				icon="i-lucide-upload-cloud">
+				<p class="text-xs text-muted mt-2">
+					Hanya bisa dipakai dengan token GitHub milik pembuat soal yang punya hak tulis ke repo bank soal.
+				</p>
+				<UButton
+					icon="lucide:upload-cloud"
+					variant="soft"
+					size="sm"
+					class="mt-3"
+					@click="publikasiOpen = true">
+					Buka
 				</UButton>
 			</UPageCard>
 
@@ -244,4 +267,5 @@
 	</div>
 
 	<PengaturanExportSoalModal v-model:open="exportOpen" />
+	<LazyPengaturanPublikasiSoalModal v-if="publikasiMounted" v-model:open="publikasiOpen" />
 </template>

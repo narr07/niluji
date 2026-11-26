@@ -1,35 +1,40 @@
 <script lang="ts" setup>
 	import type { TableColumn } from "@nuxt/ui";
+	import type { Katalog, PaketEntry } from "~/composables/useBankSoalGugus";
+	import type { BankSoalOnlineRow, OnlineSubject } from "~/composables/useBankSoalOnline";
 	import { invoke } from "@tauri-apps/api/core";
 	import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
-	import {
-		CDN_BASE,
-		checkBankSoalConnection,
-		fetchBankSoalMarkdown,
-		listJenisFiles,
-		subjectFolderCode,
-		type BankSoalOnlineRow,
-		type JenisFileOption,
-		type OnlineSubject
-	} from "~/composables/useBankSoalOnline";
+	import { fetchKatalog, fetchPaketRows, paketImageUrl, paketUntukGugus, SEMUA_GUGUS } from "~/composables/useBankSoalGugus";
+	import { checkBankSoalConnection } from "~/composables/useBankSoalOnline";
+
+	// Spasi tak-terputus: label "kosong" yang tetap punya tinggi baris, untuk menyejajarkan tombol.
+	const LABEL_KOSONG = String.fromCharCode(0xA0);
 
 	const emit = defineEmits<{
 		selected: [rows: BankSoalOnlineRow[]]
 	}>();
 
+	interface PilihanSekolah {
+		kecamatan: string | null
+		gugus: string | null
+	}
+
 	const toast = useToast();
-	const { classes } = useBankSoalOnline();
-	const subjects = ref<OnlineSubject[]>([]);
-	const selectedClass = ref("");
-	const selectedSubject = ref("");
-	const jenisFiles = ref<JenisFileOption[]>([]);
-	const selectedJenisFile = ref("");
-	const loadingJenisFiles = ref(false);
+	const katalog = ref<Katalog | null>(null);
+	const loadingKatalog = ref(false);
+	const localSubjects = ref<OnlineSubject[]>([]);
+	const localClasses = ref<string[]>([]);
+
+	const selectedKecamatan = ref("");
+	const selectedGugus = ref("");
+	const selectedKelas = ref("");
+	const selectedMapel = ref("");
+	const selectedFolder = ref("");
+	const targetSubjectId = ref<number | undefined>();
+	const jenisSoal = ref("");
+
 	const rows = ref<BankSoalOnlineRow[]>([]);
-	const sourceFile = ref("");
-	const essayFile = ref("");
-	const sourceFolder = ref("");
-	const loadingSubjects = ref(false);
+	const loadedPaket = ref<PaketEntry | null>(null);
 	const loadingRows = ref(false);
 	const checkingConnection = ref(false);
 	const errorMessage = ref("");
@@ -37,7 +42,6 @@
 	const connectionStatus = ref<"checking" | "online" | "offline">("checking");
 	const connectionMessage = ref("Memeriksa koneksi internet...");
 	const connectionCheckedAt = ref<Date>();
-	const jenisSoal = ref("");
 	const scopeOptions = [
 		{ label: "Kelas & mata pelajaran ini saja", value: "narrow" as const },
 		{ label: "Semua pelajaran di kelas ini saja", value: "class" as const },
@@ -49,41 +53,50 @@
 	const importError = ref("");
 	const importedIds = ref(new Set<string>());
 
-	const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp"];
-	const hasKnownExtension = (name: string) => /\.(jpg|jpeg|png|gif|webp)$/i.test(name);
+	const kecamatan = computed(() => katalog.value?.kecamatan.find((k) => k.id === selectedKecamatan.value));
+	const kecamatanItems = computed(() => (katalog.value?.kecamatan ?? []).map((k) => ({ label: k.nama, value: k.id })));
+	const gugusItems = computed(() => (kecamatan.value?.gugus ?? []).map((g) => ({ label: g.nama, value: g.id })));
+	const paketGugus = computed(() => (katalog.value && selectedGugus.value ? paketUntukGugus(katalog.value, selectedKecamatan.value, selectedGugus.value) : []));
 
-	const numericClass = computed(() => selectedClass.value.replace(/^kelas_/, ""));
-	const selectedSubjectId = computed(() => subjects.value.find((s) => subjectFolderCode(s) === selectedSubject.value)?.id);
-
-	const subjectItems = computed(() => subjects.value.map((subject) => ({
-		label: subject.code ? `${subject.code} - ${subject.name}` : subject.name,
-		value: subjectFolderCode(subject)
-	})));
-	const jenisFileItems = computed(() => jenisFiles.value.map((j) => ({ label: j.label, value: j.fileName })));
-	const canFetch = computed(() =>
-		Boolean(selectedClass.value && selectedSubject.value && selectedJenisFile.value && connectionStatus.value === "online")
+	const kelasItems = computed(() =>
+		[...new Set(paketGugus.value.map((p) => p.kelas))].sort().map((k) => ({ label: `Kelas ${k}`, value: k }))
 	);
+	const paketKelas = computed(() => paketGugus.value.filter((p) => p.kelas === selectedKelas.value));
+	const mapelItems = computed(() => {
+		const seen = new Map<string, string>();
+		for (const p of paketKelas.value) seen.set(p.mapelKode, `${p.mapelKode} - ${p.mapelNama}`);
+		return [...seen.entries()].map(([value, label]) => ({ label, value }));
+	});
+	const paketMapel = computed(() => paketKelas.value.filter((p) => p.mapelKode === selectedMapel.value));
+	const jenisItems = computed(() =>
+		paketMapel.value.map((p) => ({
+			label: `${p.jenis}${p.gugus === SEMUA_GUGUS ? " (semua gugus)" : ""} · ${p.pg} PG, ${p.esai} esai`,
+			value: p.folder
+		}))
+	);
+	const selectedPaket = computed(() => paketMapel.value.find((p) => p.folder === selectedFolder.value));
+
+	const subjectItems = computed(() => localSubjects.value.map((s) => ({ label: s.code ? `${s.code} - ${s.name}` : s.name, value: s.id })));
+	const kelasTidakTerdaftar = computed(() => Boolean(loadedPaket.value && !localClasses.value.includes(loadedPaket.value.kelas)));
+
+	const canFetch = computed(() => Boolean(selectedPaket.value && connectionStatus.value === "online"));
 	const validCount = computed(() => rows.value.filter((row) => row.valid).length);
 	const selectedCount = computed(() => selectedRows.value.size);
 
 	const columns: TableColumn<BankSoalOnlineRow>[] = [
 		{ id: "select", header: "Pilih" },
-		{ accessorKey: "rowNumber", header: "Baris" },
+		{ accessorKey: "rowNumber", header: "No" },
 		{ id: "tipe", header: "Tipe" },
 		{ id: "soal", header: "Soal" },
 		{ id: "status", header: "Status" },
 		{ id: "gambar", header: "Gambar" }
 	];
 
-	const loadSubjects = async () => {
-		loadingSubjects.value = true;
-		try {
-			subjects.value = await invoke<OnlineSubject[]>("list_subjects");
-		} catch (error) {
-			errorMessage.value = error instanceof Error ? error.message : String(error);
-		} finally {
-			loadingSubjects.value = false;
-		}
+	const resetPreview = () => {
+		rows.value = [];
+		loadedPaket.value = null;
+		errorMessage.value = "";
+		importError.value = "";
 	};
 
 	const refreshConnection = async () => {
@@ -101,54 +114,85 @@
 		}
 	};
 
-	const selectClass = (value: string) => {
-		selectedClass.value = value;
-		selectedSubject.value = "";
-		selectedJenisFile.value = "";
-		jenisFiles.value = [];
-		rows.value = [];
+	const loadKatalog = async () => {
+		loadingKatalog.value = true;
 		errorMessage.value = "";
-	};
-
-	const loadJenisFiles = async () => {
-		selectedJenisFile.value = "";
-		jenisFiles.value = [];
-		if (!selectedClass.value || !selectedSubject.value) return;
-		loadingJenisFiles.value = true;
 		try {
-			jenisFiles.value = await listJenisFiles(selectedClass.value, selectedSubject.value);
+			katalog.value = await fetchKatalog();
+			const saved = await invoke<PilihanSekolah>("bank_soal_pilihan_sekolah");
+			const list = katalog.value.kecamatan;
+			const kec = list.find((k) => k.id === saved.kecamatan) ?? (list.length === 1 ? list[0] : undefined);
+			selectedKecamatan.value = kec?.id ?? "";
+			selectedGugus.value = kec?.gugus.some((g) => g.id === saved.gugus) ? saved.gugus! : "";
 		} catch (error) {
 			errorMessage.value = error instanceof Error ? error.message : String(error);
 		} finally {
-			loadingJenisFiles.value = false;
+			loadingKatalog.value = false;
 		}
 	};
 
-	const selectSubject = (value: string) => {
-		selectedSubject.value = value;
-		rows.value = [];
-		errorMessage.value = "";
-		void loadJenisFiles();
+	const reload = async () => {
+		if (await refreshConnection()) await loadKatalog();
+	};
+
+	const selectKecamatan = (value: string) => {
+		selectedKecamatan.value = value;
+		selectedGugus.value = "";
+		selectedKelas.value = "";
+		resetPreview();
+	};
+
+	// Gugus disimpan sebagai gugus sekolah ini, supaya otomatis terpilih lain kali.
+	const selectGugus = async (value: string) => {
+		selectedGugus.value = value;
+		selectedKelas.value = "";
+		selectedMapel.value = "";
+		selectedFolder.value = "";
+		resetPreview();
+		try {
+			await invoke("bank_soal_simpan_pilihan", { pilihan: { kecamatan: selectedKecamatan.value, gugus: value } });
+		} catch {
+			// Gagal menyimpan pilihan tidak menghalangi menarik soal.
+		}
+	};
+
+	const selectKelas = (value: string) => {
+		selectedKelas.value = value;
+		selectedMapel.value = "";
+		selectedFolder.value = "";
+		resetPreview();
+	};
+
+	const selectMapel = (value: string) => {
+		selectedMapel.value = value;
+		selectedFolder.value = paketMapel.value.length === 1 ? paketMapel.value[0]!.folder : "";
+		resetPreview();
+	};
+
+	// Mapel sekolah dicocokkan dari kode, lalu nama. Bila tidak ada yang cocok, sekolah memilih sendiri.
+	const matchLocalSubject = (paket: PaketEntry) => {
+		const norm = (s: string | null | undefined) => (s ?? "").trim().toLowerCase();
+		return (
+			localSubjects.value.find((s) => norm(s.code) && norm(s.code) === norm(paket.mapelKode))
+			?? localSubjects.value.find((s) => norm(s.name) === norm(paket.mapelNama))
+		)?.id;
 	};
 
 	const fetchRows = async () => {
-		if (!canFetch.value) return;
+		const paket = selectedPaket.value;
+		if (!canFetch.value || !paket) return;
 		loadingRows.value = true;
-		errorMessage.value = "";
-		importError.value = "";
-		rows.value = [];
+		resetPreview();
 		selectedRows.value = new Set();
 		importedIds.value = new Set();
 		try {
 			const isConnected = await refreshConnection();
 			if (!isConnected) return;
-			const result = await fetchBankSoalMarkdown(selectedClass.value, selectedSubject.value, selectedJenisFile.value);
-			rows.value = result.rows;
-			sourceFile.value = result.fileName;
-			essayFile.value = "";
-			sourceFolder.value = result.folderPath;
-			jenisSoal.value = result.jenis;
-			selectedRows.value = new Set(result.rows.filter((row) => row.valid).map((row) => row.id));
+			rows.value = await fetchPaketRows(paket);
+			loadedPaket.value = paket;
+			jenisSoal.value = paket.jenis;
+			targetSubjectId.value = matchLocalSubject(paket);
+			selectedRows.value = new Set(rows.value.filter((row) => row.valid).map((row) => row.id));
 		} catch (error) {
 			errorMessage.value = error instanceof Error ? error.message : String(error);
 		} finally {
@@ -168,12 +212,14 @@
 
 	const importSelected = async () => {
 		importError.value = "";
+		const paket = loadedPaket.value;
+		if (!paket) return;
 		if (!jenisSoal.value.trim()) {
-			importError.value = "Isi \"Jenis Soal\" dulu sebelum impor (misalnya \"UTS Semester 1\").";
+			importError.value = "Isi nama jenis ujian dulu sebelum impor (misalnya \"STS Ganjil\").";
 			return;
 		}
-		if (!selectedSubjectId.value) {
-			importError.value = "Mata pelajaran terpilih tidak ditemukan di database.";
+		if (!targetSubjectId.value) {
+			importError.value = "Pilih mata pelajaran sekolah tempat soal ini disimpan.";
 			return;
 		}
 
@@ -181,70 +227,54 @@
 		if (!selected.length) return;
 
 		importing.value = true;
-
 		try {
 			await invoke("create_question_type", {
 				name: jenisSoal.value.trim(),
 				description: null,
-				class: (scope.value === "narrow" || scope.value === "class") ? numericClass.value : null,
-				subjectId: (scope.value === "narrow" || scope.value === "subject") ? selectedSubjectId.value : null
+				class: (scope.value === "narrow" || scope.value === "class") ? paket.kelas : null,
+				subjectId: (scope.value === "narrow" || scope.value === "subject") ? targetSubjectId.value : null
 			});
 		} catch {
-			// Sudah ada
+			// Jenis ujian sudah ada.
 		}
 
 		const imageCache = new Map<string, string>();
 		const newlyImported: string[] = [];
 		const failed: string[] = [];
 
-		const downloadRemoteImage = async (fileName: string): Promise<string> => {
-			const relPath = `${sourceFolder.value}/gambar/${fileName}`;
-			const cached = imageCache.get(relPath);
+		const downloadImage = async (fileName: string): Promise<string> => {
+			const cached = imageCache.get(fileName);
 			if (cached) return cached;
-
-			const baseUrl = `${CDN_BASE}/${relPath.split("/").map(encodeURIComponent).join("/")}`;
-			const candidates = hasKnownExtension(fileName)
-				? [{ url: baseUrl, ext: fileName.split(".").pop()! }]
-				: IMAGE_EXTENSIONS.map((ext) => ({ url: `${baseUrl}.${ext}`, ext }));
-
-			let found: { bytes: number[], ext: string } | undefined;
-			for (const candidate of candidates) {
-				const response = await tauriFetch(candidate.url);
-				if (response.ok) {
-					found = { bytes: Array.from(new Uint8Array(await response.arrayBuffer())), ext: candidate.ext };
-					break;
-				}
-			}
-			if (!found) {
-				throw new Error(`Gagal mengunduh gambar ${fileName} (sudah dicoba ${candidates.length} kemungkinan ekstensi)`);
-			}
-
+			const response = await tauriFetch(paketImageUrl(paket.folder, fileName));
+			if (!response.ok) throw new Error(`Gagal mengunduh gambar ${fileName}`);
 			const saved = await invoke<{ path: string }>("save_question_image_bytes", {
-				fileName: hasKnownExtension(fileName) ? fileName : `${fileName}.${found.ext}`,
-				bytes: found.bytes
+				fileName,
+				bytes: Array.from(new Uint8Array(await response.arrayBuffer()))
 			});
-			imageCache.set(relPath, saved.path);
+			imageCache.set(fileName, saved.path);
 			return saved.path;
 		};
+		const optionalImage = (fileName?: string) => (fileName ? downloadImage(fileName) : Promise.resolve(undefined));
 
 		try {
 			for (const row of selected) {
 				try {
-					const imagePath = row.nama_file_gambar ? await downloadRemoteImage(row.nama_file_gambar) : undefined;
-					const optionAImage = row.pilihan_a_gambar ? await downloadRemoteImage(row.pilihan_a_gambar) : undefined;
-					const optionBImage = row.pilihan_b_gambar ? await downloadRemoteImage(row.pilihan_b_gambar) : undefined;
-					const optionCImage = row.pilihan_c_gambar ? await downloadRemoteImage(row.pilihan_c_gambar) : undefined;
-					const optionDImage = row.pilihan_d_gambar ? await downloadRemoteImage(row.pilihan_d_gambar) : undefined;
-					const optionEImage = row.pilihan_e_gambar ? await downloadRemoteImage(row.pilihan_e_gambar) : undefined;
-
+					const [image, optionAImage, optionBImage, optionCImage, optionDImage, optionEImage] = await Promise.all([
+						optionalImage(row.nama_file_gambar || undefined),
+						optionalImage(row.pilihan_a_gambar),
+						optionalImage(row.pilihan_b_gambar),
+						optionalImage(row.pilihan_c_gambar),
+						optionalImage(row.pilihan_d_gambar),
+						optionalImage(row.pilihan_e_gambar)
+					]);
 					await invoke("create_question", {
 						input: {
-							subjectId: selectedSubjectId.value,
-							class: numericClass.value,
+							subjectId: targetSubjectId.value,
+							class: paket.kelas,
 							jenis: jenisSoal.value.trim(),
 							questionText: row.soal,
 							questionType: row.tipe === "pg" ? "multiple_choice" : "essay",
-							image: imagePath,
+							image,
 							score: Number(row.skor) || 1,
 							optionA: row.tipe === "pg" ? row.pilihan_a : "",
 							optionB: row.tipe === "pg" ? row.pilihan_b : "",
@@ -259,10 +289,9 @@
 							correctOption: row.tipe === "pg" ? row.kunci_jawaban.trim().toUpperCase() : ""
 						}
 					});
-
 					newlyImported.push(row.id);
 				} catch (error) {
-					failed.push(`Baris ${row.rowNumber}: ${error instanceof Error ? error.message : String(error)}`);
+					failed.push(`Soal ${row.rowNumber}: ${error instanceof Error ? error.message : String(error)}`);
 				}
 			}
 		} finally {
@@ -280,22 +309,27 @@
 			});
 		}
 		if (failed.length) {
-			importError.value = failed.slice(0, 5).join("\n") + (failed.length > 5 ? `\n...dan ${failed.length - 5} baris lainnya gagal.` : "");
+			importError.value = failed.slice(0, 5).join("\n") + (failed.length > 5 ? `\n...dan ${failed.length - 5} soal lainnya gagal.` : "");
 		}
 	};
 
-	onMounted(() => {
-		void loadSubjects();
-		void refreshConnection();
+	onMounted(async () => {
+		[localSubjects.value, localClasses.value] = await Promise.all([
+			invoke<OnlineSubject[]>("list_subjects"),
+			invoke<string[]>("list_classes")
+		]);
+		await reload();
 	});
 </script>
 
 <template>
 	<div class="space-y-6">
 		<div>
-			<h2 class="text-lg font-semibold">Tarik Soal Online</h2>
+			<h2 class="text-lg font-semibold">
+				Tarik Soal Online
+			</h2>
 			<p class="text-sm text-muted mt-1">
-				Ambil dan periksa bank soal dari repo GitHub NILUJI sebelum digunakan di CBT offline.
+				Ambil bank soal yang dipublikasikan pembuat soal untuk gugus sekolah Anda, periksa, lalu simpan ke Bank Soal untuk ujian offline.
 			</p>
 		</div>
 
@@ -314,49 +348,89 @@
 			<UButton
 				variant="soft"
 				icon="lucide:refresh-cw"
-				:loading="checkingConnection"
-				@click="refreshConnection">
-				Refresh koneksi
+				:loading="checkingConnection || loadingKatalog"
+				@click="reload">
+				Muat ulang
 			</UButton>
 		</div>
 
-		<div class="grid gap-4 md:grid-cols-4 items-end">
-			<UFormField label="Kelas">
-				<USelectMenu
-					:model-value="selectedClass"
-					:items="classes"
-					value-key="value"
-					placeholder="Pilih kelas"
-					@update:model-value="selectClass" />
-			</UFormField>
+		<div v-if="katalog" class="space-y-4">
+			<div class="grid gap-4 items-start md:grid-cols-2">
+				<UFormField
+					v-if="kecamatanItems.length > 1"
+					label="Kecamatan"
+					class="min-w-0">
+					<USelectMenu
+						:model-value="selectedKecamatan"
+						:items="kecamatanItems"
+						value-key="value"
+						placeholder="Pilih kecamatan"
+						class="w-full"
+						@update:model-value="selectKecamatan" />
+				</UFormField>
+				<UFormField
+					label="Gugus sekolah"
+					:help="kecamatan ? `${kecamatan.nama}. Pilihan ini diingat untuk sekolah Anda.` : undefined"
+					class="min-w-0">
+					<USelectMenu
+						:model-value="selectedGugus"
+						:items="gugusItems"
+						value-key="value"
+						:disabled="!kecamatan"
+						placeholder="Pilih gugus"
+						class="w-full"
+						@update:model-value="selectGugus" />
+				</UFormField>
+			</div>
 
-			<UFormField label="Mata Pelajaran" description="Folder memakai kode mata pelajaran dari database.">
-				<USelectMenu
-					:model-value="selectedSubject"
-					:items="subjectItems"
-					value-key="value"
-					:disabled="!selectedClass || loadingSubjects"
-					placeholder="Pilih mata pelajaran"
-					@update:model-value="selectSubject" />
-			</UFormField>
+			<div v-if="selectedGugus" class="grid gap-4 items-start md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,2fr)_auto]">
+				<UFormField label="Kelas" class="min-w-0">
+					<USelectMenu
+						:model-value="selectedKelas"
+						:items="kelasItems"
+						value-key="value"
+						placeholder="Pilih kelas"
+						class="w-full"
+						@update:model-value="selectKelas" />
+				</UFormField>
 
-			<UFormField label="Jenis Ujian" :description="selectedSubject && !loadingJenisFiles && !jenisFileItems.length ? 'Belum ada file jenis ujian di folder ini.' : undefined">
-				<USelectMenu
-					v-model="selectedJenisFile"
-					:items="jenisFileItems"
-					value-key="value"
-					:loading="loadingJenisFiles"
-					:disabled="!selectedSubject"
-					placeholder="Pilih jenis ujian" />
-			</UFormField>
+				<UFormField label="Mata Pelajaran" class="min-w-0">
+					<USelectMenu
+						:model-value="selectedMapel"
+						:items="mapelItems"
+						value-key="value"
+						:disabled="!selectedKelas"
+						placeholder="Pilih mata pelajaran"
+						class="w-full"
+						@update:model-value="selectMapel" />
+				</UFormField>
 
-			<UButton
-				icon="lucide:cloud-download"
-				:loading="loadingRows"
-				:disabled="!canFetch"
-				@click="fetchRows">
-				Ambil &amp; Preview
-			</UButton>
+				<UFormField label="Jenis Ujian" class="min-w-0">
+					<USelectMenu
+						v-model="selectedFolder"
+						:items="jenisItems"
+						value-key="value"
+						:disabled="!selectedMapel"
+						placeholder="Pilih jenis ujian"
+						class="w-full"
+						@update:model-value="resetPreview" />
+				</UFormField>
+
+				<UFormField :label="LABEL_KOSONG" class="min-w-0">
+					<UButton
+						icon="lucide:cloud-download"
+						:loading="loadingRows"
+						:disabled="!canFetch"
+						class="w-full justify-center"
+						@click="fetchRows">
+						Ambil &amp; Preview
+					</UButton>
+				</UFormField>
+			</div>
+
+			<p v-if="selectedGugus && !paketGugus.length" class="text-sm text-muted">
+				Belum ada soal yang dipublikasikan untuk gugus ini.
+			</p>
 		</div>
 
 		<UAlert
@@ -366,12 +440,32 @@
 			title="Gagal mengambil bank soal"
 			:description="errorMessage" />
 
-		<div v-if="rows.length" class="space-y-4">
+		<div v-if="rows.length && loadedPaket" class="space-y-4">
+			<div class="grid gap-4 items-start md:grid-cols-2">
+				<UFormField label="Simpan ke mata pelajaran" :help="`Di bank soal: ${loadedPaket.mapelKode} - ${loadedPaket.mapelNama}`" required>
+					<USelectMenu
+						v-model="targetSubjectId"
+						:items="subjectItems"
+						value-key="value"
+						placeholder="Pilih mata pelajaran sekolah"
+						class="w-full" />
+				</UFormField>
+				<UFormField label="Simpan sebagai jenis ujian" required>
+					<UInput v-model="jenisSoal" class="w-full" />
+				</UFormField>
+			</div>
+
+			<UAlert
+				v-if="kelasTidakTerdaftar"
+				color="warning"
+				variant="subtle"
+				icon="lucide:triangle-alert"
+				:title="`Kelas ${loadedPaket.kelas} belum ada di Data Kelas sekolah ini`"
+				description="Soal tetap bisa diimpor, tetapi tambahkan kelasnya di Pengaturan › Data Kelas supaya muncul di Bank Soal." />
+
 			<div class="flex flex-wrap items-end justify-between gap-3">
 				<div class="text-sm text-muted">
-					Sumber: <code>{{ sourceFolder }}/{{ sourceFile }}</code> · Jenis: <UBadge color="neutral" variant="subtle">{{ jenisSoal }}</UBadge>
-					<span class="mx-2">·</span>
-					{{ rows.length }} baris, {{ validCount }} valid, {{ rows.length - validCount }} invalid
+					{{ rows.length }} soal, {{ validCount }} valid, {{ rows.length - validCount }} perlu dicek
 				</div>
 				<UButton
 					icon="lucide:database"
@@ -382,7 +476,7 @@
 				</UButton>
 			</div>
 
-			<UFormField label="Berlaku untuk">
+			<UFormField label="Jenis ujian berlaku untuk">
 				<URadioGroup v-model="scope" orientation="horizontal" :items="scopeOptions" />
 			</UFormField>
 
@@ -411,7 +505,7 @@
 					</template>
 					<template #status-cell="{ row }">
 						<UBadge :color="row.original.valid ? 'success' : 'error'" variant="subtle">
-							{{ row.original.valid ? "Valid" : "Invalid" }}
+							{{ row.original.valid ? "Valid" : "Cek" }}
 						</UBadge>
 						<UBadge
 							v-if="importedIds.has(row.original.id)"
@@ -423,19 +517,16 @@
 						<p v-if="row.original.alasan_invalid" class="mt-1 text-xs text-error">{{ row.original.alasan_invalid }}</p>
 					</template>
 					<template #gambar-cell="{ row }">
-						<div v-if="row.original.nama_file_gambar" class="flex items-start gap-2">
-							<UIcon name="lucide:image" class="size-4 mt-0.5 shrink-0" />
-							<span class="break-all">{{ row.original.nama_file_gambar }}</span>
-						</div>
+						<UIcon v-if="row.original.nama_file_gambar" name="lucide:image" class="size-4" />
 						<span v-else class="text-muted">-</span>
 					</template>
 				</UTable>
 			</div>
 		</div>
 
-		<div v-else-if="!loadingRows" class="rounded-lg border border-dashed border-default p-10 text-center text-muted">
+		<div v-else-if="!loadingRows && katalog" class="rounded-lg border border-dashed border-default p-10 text-center text-muted">
 			<UIcon name="lucide:cloud-download" class="size-8 mb-2" />
-			<p>Pilih kelas dan mata pelajaran, lalu ambil bank soal untuk melihat preview.</p>
+			<p>Pilih gugus, kelas, mata pelajaran, dan jenis ujian, lalu klik Ambil &amp; Preview.</p>
 		</div>
 	</div>
 </template>
