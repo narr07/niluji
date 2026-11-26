@@ -46,8 +46,8 @@
 - **Bank Soal Multi-Format & Bergambar**:
   - Impor soal dari **Microsoft Word (`.docx`)**, **Excel (`.xlsx`)**, **CSV**, maupun **Markdown (`.md` + folder `gambar/`)** lengkap dengan gambar di tengah soal dan gambar pada opsi jawaban A–E.
   - **Tarik & Bagikan Bank Soal Online** lewat repositori GitHub. Ekspor dibatasi PIN, dan file hasilnya memuat kunci jawaban.
-- **Cetak Kartu Peserta QR + PIN**:
-  - Cetak kartu peserta ujian satu kelas sekaligus siap gunting lengkap dengan QR Code server lokal.
+- **Cetak Kartu Peserta + PIN**:
+  - Cetak kartu peserta ujian satu kelas sekaligus siap gunting. Alamat ujian ditampilkan pengawas lewat QR Akses Ujian di Dashboard.
 - **Portal CBT Siswa Ergonomis**:
   - Penanda soal **Ragu-ragu** (*Bookmark*), pengatur ukuran huruf (`A-` / `A` / `A+`), pintasan keyboard `A–D`, bilah navigasi bawah khusus HP, dan antrean simpan ulang otomatis (*Offline Retry Queue*).
 - **Bobot Nilai & Analisis Butir Soal**:

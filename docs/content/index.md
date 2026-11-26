@@ -14,7 +14,7 @@ orientation: horizontal
 Ujian Sekolah [100% Offline]{.text-primary} Tanpa Ribet Server.
 
 #description
-**NILUJI** mengubah satu laptop guru atau komputer proktor menjadi server ujian lokal siap pakai. Siswa mengerjakan soal lewat browser HP atau laptop melalui WiFi sekolah tanpa kuota internet, lengkap dengan Kartu Peserta QR + PIN, Kunci Perangkat (*Single-Device Lock*), dan Analisis Pengecoh.
+**NILUJI** mengubah satu laptop guru atau komputer proktor menjadi server ujian lokal siap pakai. Siswa mengerjakan soal lewat browser HP atau laptop melalui WiFi sekolah tanpa kuota internet, lengkap dengan Kartu Peserta + PIN, Kunci Perangkat (*Single-Device Lock*), dan Analisis Pengecoh.
 
 #links
   :::u-button
@@ -169,10 +169,10 @@ Lengkap untuk Guru, Pengawas, maupun Siswa
   icon: i-lucide-id-card
   ---
   #title
-  Cetak Kartu Peserta QR + PIN
+  Cetak Kartu Peserta + PIN
 
   #description
-  Cetak kartu peserta ujian satu kelas sekaligus dalam tata letak siap gunting, dilengkapi identitas sekolah, NISN, PIN 6 digit, dan QR Code alamat server lokal.
+  Cetak kartu peserta ujian satu kelas sekaligus dalam tata letak siap gunting, dilengkapi identitas sekolah, NISN, kelas dan rombel, serta PIN 6 digit.
   :::
 
   :::u-page-feature

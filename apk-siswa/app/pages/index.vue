@@ -102,7 +102,7 @@ const busy = computed(() => connecting.value || scanning.value);
 							Sambungkan ke server ujian
 						</h2>
 						<p class="text-sm text-muted mt-1">
-							Pindai QR pada kartu peserta, atau ketik alamat yang ditampilkan pengawas.
+							Pindai QR Akses Ujian di layar pengawas, atau ketik alamat yang ditampilkan pengawas.
 						</p>
 					</div>
 
@@ -111,7 +111,7 @@ const busy = computed(() => connecting.value || scanning.value);
 						block
 						size="xl"
 						icon="i-lucide-scan-qr-code"
-						label="Pindai QR Kartu Peserta"
+						label="Pindai QR Akses Ujian"
 						:loading="scanning"
 						:disabled="busy && !scanning"
 						@click="scan"

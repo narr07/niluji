@@ -6,6 +6,7 @@
 		nisn: string
 		name: string
 		class: string | null
+		rombel?: string | null
 		pin?: string
 	}
 
@@ -14,13 +15,6 @@
 		npsn: string
 		address: string
 		principal: string
-	}
-
-	interface ServerInfo {
-		port: number | null
-		lanIp: string | null
-		lanIps?: string[]
-		dbOk: boolean
 	}
 
 	const props = defineProps<{
@@ -43,10 +37,9 @@
 	const toast = useToast();
 
 	const school = ref<SchoolInfo>({ name: "Sekolah", npsn: "", address: "", principal: "" });
-	const joinUrl = ref("");
-	const qrDataUrl = ref("");
 	const filterClass = ref(props.defaultClass || "ALL");
 	const regenerating = ref(false);
+	const printing = ref(false);
 	const legacyPinCount = ref(0);
 
 	const loadLegacyPinCount = async () => {
@@ -63,27 +56,18 @@
 		return props.students.filter((s) => s.class === filterClass.value);
 	});
 
+	const pageCount = computed(() => Math.ceil(filteredStudents.value.length / KARTU_PER_HALAMAN));
+
+	// Kartu sengaja tidak memuat alamat server atau QR-nya: alamat IP laptop pengawas bisa berubah
+	// (router dinyalakan ulang, pindah jaringan), sehingga kartu yang sudah dicetak akan salah.
+	// Siswa memakai alamat atau QR Akses Ujian yang ditampilkan pengawas dari Dashboard.
 	const loadMeta = async () => {
 		if (!isTauri()) {
 			school.value = { name: "SDN Percobaan", npsn: "12345678", address: "", principal: "" };
-			joinUrl.value = "http://192.168.1.10/cbt";
-		} else {
-			const [sInfo, srv] = await Promise.all([
-				invoke<SchoolInfo>("get_school"),
-				invoke<ServerInfo>("get_server_info")
-			]);
-			school.value = sInfo;
-			await loadLegacyPinCount();
-			if (srv.lanIp && srv.port) {
-				const portSuffix = srv.port === 80 ? "" : `:${srv.port}`;
-				joinUrl.value = `http://${srv.lanIp}${portSuffix}/cbt`;
-			}
+			return;
 		}
-
-		if (joinUrl.value) {
-			const QRCode = await import("qrcode");
-			qrDataUrl.value = await QRCode.toDataURL(joinUrl.value, { width: 120, margin: 1 });
-		}
+		school.value = await invoke<SchoolInfo>("get_school");
+		await loadLegacyPinCount();
 	};
 
 	watch(
@@ -97,38 +81,69 @@
 		{ immediate: true }
 	);
 
-	const regeneratePins = async () => {
-		if (!isTauri()) return;
-		const targetLabel = filterClass.value === "ALL" ? "semua kelas" : `Kelas ${filterClass.value}`;
-		const ok = await confirmDelete({
-			title: `Acak ulang PIN siswa (${targetLabel})?`,
-			description: "PIN lama tidak akan berlaku lagi. Pastikan kartu peserta dicetak ulang setelah ini.",
-			confirmLabel: "Acak Ulang PIN"
-		});
-		if (!ok) return;
+	// Peringatan "ya/tidak" dipasang sebagai modal bertingkat DI DALAM modal ini. Dialog konfirmasi
+	// global (confirmDelete) dirender di luar modal yang sedang terbuka, sehingga tidak bisa diklik
+	// dan Acak Ulang PIN terlihat tidak berfungsi.
+	const confirmRegenOpen = ref(false);
+	const regenTargetLabel = computed(() => (filterClass.value === "ALL" ? "semua kelas" : `Kelas ${filterClass.value}`));
 
+	const askRegeneratePins = () => {
+		if (!isTauri()) return;
+		confirmRegenOpen.value = true;
+	};
+
+	const regeneratePins = async () => {
 		regenerating.value = true;
 		try {
 			const count = await invoke<number>("regenerate_student_pins", {
 				class: filterClass.value === "ALL" ? null : filterClass.value
 			});
+			confirmRegenOpen.value = false;
 			toast.add({
 				title: "PIN diperbarui",
-				description: `${count} PIN siswa berhasil diacak ulang.`,
+				description: `${count} PIN siswa berhasil diacak ulang. Cetak ulang kartunya sebelum ujian.`,
 				icon: "lucide:check",
 				color: "success"
 			});
 			await loadLegacyPinCount();
 			emit("regenerated");
+		} catch (e) {
+			toast.add({ title: "Gagal mengacak ulang PIN", description: e instanceof Error ? e.message : String(e), icon: "lucide:x", color: "error" });
 		} finally {
 			regenerating.value = false;
 		}
 	};
 
+	// Kartu dicetak dari dokumen terpisah di iframe tersembunyi, bukan dari jendela aplikasi, supaya
+	// yang tercetak hanya lembar kartu dengan ukuran A4 yang pasti.
 	const printCards = () => {
-		if (typeof window !== "undefined") {
-			window.print();
+		if (typeof window === "undefined" || !filteredStudents.value.length) return;
+		printing.value = true;
+		const frame = document.createElement("iframe");
+		frame.setAttribute("aria-hidden", "true");
+		frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
+		document.body.appendChild(frame);
+
+		const cleanup = () => {
+			frame.remove();
+			printing.value = false;
+		};
+		const doc = frame.contentDocument;
+		const win = frame.contentWindow;
+		if (!doc || !win) {
+			cleanup();
+			return;
 		}
+		doc.open();
+		doc.write(buildKartuPesertaHtml(filteredStudents.value, school.value.name || "NILUJI"));
+		doc.close();
+		win.addEventListener("afterprint", cleanup, { once: true });
+		// Beri waktu dokumen selesai ditata sebelum dialog cetak dibuka.
+		setTimeout(() => {
+			win.focus();
+			win.print();
+			setTimeout(cleanup, 60_000);
+		}, 250);
 	};
 </script>
 
@@ -136,7 +151,7 @@
 	<UModal
 		v-model:open="openModel"
 		title="Kartu Peserta Ujian & PIN Siswa"
-		description="Cetak kartu peserta dilengkapi NISN, PIN 6 digit, dan QR akses ujian lokal"
+		description="Kartu berisi nama, NISN, kelas, dan PIN. Alamat ujian ditampilkan pengawas dari Dashboard."
 		:ui="{ content: 'max-w-4xl' }">
 		<template #body>
 			<div class="space-y-4">
@@ -145,11 +160,10 @@
 					color="warning"
 					variant="subtle"
 					icon="lucide:shield-alert"
-					class="print:hidden"
 					:title="`${legacyPinCount} siswa masih memakai PIN versi lama`"
 					description="PIN ini bisa ditebak dari NISN. Klik Acak Ulang PIN untuk semua kelas, lalu cetak ulang kartu sebelum ujian berikutnya." />
 
-				<div class="flex flex-wrap items-center justify-between gap-3 print:hidden">
+				<div class="flex flex-wrap items-center justify-between gap-3">
 					<div class="flex items-center gap-2">
 						<USelectMenu
 							v-if="!defaultClass"
@@ -158,7 +172,7 @@
 							value-key="value"
 							class="w-44" />
 						<span class="text-sm text-muted">
-							{{ filteredStudents.length }} kartu siap cetak
+							{{ filteredStudents.length }} kartu · {{ pageCount }} lembar A4
 						</span>
 					</div>
 					<div class="flex items-center gap-2">
@@ -167,12 +181,13 @@
 							color="warning"
 							icon="lucide:key-round"
 							:loading="regenerating"
-							@click="regeneratePins">
+							@click="askRegeneratePins">
 							Acak Ulang PIN
 						</UButton>
 						<UButton
 							color="primary"
 							icon="lucide:printer"
+							:loading="printing"
 							:disabled="!filteredStudents.length"
 							@click="printCards">
 							Cetak Kartu
@@ -180,50 +195,51 @@
 					</div>
 				</div>
 
+				<p class="text-xs text-muted">
+					Dicetak di A4, 10 kartu per lembar, berukuran sama (9,7 × 5,6 cm). Garis kotak dipakai bersama oleh kartu bersebelahan, jadi satu guntingan memisahkan dua kartu.
+				</p>
+
 				<div
 					v-if="filteredStudents.length"
-					class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[65vh] overflow-y-auto p-1 print:max-h-none print:overflow-visible print:grid-cols-2">
+					class="grid grid-cols-1 sm:grid-cols-2 max-h-[65vh] overflow-y-auto border-t border-l border-default">
 					<div
 						v-for="student in filteredStudents"
 						:key="student.id"
-						class="rounded-lg border border-default p-3.5 bg-default flex items-start justify-between gap-3 break-inside-avoid">
-						<div class="space-y-1.5 min-w-0 flex-1">
-							<div class="border-b border-default pb-1.5">
-								<p class="text-[11px] font-semibold uppercase tracking-wider text-muted truncate">
-									Kartu Peserta CBT · {{ school.name || "NILUJI" }}
-								</p>
-							</div>
-							<div class="pt-0.5 space-y-1 text-xs">
-								<div class="flex gap-2">
-									<span class="text-muted w-14 shrink-0">Nama</span>
-									<span class="font-semibold text-highlighted truncate">: {{ student.name }}</span>
-								</div>
-								<div class="flex gap-2">
-									<span class="text-muted w-14 shrink-0">NISN</span>
-									<span class="font-mono text-default">: {{ student.nisn }}</span>
-								</div>
-								<div class="flex gap-2">
-									<span class="text-muted w-14 shrink-0">Kelas</span>
-									<span class="text-default">: {{ student.class ?? "-" }}</span>
-								</div>
-								<div class="flex items-center gap-2 pt-1">
-									<span class="text-muted w-14 shrink-0">PIN</span>
-									<span class="font-mono font-bold text-sm px-2 py-0.5 rounded bg-elevated border border-default tracking-widest text-highlighted">
-										{{ student.pin || "-" }}
-									</span>
-								</div>
-							</div>
-							<p v-if="joinUrl" class="text-[10px] font-mono text-muted pt-1 truncate">
-								Akses: {{ joinUrl }}
+						class="border-r border-b border-default p-4 flex flex-col gap-2">
+						<div>
+							<p class="text-[11px] font-bold uppercase tracking-wider text-muted">
+								Kartu Peserta Ujian
+							</p>
+							<p class="text-sm font-semibold text-highlighted truncate">
+								{{ school.name || "NILUJI" }}
 							</p>
 						</div>
-
-						<div v-if="qrDataUrl" class="shrink-0 flex flex-col items-center">
-							<img
-								:src="qrDataUrl"
-								alt="QR Ujian"
-								class="size-20 rounded border border-default p-0.5 bg-white">
-							<span class="text-[9px] text-muted mt-0.5">Scan Ujian</span>
+						<p class="text-lg font-bold text-highlighted leading-snug line-clamp-2">
+							{{ student.name }}
+						</p>
+						<div class="flex gap-6 text-sm">
+							<div>
+								<p class="text-[11px] uppercase tracking-wider text-muted">
+									NISN
+								</p>
+								<p class="font-mono font-semibold">
+									{{ student.nisn }}
+								</p>
+							</div>
+							<div>
+								<p class="text-[11px] uppercase tracking-wider text-muted">
+									Kelas
+								</p>
+								<p>{{ labelKelas(student.class, student.rombel) }}</p>
+							</div>
+						</div>
+						<div>
+							<p class="text-[11px] uppercase tracking-wider text-muted">
+								PIN
+							</p>
+							<p class="font-mono text-2xl font-bold tracking-[0.2em] text-highlighted">
+								{{ student.pin || "-" }}
+							</p>
 						</div>
 					</div>
 				</div>
@@ -231,8 +247,36 @@
 				<div v-else class="text-center py-10 text-muted">
 					Belum ada data siswa untuk dicetak.
 				</div>
+
+				<UModal
+					v-model:open="confirmRegenOpen"
+					:title="`Acak ulang PIN ${regenTargetLabel}?`"
+					:dismissible="!regenerating"
+					:ui="{ content: 'max-w-md', footer: 'justify-end' }">
+					<template #body>
+						<UAlert
+							color="warning"
+							variant="subtle"
+							icon="lucide:triangle-alert"
+							title="PIN lama tidak berlaku lagi"
+							:description="`${filteredStudents.length} siswa akan mendapat PIN baru. Kartu yang sudah dibagikan harus dicetak ulang, atau siswa tidak bisa masuk ke ujian yang mewajibkan PIN.`" />
+					</template>
+					<template #footer>
+						<UButton
+							label="Tidak"
+							color="neutral"
+							variant="outline"
+							:disabled="regenerating"
+							@click="confirmRegenOpen = false" />
+						<UButton
+							label="Ya, acak ulang"
+							color="warning"
+							icon="lucide:key-round"
+							:loading="regenerating"
+							@click="regeneratePins" />
+					</template>
+				</UModal>
 			</div>
 		</template>
 	</UModal>
 </template>
-

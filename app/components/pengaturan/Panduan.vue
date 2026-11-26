@@ -35,7 +35,7 @@
 			isi: [
 				"Ada dua cara, pilih yang paling cocok. Satu per satu: klik Tambah Siswa, isi NISN, nama, dan kelasnya. Cocok jika jumlah siswa sedikit atau hanya menambah 1-2 anak baru.",
 				"Sekaligus banyak (impor): klik tombol Import, unduh template CSV/Excel yang disediakan, isi kolomnya (NISN, nama, kelas), lalu unggah filenya.",
-				"Setiap siswa otomatis dibuatkan 6 digit PIN Kartu Peserta. Klik tombol Kartu Peserta untuk melihat atau mencetak kartu ujian lengkap dengan QR Code akses lokal."
+				"Setiap siswa otomatis dibuatkan 6 digit PIN Kartu Peserta. Klik tombol Kartu Peserta untuk mencetak kartu berisi nama, NISN, kelas, dan PIN."
 			]
 		},
 		{
