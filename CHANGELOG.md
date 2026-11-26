@@ -1,5 +1,49 @@
 # Catatan Perubahan
 
+## v1.5.0 (2026-11-26)
+
+Rilis ini membawa bank soal per gugus untuk pembuat soal kecamatan, pemisahan kelas dan rombel siswa, serta kartu peserta yang lebih hemat kertas.
+
+### Yang perlu dilakukan setelah memperbarui
+
+- Siswa lama yang tersimpan dengan kelas seperti IVA atau VB dibetulkan otomatis saat aplikasi pertama kali dibuka, setelah database dicadangkan. Periksa menu **Siswa**: kalau masih ada kartu **Kelas tidak terdaftar**, daftarkan kelasnya di **Pengaturan › Data Kelas**, lalu klik **Cocokkan kelas otomatis**.
+- Cetak ulang kartu peserta bila kartu lama memuat QR alamat ujian. QR di kartu lama bisa menunjuk ke alamat yang sudah berubah.
+- Sekolah yang memakai Tarik Soal Online memilih gugusnya sekali di halaman itu.
+
+### Bank soal per gugus
+
+- Pembuat soal kecamatan bisa menerbitkan paket soal untuk gugus tertentu atau semua gugus lewat **Tentang › Fitur › Publikasikan Bank Soal Gugus**. Bank soal lokal tidak berubah, dan judul yang dilihat sekolah bisa dibedakan dari nama jenis ujian lokal.
+- Hanya pemegang token GitHub dengan izin tulis ke repositori bank soal yang bisa menerbitkan. Token disimpan di penyimpanan kunci sistem operasi, tidak di database.
+- Paket yang sudah terbit bisa dihapus dari daftar **Sudah terbit** setelah konfirmasi "Tidak / Ya, hapus". Soal, gambar, dan entri katalognya terhapus dalam satu commit, jadi daftar di sekolah langsung bersih.
+- Gugus yang masih punya paket terbit tidak bisa dihapus atau diganti namanya, supaya tidak ada soal yang tertinggal tanpa gugus.
+- **Tarik Soal Online** kini memakai pilihan gugus: sekolah memilih gugusnya sekali (tersimpan, bisa diganti), lalu kelas, mata pelajaran, dan jenis ujian. Soal bisa disimpan ke mata pelajaran dan nama jenis ujian pilihan sekolah.
+- Teks di Tarik Soal Online tidak lagi bertumpuk.
+
+### Kelas dan rombel siswa
+
+- Data siswa kini menyimpan **kelas** (tingkat, misalnya 4) dan **rombel** (misalnya IVA) secara terpisah. Bank soal dan ujian tetap per kelas, jadi satu STS Kelas 4 berlaku untuk semua rombel kelas 4.
+- Impor Excel/CSV dan Tarik Data Siswa membaca tulisan seperti IVA, IV B, 4A, atau Kelas 4-A sebagai Kelas 4 dengan rombelnya. Kelas yang tidak dikenali ditandai di pratinjau dan tidak ikut tersimpan.
+- Siswa lama yang tersimpan dengan kelas seperti IVA dibetulkan otomatis saat aplikasi dibuka, setelah database dicadangkan. Sebelumnya siswa ini tidak tampil di menu Siswa dan ditolak saat masuk ujian.
+- Menu Siswa menampilkan kartu **Kelas tidak terdaftar** bila ada siswa yang kelasnya tidak cocok dengan Data Kelas, lengkap dengan tombol **Cocokkan kelas otomatis**. Halaman kelas bisa disaring per rombel, dan form siswa punya isian rombel.
+- Kartu peserta menampilkan rombel di samping kelas.
+- Judul kolom tabel siswa tetap terlihat saat daftar siswa digulir.
+
+### Kartu peserta tanpa alamat ujian
+
+- QR dan alamat server dihapus dari kartu peserta. Alamat IP laptop pengawas bisa berubah, misalnya setelah router dinyalakan ulang, sehingga kartu yang sudah dicetak bisa menunjuk ke alamat yang salah. Siswa kini memindai **QR Akses Ujian** yang ditampilkan pengawas dari Dashboard.
+- Aplikasi NILUJI Siswa mengarahkan siswa memindai QR Akses Ujian di layar pengawas, bukan QR di kartu.
+- Kartu dicetak dari lembar khusus berukuran A4: 10 kartu per lembar (2 kolom × 5 baris), dengan nama dan PIN yang lebih besar. Semua kartu berukuran sama (9,7 × 5,6 cm) dan dibatasi garis kotak tipis yang dipakai bersama, jadi satu guntingan memisahkan dua kartu. Sebelumnya yang tercetak adalah seluruh jendela aplikasi.
+
+### Bank Soal lebih cepat terbuka
+
+- Halaman daftar soal tidak lagi tersendat saat pertama kali dibuka. Sebelumnya halaman itu memuat ±2,1 MB kode sekaligus (editor soal, pembaca Excel, Word, dan PDF) walaupun belum dipakai; kini ±0,7 MB, dan sisanya baru dimuat saat modalnya dibuka.
+- Pembaca Excel dan pembuat ZIP di halaman Hasil Ujian juga baru dimuat saat guru mengekspor.
+
+### Perbaikan
+
+- Import soal dari PDF tidak lagi ditolak dengan pesan "Ekstensi file '.pdf' tidak diizinkan".
+- Tombol **Acak Ulang PIN** di jendela Kartu Peserta kembali berfungsi. Sebelumnya jendela konfirmasinya muncul di belakang jendela Kartu Peserta sehingga tidak bisa diklik. Kini muncul peringatan "Tidak / Ya, acak ulang" berisi jumlah siswa yang terdampak.
+
 ## v1.4.0 (2026-11-26)
 
 Rilis ini menyederhanakan cara siswa masuk ujian dan membuat import naskah soal jauh lebih andal, termasuk import langsung dari PDF.

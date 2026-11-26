@@ -9,10 +9,24 @@
 
 	const riwayat: ChangelogEntry[] = [
 		{
+			title: "Bank Soal per Gugus, Rombel Siswa & Kartu Peserta A4",
+			date: "2026-11-26",
+			badge: "v1.5.0",
+			badgeColor: "success",
+			perubahan: [
+				"Pembuat soal kecamatan bisa menerbitkan paket soal per gugus, dan sekolah menariknya lewat Tarik Soal Online sesuai gugusnya.",
+				"Kelas (tingkat) dan rombel siswa kini terpisah. Tulisan seperti IVA atau 4B dibaca sebagai Kelas 4 dengan rombelnya, dan data lama dibetulkan otomatis.",
+				"Kartu peserta dicetak 10 per lembar A4 dengan garis potong bersama, tanpa QR alamat ujian yang bisa berubah.",
+				"Acak Ulang PIN kembali berfungsi dan meminta konfirmasi lebih dulu.",
+				"Halaman Bank Soal lebih cepat terbuka, dan judul kolom tabel siswa tetap terlihat saat digulir.",
+				"Import soal dari PDF tidak lagi ditolak."
+			]
+		},
+		{
 			title: "Login Siswa Lebih Cepat & Import Soal dari PDF",
 			date: "2026-11-26",
 			badge: "v1.4.0",
-			badgeColor: "success",
+			badgeColor: "primary",
 			perubahan: [
 				"Siswa cukup memakai NISN dan Token Ujian. Nama siswa ditampilkan untuk dipastikan, dan PIN Kartu hanya diminta pada ujian yang diatur Wajib PIN.",
 				"Import Soal dari PDF: nomor soal, opsi, bagian PG/uraian, bacaan bersama, tata letak dua kolom, dan gambar soal dikenali otomatis tanpa internet.",
