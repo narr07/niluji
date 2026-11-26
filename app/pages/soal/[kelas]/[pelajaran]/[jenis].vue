@@ -58,6 +58,22 @@
 	const previewId = ref<number | null>(null);
 	const importMenuOpen = ref(false);
 
+	// Modal di halaman ini membawa pustaka besar (editor TipTap, pembaca Word/PDF, dll.). Kodenya
+	// baru dimuat saat modal pertama kali dibuka, lalu modal tetap terpasang supaya pembukaan
+	// berikutnya instan. Tanpa ini, membuka daftar soal pertama kali harus memuat ±2 MB kode.
+	const mountedOnFirstOpen = (open: Ref<boolean>) => {
+		const mounted = ref(false);
+		watch(open, (isOpen) => {
+			if (isOpen) mounted.value = true;
+		}, { immediate: true });
+		return mounted;
+	};
+	const formMounted = mountedOnFirstOpen(formOpen);
+	const importMounted = mountedOnFirstOpen(importOpen);
+	const importNaskahMounted = mountedOnFirstOpen(importNaskahOpen);
+	const importMarkdownMounted = mountedOnFirstOpen(importMarkdownOpen);
+	const previewMounted = mountedOnFirstOpen(previewOpen);
+
 	// Satu tombol Import Soal dengan pilihan format, bukan beberapa tombol terpisah —
 	// alur importnya sendiri (modal Word vs CSV/Excel vs Markdown) tidak berubah, cuma pintu masuknya digabung.
 	const importItems = [[
@@ -154,7 +170,8 @@
 		</template>
 	</UDashboardPanel>
 
-	<SoalFormModal
+	<LazySoalFormModal
+		v-if="formMounted"
 		v-model:open="formOpen"
 		:kelas="kelas"
 		:jenis="jenis"
@@ -162,14 +179,16 @@
 		:editing-id="editingId"
 		@saved="loadData" />
 
-	<SoalImportModal
+	<LazySoalImportModal
+		v-if="importMounted"
 		v-model:open="importOpen"
 		:kelas="kelas"
 		:jenis="jenis"
 		:subject-id="subjectId"
 		@saved="loadData" />
 
-	<SoalImportNaskahModal
+	<LazySoalImportNaskahModal
+		v-if="importNaskahMounted"
 		v-model:open="importNaskahOpen"
 		:format="importNaskahFormat"
 		:kelas="kelas"
@@ -177,12 +196,13 @@
 		:subject-id="subjectId"
 		@saved="loadData" />
 
-	<SoalImportMarkdownModal
+	<LazySoalImportMarkdownModal
+		v-if="importMarkdownMounted"
 		v-model:open="importMarkdownOpen"
 		:kelas="kelas"
 		:jenis="jenis"
 		:subject-id="subjectId"
 		@saved="loadData" />
 
-	<SoalPreviewModal v-model:open="previewOpen" :question-id="previewId" />
+	<LazySoalPreviewModal v-if="previewMounted" v-model:open="previewOpen" :question-id="previewId" />
 </template>

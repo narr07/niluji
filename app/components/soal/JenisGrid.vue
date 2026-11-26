@@ -34,10 +34,12 @@
 	const load = async () => {
 		loading.value = true;
 		try {
+			// Daftar soal tidak bergantung pada mapel, jadi diambil bersamaan dengan daftar mapel.
+			const questionsRequest = invoke<QuestionSummary[]>("list_questions");
 			subjects.value = await invoke<Subject[]>("list_subjects");
 			[questionTypes.value, questions.value] = await Promise.all([
 				invoke<QuestionTypeRecord[]>("list_question_types", { class: props.kelas, subjectId: subjectId.value }),
-				invoke<QuestionSummary[]>("list_questions")
+				questionsRequest
 			]);
 		} finally {
 			loading.value = false;

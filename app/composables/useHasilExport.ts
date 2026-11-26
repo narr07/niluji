@@ -1,7 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
 import { save as saveDialog } from "@tauri-apps/plugin-dialog";
-import JSZip from "jszip";
-import * as XLSX from "xlsx";
 
 export interface HasilSessionRow {
 	studentName: string
@@ -49,7 +47,9 @@ const toRow = (s: HasilSessionRow) => [
 	finalScoreText(s)
 ];
 
-const sheetBytes = (rows: (string | number)[][]): Uint8Array => {
+// SheetJS dan JSZip dimuat saat guru benar-benar mengekspor, supaya halaman Hasil Ujian cepat terbuka.
+const sheetBytes = async (rows: (string | number)[][]): Promise<Uint8Array> => {
+	const XLSX = await import("xlsx");
 	const sheet = XLSX.utils.aoa_to_sheet(rows);
 	const workbook = XLSX.utils.book_new();
 	XLSX.utils.book_append_sheet(workbook, sheet, "Hasil");
@@ -74,7 +74,7 @@ export const useHasilExport = () => {
 			const path = await saveDialog({ defaultPath: defaultFilename, filters: [{ name: "Excel", extensions: ["xlsx"] }] });
 			if (!path) return;
 
-			const bytes = sheetBytes([headerRow, ...sessions.map(toRow)]);
+			const bytes = await sheetBytes([headerRow, ...sessions.map(toRow)]);
 			await invoke("write_file_bytes", { path, bytes: Array.from(bytes) });
 
 			toast.add({ title: "Export selesai", description: `File disimpan di ${path}`, icon: "lucide:check", color: "success" });
@@ -92,9 +92,10 @@ export const useHasilExport = () => {
 			const path = await saveDialog({ defaultPath: defaultFilename, filters: [{ name: "Zip", extensions: ["zip"] }] });
 			if (!path) return;
 
+			const { default: JSZip } = await import("jszip");
 			const zip = new JSZip();
 			for (const file of files) {
-				zip.file(`${file.name}.xlsx`, sheetBytes([headerRow, ...file.sessions.map(toRow)]));
+				zip.file(`${file.name}.xlsx`, await sheetBytes([headerRow, ...file.sessions.map(toRow)]));
 			}
 			const bytes = await zip.generateAsync({ type: "uint8array" });
 			await invoke("write_file_bytes", { path, bytes: Array.from(bytes) });
@@ -168,7 +169,7 @@ export const useHasilExport = () => {
 			if (!path) return;
 
 			const rows = (await Promise.all(sessions.map((s) => fetchSessionDetailRows(s.sessionId, s.jenis)))).flat();
-			const bytes = sheetBytes([detailHeaderRow, ...rows]);
+			const bytes = await sheetBytes([detailHeaderRow, ...rows]);
 			await invoke("write_file_bytes", { path, bytes: Array.from(bytes) });
 
 			toast.add({ title: "Export selesai", description: `File disimpan di ${path}`, icon: "lucide:check", color: "success" });
@@ -189,10 +190,11 @@ export const useHasilExport = () => {
 			const path = await saveDialog({ defaultPath: defaultFilename, filters: [{ name: "Zip", extensions: ["zip"] }] });
 			if (!path) return;
 
+			const { default: JSZip } = await import("jszip");
 			const zip = new JSZip();
 			for (const student of students) {
 				const rows = (await Promise.all(student.sessions.map((s) => fetchSessionDetailRows(s.sessionId, s.jenis)))).flat();
-				zip.file(`${safeName(student.name)}.xlsx`, sheetBytes([detailHeaderRow, ...rows]));
+				zip.file(`${safeName(student.name)}.xlsx`, await sheetBytes([detailHeaderRow, ...rows]));
 			}
 			const bytes = await zip.generateAsync({ type: "uint8array" });
 			await invoke("write_file_bytes", { path, bytes: Array.from(bytes) });
